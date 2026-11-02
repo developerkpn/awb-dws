@@ -55,7 +55,7 @@ for (const system of dirs(join(ROOT, 'apps'))) {
       add('B. Domain dan modul backend', `${system}/${role}/modules/${module}`, join(app, 'src/modules', module))
     }
 
-    for (const file of files(join(app, 'prisma/schema'), '.prisma')) {
+    for (const file of [join(app, 'prisma/schema.prisma')].filter((path) => existsSync(path))) {
       for (const [, model] of readFileSync(file, 'utf8').matchAll(/^model\s+(\w+)\s*\{/gm)) {
         add('D. Model data dan migrasi', model, file)
       }

@@ -1,3 +1,14 @@
+// Customer Pre-Registration database: PostgreSQL on AWS.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
 /// Customer Pre-Registration. Placeholder model: replace with the real schema
 /// (for example by introspecting the existing customer_prereg database with `prisma db pull`).
 model PreRegistration {

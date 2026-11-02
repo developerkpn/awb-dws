@@ -90,7 +90,7 @@ A full explanation in Indonesian, covering the weighbridge steps (`wbSessionPhas
 | `prereg/api` | PostgreSQL | AWS | `@prisma/adapter-pg` |
 | `site/api` | SQL Server | on-prem, one per plant | `@prisma/adapter-mssql` |
 
-Each API has its own Prisma setup: `prisma/schema/` (one `.prisma` file per domain/module), `prisma/migrations/`, `prisma.config.ts`, and the single client in `src/config/prisma.ts`. Only `*.repository.ts` files use the client (enforced by the boundary check). The generated client lives in `src/generated/` and is not committed; Turborepo regenerates it before dev, typecheck, test and build.
+Each API has its own Prisma setup: one `prisma/schema.prisma` (all models of that app in one file), `prisma/migrations/`, `prisma.config.ts`, and the single client in `src/config/prisma.ts`. Only `*.repository.ts` files use the client (enforced by the boundary check). The generated client lives in `src/generated/` and is not committed; Turborepo regenerates it before dev, typecheck, test and build.
 
 SQL Server has no enum type, so enum-like columns are strings validated in the app with the schemas in `@awb/contracts`.
 

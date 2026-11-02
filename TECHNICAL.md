@@ -68,6 +68,7 @@ Susunan folder, aturan dan perintah ada di `README.md`. Rancangan tabel ada di `
 | K-18 | 2026-11-02 | Acuan struktur customer_prereg adalah branch `dev_1.3.1/bc`, ditambah 2 perbaikan terbaru di `production` | `bc` 66 commit lebih maju, cocok dengan database dan sudah mendukung PO sebagian | berlaku |
 | K-20 | 2026-11-02 | Layanan pabrik menyediakan API dengan alamat dan format yang sama dengan VCF untuk aplikasi Android | Aplikasi cukup diganti alamat servernya | berlaku |
 | K-23 | 2026-11-02 | Blueprint untuk manajemen (`BLUEPRINT.md`, dicetak PDF) dipisah dari catatan teknis (`TECHNICAL.md`) | Blueprint terlalu teknis untuk manajemen | berlaku |
+| K-24 | 2026-11-02 | Satu file `prisma/schema.prisma` per aplikasi (prereg dan site), berisi semua model aplikasi itu | Lebih rapi daripada satu file `.prisma` per domain/modul | berlaku |
 
 ## Riwayat teknis
 
@@ -84,6 +85,7 @@ Susunan folder, aturan dan perintah ada di `README.md`. Rancangan tabel ada di `
 | R-016 | 2026-11-02 | Database | 6 pertanyaan terbuka di inventaris tabel; API aplikasi Android belum diputuskan | 4 diputuskan: acuan branch, master supir/kendaraan/transporter di HO, API meniru VCF, akun layanan SAP; layar re-adopt dan ekspor struktur WB.NET masih terbuka | K-18 s.d. K-21 |
 | R-017 | 2026-11-02 | Perangkat | R-010 menulis format input controller sebagai `:INPn!` | Koreksi: format input yang benar adalah `:INP<n><0/1>;`, diakhiri titik koma (lihat `docs/design/protokol-controller.md`) | Koreksi atas R-010 |
 | R-019 | 2026-11-02 | Dokumentasi | Blueprint berisi hal untuk manajemen dan hal teknis sekaligus | Blueprint (manajemen, PDF) memakai bahasa sederhana; keputusan teknis, riwayat teknis dan daftar teknis pindah ke `TECHNICAL.md` tanpa mengubah isi barisnya | K-23 |
+| R-020 | 2026-11-02 | Database | Satu file `.prisma` per domain/modul di folder `prisma/schema/` | Satu `prisma/schema.prisma` per aplikasi; model dan migrasi tidak berubah | K-24 |
 
 ## A. Aplikasi
 

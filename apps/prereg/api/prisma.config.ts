@@ -6,7 +6,7 @@ const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env'
 if (existsSync(envFile)) process.loadEnvFile(envFile)
 
 export default defineConfig({
-  schema: 'prisma/schema',
+  schema: 'prisma/schema.prisma',
   migrations: { path: 'prisma/migrations' },
   datasource: { url: process.env.DATABASE_URL },
 })
