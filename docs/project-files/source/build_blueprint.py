@@ -162,8 +162,8 @@ def main():
     data = {
         "kind": "Blueprint", "title": "Blueprint Sistem", "subtitle": "Autonomous Weighbridge Downstream",
         "code": CODE, "version": version, "date": shown, "status": "DOKUMEN HIDUP",
-        "purpose": "Peta komponen AWB-DWS, progres pembangunan, keputusan teknis dan riwayat perubahan "
-                   "sejak awal pengembangan.",
+        "purpose": "Ringkasan AWB-DWS untuk manajemen: komponen sistem, progres, keputusan penting, hal yang perlu "
+                   "diputuskan dan riwayat perubahan sejak awal pengembangan.",
         "cover_overline": "AWB-DWS / BLUEPRINT SISTEM",
         "opening_title": "Blueprint Sistem\nAWB Downstream",
         "opening_subtitle": f"Kondisi per {shown}",
@@ -175,11 +175,10 @@ def main():
             ["Sifat dokumen", "Dokumen hidup: menunjukkan kondisi terkini; riwayat perubahan tidak pernah ditimpa"],
         ],
         "cover_note_title": "CARA MEMBACA STATUS",
-        "cover_note": "direncanakan: disepakati, belum dibangun  ·  kerangka: sudah tersambung, logika masih "
-                      "sementara  ·  dikerjakan: sedang dibangun  ·  selesai: berfungsi dan teruji  ·  "
-                      "dihentikan: tidak dipakai lagi.",
+        "cover_note": "Belum mulai: belum dikerjakan  ·  Persiapan: struktur dasar sudah disiapkan  ·  "
+                      "Dikerjakan: sedang dibangun  ·  Selesai: sudah berfungsi dan diuji.",
         "show_toc": True,
-        "toc_note": "Bagian 1 s.d. 5 untuk pembaca umum; lampiran berisi rincian teknis.",
+        "toc_note": "Rincian teknis untuk tim pengembang ada di dokumen terpisah (TECHNICAL.md).",
         "header_label": "AWB-DWS / BLUEPRINT SISTEM",
         "footer_label": "KPN CORP  |  INTERNAL",
         "sections": sections,

@@ -1,6 +1,6 @@
 # Protokol controller timbangan (RFID, relay, sensor)
 
-Acuan untuk `apps/site/api/src/devices/controller/`. Formatnya harus **sama persis** dengan sistem lama (BLUEPRINT K-17).
+Acuan untuk `apps/site/api/src/devices/controller/`. Formatnya harus **sama persis** dengan sistem lama (keputusan K-17).
 
 Sumber:
 

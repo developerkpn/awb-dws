@@ -12,7 +12,7 @@ Customer Pre-Registration (AWS) dan sistem pabrik (on-premise) adalah aplikasi t
 - **Masuk ke sini** hanya data yang dikirim **dari satu aplikasi ke aplikasi lain** (lewat HTTP, sinkronisasi atau socket). Data yang hanya dipakai di dalam satu aplikasi tetap disimpan di aplikasi itu.
 - **Menambah kolom yang tidak wajib itu aman.**
 - **Mengganti nama, menghapus atau mewajibkan kolom adalah perubahan besar.** Pabrik di-update pada waktu yang berbeda dari HO, jadi pabrik yang belum di-update masih memakai formulir lama. Naikkan `schemaVersion` dan tetap terima versi lama sampai semua pabrik sudah di-update.
-- Setiap formulir baru dicatat di `BLUEPRINT.md`, Lampiran E.
+- Setiap formulir baru dicatat di `TECHNICAL.md`, bagian E.
 
 ## Isi
 

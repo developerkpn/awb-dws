@@ -1,8 +1,8 @@
 # Inventaris tabel dari sistem lama
 
-**Status: draf ditinjau** (2 November 2026). Jawaban atas bagian C dicatat di BLUEPRINT K-18 s.d. K-21.
+**Status: draf ditinjau** (2 November 2026). Jawaban atas bagian C dicatat sebagai keputusan K-18 s.d. K-22 (di `BLUEPRINT.md` dan `TECHNICAL.md`).
 
-Keputusan dasarnya adalah BLUEPRINT K-13: database baru, dengan struktur tabel disalin dari sistem lama secara selektif dan boleh diubah.
+Keputusan dasarnya adalah K-13: database baru, dengan struktur tabel disalin dari sistem lama secara selektif dan boleh diubah.
 
 | Usulan | Artinya |
 |---|---|
@@ -22,7 +22,7 @@ Rincian kolom tidak ditulis di sini, karena sumbernya masih bisa dibaca langsung
 
 | Sumber | Tabel | Salin | Ubah | Ditunda | Tidak dipakai | Keputusan |
 |---|---|---|---|---|---|---|
-| customer_prereg (PostgreSQL) | 44 | 26 | 9 | 3 | 5 | 1 |
+| customer_prereg (PostgreSQL) | 44 | 27 | 9 | 3 | 5 | — |
 | VCF / TCS (SQL Server) | 34 | 15 | 10 | — | 8 | 1 |
 | WB.NET (SQL Server, terlihat dari kode) | 7 | 2 | 4 | — | 1 | — |
 | AgentWBController (MySQL) | 2 | — | — | — | 2 | — |
@@ -61,7 +61,7 @@ Temuan penting:
 | `mst_role`, `mst_page`, `mst_page_access` | Salin | Tambah relasi (FK) yang hilang. |
 | `mst_email`, `mst_telf` | Ubah | Perbaiki tipe kolom `update_by`. |
 | `otp_transaction` | Salin | OTP pendaftaran. |
-| `session_sap` | Keputusan | Menyimpan password SAP milik pengguna. Usul: diganti akun layanan SAP. |
+| `session_sap` | Salin | Kredensial SAP petugas, dipakai saat Logistik approve (K-22). Akses SAP lain memakai satu akun bersama (`SAP_API_CREDENTIALS`). |
 | `mst_user_api` | Salin | Akun layanan, misalnya untuk sinkronisasi dengan pabrik. |
 | `mst_usr_to_cust`, `mst_usr_to_plt` | Salin | Satu pengguna untuk beberapa customer/pabrik. |
 | `mst_email_mgr` | Salin | Daftar CC manager per pabrik. |
@@ -179,12 +179,12 @@ Temuan penting:
 
 ## C. Keputusan
 
-| No | Jawaban | BLUEPRINT |
+| No | Jawaban | Keputusan |
 |---|---|---|
 | 1 | Branch `dev_1.3.1/bc` (66 commit lebih maju dari `production`, belum digabung), ditambah 2 perbaikan terbaru di `production` | K-18 |
 | 2 | Ya. Dikelola di Customer Pre-Registration, dikirim ke pabrik tujuan saat Logistik approve; integrasi SAP menyusul | K-19 |
 | 3 | Ya, API meniru VCF | K-20 |
-| 4 | Akun layanan SAP | K-21 |
+| 4 | Saat Logistik approve: akun SAP petugas, seperti aplikasi lama. Akses SAP lain: satu akun bersama seperti warehouse_management (`SAP_API_CREDENTIALS`) | K-21 → K-22 |
 | 5 | Belum tahu | terbuka |
 | 6 | Kemungkinan bisa | tindak lanjut |
 

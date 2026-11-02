@@ -2,10 +2,12 @@
 
 AWB Downstream in one repository: Customer Pre-Registration (AWS) and the plant system that replaces WB.NET and runs TCS (on-prem, one per plant). Requirements are in `docs/` (BRD v0.7, PRD v0.4).
 
-**[BLUEPRINT.md](BLUEPRINT.md)** (Indonesian) is the living map of what exists, how far each part has got, the technical decisions and the full change history. Management reads it as a PDF: `npm run blueprint:pdf` writes `docs/documents/Blueprint-AWB-DWS-v<date>.pdf` (first time: `npm run docs:setup`).
+Two living documents, both in Indonesian:
 
-- Update it in the same change whenever you add or change an app, module, endpoint, model, migration, contract, screen, device or integration. `npm run check` fails if the code has something the blueprint doesn't list.
-- History is never overwritten. Its "Riwayat perubahan" table is append-only and records *before → after → why*; a changed decision gets a new row and the old one is marked "digantikan oleh K-xx". `npm run check` fails if an old history row is edited, a decision is deleted or overwritten, or the blueprint changes without a new history row (compared with the last commit, or with `BLUEPRINT_BASE`, e.g. `origin/main`, in CI).
+- **[BLUEPRINT.md](BLUEPRINT.md)**, for management, in plain language: progress per area, important business decisions, open questions and change history. `npm run blueprint:pdf` writes it as `docs/documents/Blueprint-AWB-DWS-v<date>.pdf` (first time: `npm run docs:setup`).
+- **[TECHNICAL.md](TECHNICAL.md)**, for developers: every app, module, endpoint, model, migration, contract, screen and device, plus technical decisions and history. Update it in the same change; `npm run check` fails if the code has something it doesn't list.
+
+History is never overwritten in either document. History rows are append-only and record *before → after → why*; a changed decision gets a new row and the old one is marked "digantikan oleh K-xx". `npm run check` fails if an old history row is edited, a decision is deleted or overwritten, or a document changes without a new history row (compared with the last commit, or with `BLUEPRINT_BASE`, e.g. `origin/main`, in CI).
 
 ## Layout
 
@@ -142,7 +144,7 @@ One folder per module, one file per layer.
 
 - Write a comment only when the code can't explain itself: a non-obvious reason, a workaround or a business rule.
 - **At most 2 lines per comment**, and keep them few. Don't restate what the code already says.
-- Longer explanations go in a README next to the code (for example `packages/contracts/README.md`) or in `BLUEPRINT.md`.
+- Longer explanations go in a README next to the code (for example `packages/contracts/README.md`) or in `TECHNICAL.md`.
 
 ## Tooling notes
 
@@ -152,9 +154,9 @@ One folder per module, one file per layer.
 
 ## Not decided yet
 
-The full list, in Indonesian, is section 6 of `BLUEPRINT.md`.
+The full list, in Indonesian, is section 5 of `BLUEPRINT.md`.
 
-- **Which tables to copy.** Both apps get new databases, with table structures copied selectively from the old systems (customer_prereg, VCF, WB.NET) and changed where needed (BLUEPRINT K-13). `Journey` and `PreRegistration` are placeholders until then. Draft list for review (Indonesian): `docs/design/inventaris-tabel.md`.
+- **Which tables to copy.** Both apps get new databases, with table structures copied selectively from the old systems (customer_prereg, VCF, WB.NET) and changed where needed (decision K-13). `Journey` and `PreRegistration` are placeholders until then. Draft list for review (Indonesian): `docs/design/inventaris-tabel.md`.
 - **Old data and cutover:** later (PRD O-06).
 - **Backup server if a plant server fails:** later (PRD O-09). Until then `site/api` runs as exactly one instance per plant, because it holds the controller sockets.
-- **Controller relays:** what each relay (`OPEN1`, `OPEN4`, ...) does is checked during the site survey. The message format comes from VCF (`WbGateListenerService`); the Priscolin controllers are assumed to be the same type (K-14). The exact format is in `docs/design/protokol-controller.md`; `controller.protocol.ts` passes raw data through until it is implemented.
+- **Controller relays:** what each relay (`OPEN1`, `OPEN4`, ...) does is checked during the site survey. The message format comes from VCF (`WbGateListenerService`); the RFID tap format stays exactly the same, while the barrier sensor logic may change because Priscolin uses different sensors (K-17). The exact format is in `docs/design/protokol-controller.md`; `controller.protocol.ts` passes raw data through until it is implemented.
