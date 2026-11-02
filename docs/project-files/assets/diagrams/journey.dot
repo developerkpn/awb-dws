@@ -1,0 +1,23 @@
+
+digraph G {
+graph [bgcolor="white", pad="0.25", nodesep="0.30", ranksep="0.35", dpi=180,
+       fontname="Noto Sans", fontsize=11, compound=true, outputorder="edgesfirst"];
+node [shape=box, style="rounded,filled", fillcolor="#F7F5F2", color="#BDB6B0",
+      fontname="Noto Sans", fontsize=12, fontcolor="#302F31",
+      margin="0.16,0.12", penwidth=1.1];
+edge [fontname="Noto Sans", fontsize=10, fontcolor="#635F5D", color="#8D8580",
+      penwidth=1.15, arrowsize=0.7];
+
+rankdir=TB;
+ho [label="Customer Pre-Registration (opsional)\natau data supir / petugas HO", fillcolor="#F7E9E7", color="#A13E34"];
+reg [label="Kiosk registrasi\nScan QR atau isi data → ambil kartu → tap"];
+wi [label="WB IN\n2 tap + AI/OCR"];
+stage [label="Stasiun sesuai flow\nHasil petugas TCS"];
+wo [label="WB OUT\n2 tap + AI/OCR"];
+exit [label="Kiosk registrasi keluar\nTiket + penutupan journey", fillcolor="#F7E9E7", color="#A13E34"];
+ho -> reg -> wi -> stage -> wo -> exit;
+{rank=same; wi; stage; wo;}
+reject [label="Reject material\nLewati proses tersisa", color="#A13E34", fillcolor="#F7E9E7"];
+stage -> reject [label="bila reject"]; reject -> wo;
+
+}

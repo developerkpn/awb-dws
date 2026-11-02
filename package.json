@@ -1,0 +1,36 @@
+{
+  "name": "awb-dws",
+  "private": true,
+  "description": "AWB Downstream: Customer Pre-Registration (AWS) and the plant system (WB.NET replacement + TCS, on-prem) in one repository",
+  "packageManager": "npm@10.9.8",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:prereg": "turbo run dev --filter=@awb/prereg-api --filter=@awb/prereg-web",
+    "dev:site": "turbo run dev --filter=@awb/site-api --filter=@awb/site-web --filter=@awb/site-kiosk",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "check:boundaries": "depcruise apps packages --config .dependency-cruiser.cjs",
+    "check": "npm run typecheck && npm run check:boundaries && npm run check:blueprint && npm run test",
+    "db:up": "docker compose -f infra/dev/compose.yaml up -d --wait",
+    "db:down": "docker compose -f infra/dev/compose.yaml down",
+    "db:generate": "turbo run db:generate",
+    "db:deploy": "turbo run db:deploy",
+    "check:blueprint": "node scripts/check-blueprint.mjs",
+    "docs:setup": "python3 -m venv docs/.venv && docs/.venv/bin/python -m pip install -q -r docs/project-files/source/requirements-docs.txt",
+    "blueprint:pdf": "docs/.venv/bin/python docs/project-files/source/build_blueprint.py"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "dependency-cruiser": "^18.7.1",
+    "turbo": "^2.11.10",
+    "typescript": "~6.0.3"
+  }
+}

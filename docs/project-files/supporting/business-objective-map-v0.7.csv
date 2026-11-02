@@ -1,0 +1,19 @@
+﻿business_requirement_id,title,business_objective_id,priority
+BR-01,Registrasi dengan atau tanpa Customer Pre-Registration,OBJ-02,MUST
+BR-02,Kemandirian layanan registrasi,OBJ-01,MUST
+BR-03,Kelangsungan operasional pabrik,OBJ-03,MUST
+BR-04,Kemandirian pengelolaan timbangan,OBJ-05,MUST
+BR-05,Keandalan hasil timbang,OBJ-02,MUST
+BR-06,Konsistensi empat jenis transaksi,OBJ-02,MUST
+BR-07,Keterlacakan penanganan material,OBJ-02,MUST
+BR-08,Kendali keputusan mutu,OBJ-02,MUST
+BR-09,Kepastian penyelesaian keluar,OBJ-02,MUST
+BR-10,Keutuhan catatan perjalanan,OBJ-02,MUST
+BR-11,Keselarasan informasi HO dan pabrik,OBJ-03,MUST
+BR-12,Ketepatan administrasi transaksi,OBJ-02,MUST
+BR-13,Pengawasan operasional,OBJ-04,MUST
+BR-14,Akuntabilitas kewenangan,OBJ-02,MUST
+BR-15,Kesiapan pelayanan mandiri,OBJ-01,MUST
+BR-16,Keberlanjutan saat peralihan,OBJ-05,MUST
+BR-17,Kemudahan layanan dan dokumen,OBJ-01,MUST
+BR-18,Ketertiban aliran kendaraan,OBJ-04,SHOULD

@@ -1,0 +1,28 @@
+
+digraph G {
+graph [bgcolor="white", pad="0.25", nodesep="0.30", ranksep="0.35", dpi=180,
+       fontname="Noto Sans", fontsize=11, compound=true, outputorder="edgesfirst"];
+node [shape=box, style="rounded,filled", fillcolor="#F7F5F2", color="#BDB6B0",
+      fontname="Noto Sans", fontsize=12, fontcolor="#302F31",
+      margin="0.16,0.12", penwidth=1.1];
+edge [fontname="Noto Sans", fontsize=10, fontcolor="#635F5D", color="#8D8580",
+      penwidth=1.15, arrowsize=0.7];
+
+rankdir=TB;
+enter [label="Lane kosong\nLampu / petunjuk mengizinkan masuk"];
+position [label="Truk berhenti di platform\nAI memeriksa posisi / perimeter"];
+walk [label="Supir turun ke kiosk\ndi dalam area timbangan"];
+tap1 [label="Tap 1: tampilkan data journey\nhasil OCR pelat + status AI\nBelum merekam berat", fillcolor="#F7E9E7", color="#A13E34"];
+ok [label="Data sesuai dan\nkebijakan AI/OCR (O-13) terpenuhi?", shape=diamond, fillcolor="white"];
+tap2 [label="Tap 2: kartu dan sesi yang sama\nAmbil berat stabil dari indikator", fillcolor="#F7E9E7", color="#A13E34"];
+commit [label="Commit berat + bukti\nSatu capture per tahap"];
+release [label="Supir kembali ke truk\nLampu / barrier keluar → tahap berikutnya"];
+warn [label="Peringatan / tahan\nPetunjuk dan bantuan sesuai kebijakan", color="#A13E34"];
+enter -> position -> walk -> tap1 -> ok;
+ok -> tap2 [label="ya"];
+ok -> warn [label="tidak"];
+warn -> tap1 [style=dashed, label="setelah ditangani"];
+tap2 -> commit -> release;
+{rank=same; tap2; warn;}
+
+}

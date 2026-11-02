@@ -1,0 +1,76 @@
+{
+  "latest_versions": {
+    "BRD": "0.7",
+    "PRD": "0.2"
+  },
+  "documents": [
+    {
+      "document": "BRD-AWB-DWS-v0.7",
+      "pdf_pages": 7,
+      "pdf_bookmarks": 7,
+      "pdf_text_symbols": "passed",
+      "docx_zip_xml": "passed",
+      "pilot_location": "Priscolin Karawang / proposed"
+    }
+  ],
+  "core_sections": [
+    "Ringkasan Eksekutif",
+    "Tujuan Bisnis",
+    "Ruang Lingkup Proyek",
+    "Kebutuhan Bisnis",
+    "Pihak yang Terlibat",
+    "Batasan Proyek",
+    "Analisis Biaya dan Manfaat"
+  ],
+  "brd_review": {
+    "audience": "internal management",
+    "whole_vehicle_flow_in_one_system": true,
+    "Customer_Pre_Registration_is_optional": true,
+    "registration_without_pre_registration_by_driver_or_HO": true,
+    "no_new_HO_approval_assumed_for_non_preregistered_arrivals": true,
+    "no_pre_registration_and_QR_sync_fallback_are_distinct": true,
+    "two_taps_inside_weighbridge_at_WB_IN_and_WB_OUT": true,
+    "first_tap_displays_data_second_tap_gets_sensor_weight": true,
+    "AI_perimeter_human_detection_and_OCR_plate_matching_included": true,
+    "AI_detection_area_accounts_for_driver_at_kiosk_inside_weighbridge": true,
+    "full_registration_station_IT_power_and_site_facilities_explained": true,
+    "plain_language_and_requested_system_names": true,
+    "no_owner_brand_name_in_BRD": true,
+    "exactly_seven_core_sections": true,
+    "cost_summary_in_section_7": true,
+    "detailed_bom_in_separate_excel": true,
+    "no_reference_document_control_or_signoff_sections": true,
+    "seven_pdf_pages_visually_reviewed": true,
+    "layout_clipping_or_overlap_observed": false
+  },
+  "bom_checks": {
+    "source_workbook_unchanged": true,
+    "all_49_quantities_prices_and_products_match": true,
+    "all_original_karawang_cell_values_match_attachment": true,
+    "all_original_allocation_notes_preserved": true,
+    "five_group_totals_match": true,
+    "grand_total_idr": 863989020,
+    "attachment_path": "supporting/BoM-Priscolin-Karawang.xlsx",
+    "attachment_sha256": "1beb5eb9658d41fa3b56ef61b99f86788594d47b720180cf45f3baab3f379b04",
+    "attachment_values_are_cached_source_snapshot": true
+  },
+  "PRD_file_unchanged": true,
+  "PRD_alignment": {
+    "status": "PRD v0.2 perlu diselaraskan dengan perubahan BRD v0.7",
+    "pending": [
+      "Customer Pre-Registration opsional dan jalur registrasi tanpa layanan ini",
+      "Dua tap pada kiosk WB IN dan WB OUT",
+      "AI perimeter/deteksi orang dan OCR pelat nomor"
+    ],
+    "coverage_note": "Jumlah BR/FR/UAT adalah pemeriksaan tautan, bukan bukti seluruh perubahan baru telah tercakup."
+  },
+  "latest_file_hashes_match_build_report": true,
+  "limitations": [
+    "Final pilot location remains proposed.",
+    "AI/OCR pass/warn/block criteria and detection areas require configuration and site validation; the two-tap location inside the weighbridge is confirmed.",
+    "BoM quantities require layout validation; excluded works and other project costs need completion.",
+    "Word structure and content verified; Word pagination depends on its renderer.",
+    "PRD v0.2 and its FR/UAT set still need alignment with the changed BRD baseline.",
+    "Application/device UAT has not been executed."
+  ]
+}

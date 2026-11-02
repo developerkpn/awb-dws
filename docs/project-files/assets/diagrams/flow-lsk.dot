@@ -1,0 +1,32 @@
+
+digraph G {
+graph [bgcolor="white", pad="0.25", nodesep="0.30", ranksep="0.35", dpi=180,
+       fontname="Noto Sans", fontsize=11, compound=true, outputorder="edgesfirst"];
+node [shape=box, style="rounded,filled", fillcolor="#F7F5F2", color="#BDB6B0",
+      fontname="Noto Sans", fontsize=12, fontcolor="#302F31",
+      margin="0.16,0.12", penwidth=1.1];
+edge [fontname="Noto Sans", fontsize=10, fontcolor="#635F5D", color="#8D8580",
+      penwidth=1.15, arrowsize=0.7];
+
+rankdir=TB;
+start [label="Reg IN + binding RFID\ndengan / tanpa Customer Pre-Registration", fillcolor="#F7E9E7", color="#A13E34"];
+wi [label="WB IN\n2 tap + AI/OCR"];
+inspection [label="Inspection + tap\nKeputusan run_qc"];
+subgraph cluster_parallel {
+label="KELOMPOK PARALEL"; color="#BDB6B0"; style="rounded";
+loading [label="Loading wajib"];
+qc [label="Sampling + Lab\nJika run_qc = true"];
+skip [label="QC skipped tercatat\nJika run_qc = false", fillcolor="white"];
+{rank=same; loading; qc; skip;}
+}
+join [label="Loading dan anggota wajib selesai?", shape=diamond, fillcolor="white"];
+wo [label="WB OUT\n2 tap + AI/OCR"];
+exit [label="Reg OUT + tiket", fillcolor="#F7E9E7", color="#A13E34"];
+reject [label="Reject → WB OUT", color="#A13E34"];
+start -> wi -> inspection;
+inspection -> loading; inspection -> qc [label="QC ya"]; inspection -> skip [label="QC tidak"];
+loading -> join; qc -> join; skip -> join;
+join -> wo -> exit;
+qc -> reject [constraint=false]; loading -> reject [constraint=false]; reject -> wo;
+
+}

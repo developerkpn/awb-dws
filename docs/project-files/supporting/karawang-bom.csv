@@ -1,0 +1,50 @@
+﻿group,source_row,material_code,description,quantity,unit_price_idr,line_total_idr,allocation_note
+Perangkat Weighbridge dan TCS,3,971.202.002,"Barrier Gate "" BAISHENG "" BS-3306 -3S With BOOM Gate 4 mtr length ( include indicator lamp )",5,12500000,62500000,"6 unit untuk WB, 1 unit untuk TCS"
+Perangkat Weighbridge dan TCS,4,971.310.015,KIOS-Q UNMANNED,2,14200000,28400000,1 Unit Per WB
+Perangkat Weighbridge dan TCS,5,971.310.019,KIOS-Q WEIGHTBRIDGE REGISTRATION 450x450x1700MM,2,8200000,16400000,Registrasi IN dan Out
+Perangkat Weighbridge dan TCS,6,971.308.006,"INDIKATOR,WEIGHING PRESICA PSC-7803 DIG",2,12000000,24000000,1 Unit per WB
+Perangkat Weighbridge dan TCS,7,956.802.019,"RFID Pole GOOSENECK BASEPLATE M/S 173x120x1650 SINGLE CAR 13.56 MHZ WIEGAND, ACRYLIC, SIRENE,BLITZ LIGTH & PUSH BUTTON",8,3200000,25600000,"6 untuk WB (In dan Out ), 2 Untuk TCS, 4 Unit untuk Sampling&Unloading "
+Perangkat Weighbridge dan TCS,8,947.299.002,"Traffic Light JD3003-4215 (RG, diameter 30 cm )",4,4200000,16800000,2 Unit per WB
+Perangkat Weighbridge dan TCS,9,971.202.010,"SENSOR,RADAR BARRIER GATE VR10 PRO ZK TECO",5,4300000,21500000,1 Unit per masing masing BG
+Perangkat Weighbridge dan TCS,10,971.202.003,Controller Board 2 Wiegand reader -34bit data format 4 sensor input & 4 Relay TCP IP (AIDC),7,3300000,23100000,"7 Unit untuk BG, 2 Uint untuk Sampling&Unloading"
+Perangkat Weighbridge dan TCS,11,920.311.010,"BOX,PANEL 600*400*200MM STEEL-POWDER",1,11500000,11500000,1 Unit untuk Ruang Server
+Perangkat Weighbridge dan TCS,12,920.311.006,"BOX,PANEL 400*300*200MM STEEL-POWDER",3,8400000,25200000,"1 Unit Registrasi, 2 Unit Sampling&Unloading"
+Server dan Jaringan,17,910.028.C77,Thinkstation PX NVIDIA RTX PRO™ 4500 Blackwell 32GB GDDR7 with ECC,1,320000000,320000000,Server WB dan AI VCF
+Server dan Jaringan,18,956.068.004,Switch UNIFI US 24 Port POE 250W,1,7800000,7800000,Switch Network
+Server dan Jaringan,19,956.067.073,Routerboard CCR2004-16G-2S+,1,7800000,7800000,Router AWS
+Server dan Jaringan,20,910.028.558,"POS,AIO (ALL IN ONE) ES-R01II INTEL CORE I5-6000, DISPLAY 15.6"" SINGLE 1920X1080, RAM 8GB, SSD 256GB, TOUCH SCREEN",4,8700000,34800000,Monitor Transaksi di Kios Registrasi & Transaksi
+Server dan Jaringan,21,956.072.014,Synology DS 923+,1,10200000,10200000,Backup Server
+Server dan Jaringan,22,956.281.021,SSD SATA  1TB (Synology)-WD RED,4,3700000,14800000,HDD Synology
+Server dan Jaringan,23,915.551.022,"Camera HIK Vision ,CCTV 4MP HIKVISION DS-2CD2T43G2",10,2500000,25000000,"3 unit per WB, dan TCS"
+Server dan Jaringan,24,956.060.006,"Logitech C920 Webcam PRO Full HD 1080p Autofocus, Noise-Cancelling",1,1390000,1390000,Capture Driver saat registrasi
+Server dan Jaringan,25,910.004.168,Tablet Samsung Galaxy Tab A9 Lite  Enterprise Edition,4,2300000,9200000,"2 unit Unloading Liquid, 2 unit Unloading Sold"
+Server dan Jaringan,26,915.007.035,Tas Tablet Android A9 lite EE,4,350000,1400000,tas Pelindung tablet
+Server dan Jaringan,27,956.201.015,SMART UPS APC SMC1500i-2uc,1,7400000,7400000,UPS backup khusus Rack Server
+Server dan Jaringan,28,956.211.007,Stabilizer Matsunaga 5000 W 5KVA,3,5000000,15000000,"Stabilizer Listrik Ruang Server. Registrasi, & Panel Unloading"
+Server dan Jaringan,29,915.651.005,NVR 16 Channel,1,1400000,1400000,NVR untuk CCTV
+Server dan Jaringan,30,956.405.009,"Server Rack Mount IR6032G Standing Closed Rack 19"" 32U Depth 900 mm Glass Door",1,6120000,6120000,Rack Server untuk seluruh perangakt jaringan
+Server dan Jaringan,31,956.201.061,UPS APC SRV3KI 3000VA/2400W 220VAC,3,12250000,36750000,"Ups backup room server, Unloading Server, Registrasi"
+Server dan Jaringan,32,956.282.015,"HARDISK/HDD, 2TB SKYHAWK MFI SEAGATE",1,985000,985000,Storage NVR
+Server dan Jaringan,33,910.028.142,"SCANNER,BARCODE TAFFWARE MP 6300Y 1D 2D QR AUTO SENSING",1,1500000,1500000,Read QR code Pre-Registrasi
+Server dan Jaringan,34,956.802.035,ACR122 V5MACR122U ACR 122U NFC RFID Reader Writer Smart Card Mifare FeliCa 13.56 MHz,2,430000,860000,"Device Tapping RFID card, untuk Kios Transaksi"
+Server dan Jaringan,35,956.110.029,USR converter RS232 to LAN,2,100000,200000,Converter RS232 Loadcell ke Network
+Server dan Jaringan,36,956.068.057,UNIFI USW LITE 8 POE,1,1950000,1950000,Switch KIOS-Q 
+Server dan Jaringan,37,956.067.272,Ubiquiti USW-PRO-8-POE,3,5750000,17250000,Switch KIOS-Q 
+Server dan Jaringan,38,956.802.021,Mifare Card Ic Card Reader Usb Hassel 13.56Mhz Mf1 S50,2,500000,1000000,RFID Reader Registrasi
+Tools dan Material Pendukung,41,909.131.201,Power Cabel NYYHY 3x1.5mm,915,18500,16927500,Kabel Listrik
+Tools dan Material Pendukung,42,909.201.018,Cable AWG-22-2-pair belden @305mtr,1220,13500,16470000,Kabel Sensor 
+Tools dan Material Pendukung,43,909.201.004,Cable UTP Cat-6 Belden @305mtr,610,8432,5143520,Kabel LAN/Jaringan
+Tools dan Material Pendukung,44,907.111.736,DYNABOLT M12 | DYNABOLT 12MM - 12x75,100,3250,325000,Baut Pondasi RFID POLL
+Tools dan Material Pendukung,45,909.201.081,AIR Conditioner SPLIT 1PK,1,4260000,4260000,AC Room Server
+Grounding,49,920.699.016,"Cable, BARE COPPER 50mm THREADED (BC )",100,80000,8000000,Material Grounding
+Grounding,50,920.699.015,"ROD, COPPER GROUNDING  5/8 x 3000mm",15,972000,14580000,Material Grounding
+Grounding,51,920.351.008,BUSBAR COPPER  3*220*20MM,4,62000,248000,Material Grounding
+Grounding,52,920.699.014,"CLAMP,COPPER ROD GROUNDING  5/8""",15,15000,225000,Material Grounding
+Grounding,53,921.002.044,"SCUN,CABLE SC 16mm",20,1250,25000,Material Grounding
+Grounding,54,909.001.004,"CABLE, NYA 6.00mm 450/750VAC CU/PVC",100,12000,1200000,Material Grounding
+Material Tambahan,58,956.802.010,"Card,PVC RFID MIFARE 13.56MHz 1024x8KB",100,2500,250000,Akses Transaksi ( Per Unit )
+Material Tambahan,59,951.103.356,"STICK, FLEXIBLE E-TOLL 400MM",100,4000,400000,Tongkat Akses
+Material Tambahan,60,921.001.005,"SCUN,CABLE 1.50MM² Y-TYPE",100,500,50000,Terminasi Autonomous WB
+Material Tambahan,61,921.005.002,"SCUN,CABLE 1.50MM I-TYPE FERULESS",100,500,50000,Terminasi Autonomous WB
+Material Tambahan,62,921.005.009,"SCUN,CABLE 0.75MM I-TYPE FERULESS",100,300,30000,Terminasi Autonomous WB
+Material Tambahan,63,921.052.004,pipa listrik conduit 20mm,1200,15000,18000000,Pipa Instalasi Seluruh Kabel

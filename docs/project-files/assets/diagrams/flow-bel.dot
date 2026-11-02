@@ -1,0 +1,27 @@
+
+digraph G {
+graph [bgcolor="white", pad="0.25", nodesep="0.30", ranksep="0.35", dpi=180,
+       fontname="Noto Sans", fontsize=11, compound=true, outputorder="edgesfirst"];
+node [shape=box, style="rounded,filled", fillcolor="#F7F5F2", color="#BDB6B0",
+      fontname="Noto Sans", fontsize=12, fontcolor="#302F31",
+      margin="0.16,0.12", penwidth=1.1];
+edge [fontname="Noto Sans", fontsize=10, fontcolor="#635F5D", color="#8D8580",
+      penwidth=1.15, arrowsize=0.7];
+
+rankdir=TB;
+start [label="Reg IN + binding RFID\ndengan / tanpa Customer Pre-Registration", fillcolor="#F7E9E7", color="#A13E34"];
+wi [label="WB IN\n2 tap + AI/OCR"];
+sampling [label="Sampling\nTap + hasil/foto petugas"];
+lab [label="Lab / keputusan mutu"];
+unload [label="Unloading\nTap + started/completed"];
+wo [label="WB OUT\n2 tap + AI/OCR"];
+exit [label="Reg OUT + tiket\ncompleted / rejected", fillcolor="#F7E9E7", color="#A13E34"];
+hold [label="Hold stay / keputusan OutSpec", fillcolor="white"];
+reject [label="Reject material", color="#A13E34"];
+start -> wi -> sampling -> lab -> unload -> wo -> exit;
+lab -> hold [label="hold"]; hold -> lab [style=dashed, label="keputusan"];
+unload -> sampling [style=dashed, label="resample bila diizinkan"];
+lab -> reject [label="reject"]; unload -> reject [label="reject"];
+reject -> wo;
+
+}

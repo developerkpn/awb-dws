@@ -1,0 +1,17 @@
+/// One truck visit at this plant (PRD v0.3: Journey).
+model Journey {
+  id                 String   @id @default(uuid()) @db.UniqueIdentifier
+  siteId             String   @map("site_id") @db.VarChar(50)
+  /// BEL | JUL | LSK | LSM
+  transactionType    String   @map("transaction_type") @db.VarChar(3)
+  /// prereg_qr | qr_fallback | driver_entry | ho_staff_entry
+  registrationOrigin String   @map("registration_origin") @db.VarChar(20)
+  currentStage       String   @map("current_stage") @db.VarChar(50)
+  /// active | on_hold | exit_pending | completed | rejected | cancelled
+  status             String   @db.VarChar(20)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@index([siteId, status])
+  @@map("journeys")
+}

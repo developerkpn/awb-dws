@@ -1,0 +1,124 @@
+﻿br_id,business_requirement,fr_id,functional_requirement,priority,basis,uat_ids,validation_status
+BR-01,Registrasi dengan atau tanpa Customer Pre-Registration,FR-001,Kesetaraan aturan Customer Pre-Registration existing,MUST,D-06/D-15; SRC-03,UAT-001,Draft untuk review
+BR-04,Kemandirian pengelolaan timbangan,FR-001,Kesetaraan aturan Customer Pre-Registration existing,MUST,D-06/D-15; SRC-03,UAT-001,Draft untuk review
+BR-01,Registrasi dengan atau tanpa Customer Pre-Registration,FR-002,Penerbitan QR pada surat jalan,MUST,D-07; SRC-04; O-11,UAT-001; UAT-003,Draft untuk review
+BR-10,Keutuhan catatan perjalanan,FR-002,Penerbitan QR pada surat jalan,MUST,D-07; SRC-04; O-11,UAT-001; UAT-003,Draft untuk review
+BR-01,Registrasi dengan atau tanpa Customer Pre-Registration,FR-003,Validasi QR dan kelayakan perjalanan,MUST,D-06/D-07; usulan otorisasi; O-02/O-11,UAT-002; UAT-003,Draft untuk review
+BR-10,Keutuhan catatan perjalanan,FR-003,Validasi QR dan kelayakan perjalanan,MUST,D-06/D-07; usulan otorisasi; O-02/O-11,UAT-002; UAT-003,Draft untuk review
+BR-14,Akuntabilitas kewenangan,FR-003,Validasi QR dan kelayakan perjalanan,MUST,D-06/D-07; usulan otorisasi; O-02/O-11,UAT-002; UAT-003,Draft untuk review
+BR-03,Kelangsungan operasional pabrik,FR-004,Ketersediaan prereg di site,MUST,D-04/D-05,UAT-004,Draft untuk review
+BR-11,Keselarasan informasi HO dan pabrik,FR-004,Ketersediaan prereg di site,MUST,D-04/D-05,UAT-004,Draft untuk review
+BR-01,Registrasi dengan atau tanpa Customer Pre-Registration,FR-005,Kiosk registrasi mandiri,MUST,D-08/D-15,UAT-002,Draft untuk review
+BR-02,Kemandirian layanan registrasi,FR-005,Kiosk registrasi mandiri,MUST,D-08/D-15,UAT-002,Draft untuk review
+BR-17,Kemudahan layanan dan dokumen,FR-005,Kiosk registrasi mandiri,MUST,D-08/D-15,UAT-002,Draft untuk review
+BR-02,Kemandirian layanan registrasi,FR-006,Input fallback data QR oleh supir,MUST,D-05/D-15; usulan field; O-02,UAT-005; UAT-006; UAT-026; UAT-039,Draft untuk review
+BR-03,Kelangsungan operasional pabrik,FR-006,Input fallback data QR oleh supir,MUST,D-05/D-15; usulan field; O-02,UAT-005; UAT-006; UAT-026; UAT-039,Draft untuk review
+BR-17,Kemudahan layanan dan dokumen,FR-006,Input fallback data QR oleh supir,MUST,D-05/D-15; usulan field; O-02,UAT-005; UAT-006; UAT-026; UAT-039,Draft untuk review
+BR-03,Kelangsungan operasional pabrik,FR-007,Otorisasi dan batas fallback,MUST,D-05/D-06; usulan; O-02,UAT-003; UAT-005; UAT-006; UAT-027,Draft untuk review
+BR-14,Akuntabilitas kewenangan,FR-007,Otorisasi dan batas fallback,MUST,D-05/D-06; usulan; O-02,UAT-003; UAT-005; UAT-006; UAT-027,Draft untuk review
+BR-02,Kemandirian layanan registrasi,FR-008,Binding kartu dan journey secara atomik,MUST,D-08; usulan kendali konkurensi,UAT-002; UAT-007; UAT-037,Draft untuk review
+BR-10,Keutuhan catatan perjalanan,FR-008,Binding kartu dan journey secara atomik,MUST,D-08; usulan kendali konkurensi,UAT-002; UAT-007; UAT-037,Draft untuk review
+BR-10,Keutuhan catatan perjalanan,FR-009,Penggantian kartu dan kartu hilang,MUST,SRC-08; usulan proses exception; O-03,UAT-008; UAT-023,Draft untuk review
+BR-14,Akuntabilitas kewenangan,FR-009,Penggantian kartu dan kartu hilang,MUST,SRC-08; usulan proses exception; O-03,UAT-008; UAT-023,Draft untuk review
+BR-02,Kemandirian layanan registrasi,FR-010,Sesi kiosk dan pemulihan,MUST,D-05/D-08; usulan UX,UAT-005; UAT-009; UAT-041,Draft untuk review
+BR-17,Kemudahan layanan dan dokumen,FR-010,Sesi kiosk dan pemulihan,MUST,D-05/D-08; usulan UX,UAT-005; UAT-009; UAT-041,Draft untuk review
+BR-04,Kemandirian pengelolaan timbangan,FR-011,Akuisisi berat langsung dari indikator,MUST,D-03; SRC-02/SRC-09; O-05,UAT-010; UAT-031,Draft untuk review
+BR-05,Keandalan hasil timbang,FR-011,Akuisisi berat langsung dari indikator,MUST,D-03; SRC-02/SRC-09; O-05,UAT-010; UAT-031,Draft untuk review
+BR-05,Keandalan hasil timbang,FR-012,"Zero, stabilitas dan pengosongan platform",MUST,SRC-02; usulan parameter; O-08,UAT-010,Draft untuk review
+BR-15,Kesiapan pelayanan mandiri,FR-012,"Zero, stabilitas dan pengosongan platform",MUST,SRC-02; usulan parameter; O-08,UAT-010,Draft untuk review
+BR-05,Keandalan hasil timbang,FR-013,Interlock posisi dan keselamatan barrier,MUST,SRC-10/SRC-11; O-05,UAT-011; UAT-031; UAT-043,Draft untuk review
+BR-15,Kesiapan pelayanan mandiri,FR-013,Interlock posisi dan keselamatan barrier,MUST,SRC-10/SRC-11; O-05,UAT-011; UAT-031; UAT-043,Draft untuk review
+BR-05,Keandalan hasil timbang,FR-014,Isolasi controller dan penguncian lane,MUST,SRC-05/SRC-10; usulan locking,UAT-012; UAT-031; UAT-041,Draft untuk review
+BR-10,Keutuhan catatan perjalanan,FR-014,Isolasi controller dan penguncian lane,MUST,SRC-05/SRC-10; usulan locking,UAT-012; UAT-031; UAT-041,Draft untuk review
+BR-15,Kesiapan pelayanan mandiri,FR-014,Isolasi controller dan penguncian lane,MUST,SRC-05/SRC-10; usulan locking,UAT-012; UAT-031; UAT-041,Draft untuk review
+BR-05,Keandalan hasil timbang,FR-015,Urutan penimbangan dengan dua tap,MUST,D-16; SRC-02; flowchart SRC-12; O-05/O-13,UAT-011; UAT-012; UAT-013; UAT-040,Draft untuk review
+BR-17,Kemudahan layanan dan dokumen,FR-015,Urutan penimbangan dengan dua tap,MUST,D-16; SRC-02; flowchart SRC-12; O-05/O-13,UAT-011; UAT-012; UAT-013; UAT-040,Draft untuk review
+BR-05,Keandalan hasil timbang,FR-016,Pencatatan WB IN,MUST,D-01/D-16; SRC-05/SRC-09,UAT-010; UAT-013; UAT-040,Draft untuk review
+BR-06,Konsistensi empat jenis transaksi,FR-016,Pencatatan WB IN,MUST,D-01/D-16; SRC-05/SRC-09,UAT-010; UAT-013; UAT-040,Draft untuk review
+BR-05,Keandalan hasil timbang,FR-017,WB OUT dan perhitungan kuantitas,MUST,D-10/D-16; SRC-09; O-07/O-08,UAT-014; UAT-021; UAT-040,Draft untuk review
+BR-09,Kepastian penyelesaian keluar,FR-017,WB OUT dan perhitungan kuantitas,MUST,D-10/D-16; SRC-09; O-07/O-08,UAT-014; UAT-021; UAT-040,Draft untuk review
+BR-12,Ketepatan administrasi transaksi,FR-017,WB OUT dan perhitungan kuantitas,MUST,D-10/D-16; SRC-09; O-07/O-08,UAT-014; UAT-021; UAT-040,Draft untuk review
+BR-04,Kemandirian pengelolaan timbangan,FR-018,Toleransi dan persetujuan deviasi,MUST,SRC-02; O-01/O-08,UAT-014; UAT-015; UAT-029,Draft untuk review
+BR-05,Keandalan hasil timbang,FR-018,Toleransi dan persetujuan deviasi,MUST,SRC-02; O-01/O-08,UAT-014; UAT-015; UAT-029,Draft untuk review
+BR-08,Kendali keputusan mutu,FR-018,Toleransi dan persetujuan deviasi,MUST,SRC-02; O-01/O-08,UAT-014; UAT-015; UAT-029,Draft untuk review
+BR-14,Akuntabilitas kewenangan,FR-018,Toleransi dan persetujuan deviasi,MUST,SRC-02; O-01/O-08,UAT-014; UAT-015; UAT-029,Draft untuk review
+BR-05,Keandalan hasil timbang,FR-019,Bukti kamera dan AI posisi/perimeter/orang,MUST,D-16; SRC-02/SRC-05; flowchart SRC-12; O-05/O-13,UAT-015; UAT-043,Draft untuk review
+BR-07,Keterlacakan penanganan material,FR-019,Bukti kamera dan AI posisi/perimeter/orang,MUST,D-16; SRC-02/SRC-05; flowchart SRC-12; O-05/O-13,UAT-015; UAT-043,Draft untuk review
+BR-13,Pengawasan operasional,FR-019,Bukti kamera dan AI posisi/perimeter/orang,MUST,D-16; SRC-02/SRC-05; flowchart SRC-12; O-05/O-13,UAT-015; UAT-043,Draft untuk review
+BR-06,Konsistensi empat jenis transaksi,FR-020,Mesin alur berbasis konfigurasi,MUST,D-09; SRC-05/SRC-06; O-04,UAT-006; UAT-016; UAT-017; UAT-029; UAT-033,Draft untuk review
+BR-07,Keterlacakan penanganan material,FR-020,Mesin alur berbasis konfigurasi,MUST,D-09; SRC-05/SRC-06; O-04,UAT-006; UAT-016; UAT-017; UAT-029; UAT-033,Draft untuk review
+BR-06,Konsistensi empat jenis transaksi,FR-021,Alur BEL,MUST,D-01/D-09; SRC-05,UAT-016,Draft untuk review
+BR-07,Keterlacakan penanganan material,FR-021,Alur BEL,MUST,D-01/D-09; SRC-05,UAT-016,Draft untuk review
+BR-08,Kendali keputusan mutu,FR-021,Alur BEL,MUST,D-01/D-09; SRC-05,UAT-016,Draft untuk review
+BR-06,Konsistensi empat jenis transaksi,FR-022,Alur JUL dan kelompok paralel,MUST,D-01/D-09; SRC-05; O-04,UAT-017,Draft untuk review
+BR-07,Keterlacakan penanganan material,FR-022,Alur JUL dan kelompok paralel,MUST,D-01/D-09; SRC-05; O-04,UAT-017,Draft untuk review
+BR-06,Konsistensi empat jenis transaksi,FR-023,Alur LSK dengan QC opsional,MUST,D-01/D-09; SRC-05,UAT-018,Draft untuk review
+BR-07,Keterlacakan penanganan material,FR-023,Alur LSK dengan QC opsional,MUST,D-01/D-09; SRC-05,UAT-018,Draft untuk review
+BR-06,Konsistensi empat jenis transaksi,FR-024,Alur LSM dengan QC opsional,MUST,D-01/D-09; SRC-05,UAT-019,Draft untuk review
+BR-07,Keterlacakan penanganan material,FR-024,Alur LSM dengan QC opsional,MUST,D-01/D-09; SRC-05,UAT-019,Draft untuk review
+BR-07,Keterlacakan penanganan material,FR-025,Tap dan hasil petugas stasiun,MUST,D-09; SRC-05/SRC-07,UAT-016; UAT-017; UAT-018; UAT-019; UAT-020,Draft untuk review
+BR-14,Akuntabilitas kewenangan,FR-025,Tap dan hasil petugas stasiun,MUST,D-09; SRC-05/SRC-07,UAT-016; UAT-017; UAT-018; UAT-019; UAT-020,Draft untuk review
+BR-08,Kendali keputusan mutu,FR-026,"Hold, resampling, OutSpec dan reject",MUST,D-10; SRC-05/SRC-07; O-08,UAT-020; UAT-021,Draft untuk review
+BR-09,Kepastian penyelesaian keluar,FR-026,"Hold, resampling, OutSpec dan reject",MUST,D-10; SRC-05/SRC-07; O-08,UAT-020; UAT-021,Draft untuk review
+BR-09,Kepastian penyelesaian keluar,FR-027,Registrasi keluar mandiri,MUST,D-10; SRC-08; flowchart SRC-12,UAT-016; UAT-021; UAT-022; UAT-023,Draft untuk review
+BR-17,Kemudahan layanan dan dokumen,FR-027,Registrasi keluar mandiri,MUST,D-10; SRC-08; flowchart SRC-12,UAT-016; UAT-021; UAT-022; UAT-023,Draft untuk review
+BR-04,Kemandirian pengelolaan timbangan,FR-028,Tiket timbang dan printer,MUST,D-03; SRC-04; flowchart SRC-12; O-01,UAT-021; UAT-022,Draft untuk review
+BR-09,Kepastian penyelesaian keluar,FR-028,Tiket timbang dan printer,MUST,D-03; SRC-04; flowchart SRC-12; O-01,UAT-021; UAT-022,Draft untuk review
+BR-17,Kemudahan layanan dan dokumen,FR-028,Tiket timbang dan printer,MUST,D-03; SRC-04; flowchart SRC-12; O-01,UAT-021; UAT-022,Draft untuk review
+BR-09,Kepastian penyelesaian keluar,FR-029,Pelepasan dan pengembalian RFID,MUST,D-08; usulan keluar; O-03,UAT-023,Draft untuk review
+BR-10,Keutuhan catatan perjalanan,FR-029,Pelepasan dan pengembalian RFID,MUST,D-08; usulan keluar; O-03,UAT-023,Draft untuk review
+BR-04,Kemandirian pengelolaan timbangan,FR-030,Pembatalan dan koreksi berjejak,MUST,SRC-03/SRC-07/SRC-08; O-01,UAT-008; UAT-024,Draft untuk review
+BR-08,Kendali keputusan mutu,FR-030,Pembatalan dan koreksi berjejak,MUST,SRC-03/SRC-07/SRC-08; O-01,UAT-008; UAT-024,Draft untuk review
+BR-14,Akuntabilitas kewenangan,FR-030,Pembatalan dan koreksi berjejak,MUST,SRC-03/SRC-07/SRC-08; O-01,UAT-008; UAT-024,Draft untuk review
+BR-03,Kelangsungan operasional pabrik,FR-031,Sinkronisasi HO ke site,MUST,D-04/D-06/D-15,UAT-004; UAT-025; UAT-038,Draft untuk review
+BR-11,Keselarasan informasi HO dan pabrik,FR-031,Sinkronisasi HO ke site,MUST,D-04/D-06/D-15,UAT-004; UAT-025; UAT-038,Draft untuk review
+BR-11,Keselarasan informasi HO dan pabrik,FR-032,Sinkronisasi site ke HO,MUST,D-04/D-05/D-15,UAT-025; UAT-026; UAT-034,Draft untuk review
+BR-13,Pengawasan operasional,FR-032,Sinkronisasi site ke HO,MUST,D-04/D-05/D-15,UAT-025; UAT-026; UAT-034,Draft untuk review
+BR-03,Kelangsungan operasional pabrik,FR-033,Rekonsiliasi fallback dan data terlambat,MUST,D-05; usulan pencocokan,UAT-026; UAT-027,Draft untuk review
+BR-10,Keutuhan catatan perjalanan,FR-033,Rekonsiliasi fallback dan data terlambat,MUST,D-05; usulan pencocokan,UAT-026; UAT-027,Draft untuk review
+BR-11,Keselarasan informasi HO dan pabrik,FR-033,Rekonsiliasi fallback dan data terlambat,MUST,D-05; usulan pencocokan,UAT-026; UAT-027,Draft untuk review
+BR-03,Kelangsungan operasional pabrik,FR-034,Pengiriman tahan gangguan dan idempoten,MUST,D-04/D-05; usulan outbox/inbox,UAT-007; UAT-013; UAT-025; UAT-028; UAT-034,Draft untuk review
+BR-10,Keutuhan catatan perjalanan,FR-034,Pengiriman tahan gangguan dan idempoten,MUST,D-04/D-05; usulan outbox/inbox,UAT-007; UAT-013; UAT-025; UAT-028; UAT-034,Draft untuk review
+BR-11,Keselarasan informasi HO dan pabrik,FR-034,Pengiriman tahan gangguan dan idempoten,MUST,D-04/D-05; usulan outbox/inbox,UAT-007; UAT-013; UAT-025; UAT-028; UAT-034,Draft untuk review
+BR-11,Keselarasan informasi HO dan pabrik,FR-035,"Konflik, pencabutan dan kepemilikan field",MUST,D-04/D-06; usulan; O-02/O-11,UAT-024; UAT-027,Draft untuk review
+BR-14,Akuntabilitas kewenangan,FR-035,"Konflik, pencabutan dan kepemilikan field",MUST,D-04/D-06; usulan; O-02/O-11,UAT-024; UAT-027,Draft untuk review
+BR-11,Keselarasan informasi HO dan pabrik,FR-036,Monitor sinkronisasi dan penyelesaian exception,MUST,D-04/D-05; usulan,UAT-027; UAT-034,Draft untuk review
+BR-13,Pengawasan operasional,FR-036,Monitor sinkronisasi dan penyelesaian exception,MUST,D-04/D-05; usulan,UAT-027; UAT-034,Draft untuk review
+BR-14,Akuntabilitas kewenangan,FR-036,Monitor sinkronisasi dan penyelesaian exception,MUST,D-04/D-05; usulan,UAT-027; UAT-034,Draft untuk review
+BR-04,Kemandirian pengelolaan timbangan,FR-037,Integrasi SAP pengganti WB.NET,MUST,D-03; SRC-03; O-07/O-12,UAT-021; UAT-028,Draft untuk review
+BR-12,Ketepatan administrasi transaksi,FR-037,Integrasi SAP pengganti WB.NET,MUST,D-03; SRC-03; O-07/O-12,UAT-021; UAT-028,Draft untuk review
+BR-04,Kemandirian pengelolaan timbangan,FR-038,"Master, konfigurasi dan hak akses",MUST,D-03/D-09; SRC-05/SRC-06,UAT-029; UAT-033; UAT-038,Draft untuk review
+BR-06,Konsistensi empat jenis transaksi,FR-038,"Master, konfigurasi dan hak akses",MUST,D-03/D-09; SRC-05/SRC-06,UAT-029; UAT-033; UAT-038,Draft untuk review
+BR-14,Akuntabilitas kewenangan,FR-038,"Master, konfigurasi dan hak akses",MUST,D-03/D-09; SRC-05/SRC-06,UAT-029; UAT-033; UAT-038,Draft untuk review
+BR-04,Kemandirian pengelolaan timbangan,FR-039,"Dashboard, journey dan laporan",MUST,SRC-02/SRC-07/SRC-09,UAT-030; UAT-034,Draft untuk review
+BR-13,Pengawasan operasional,FR-039,"Dashboard, journey dan laporan",MUST,SRC-02/SRC-07/SRC-09,UAT-030; UAT-034,Draft untuk review
+BR-06,Konsistensi empat jenis transaksi,FR-040,Petunjuk rute dan antrean,SHOULD,SRC-02; usulan; O-04/O-09,UAT-018; UAT-019; UAT-035,Draft untuk review
+BR-18,Ketertiban aliran kendaraan,FR-040,Petunjuk rute dan antrean,SHOULD,SRC-02; usulan; O-04/O-09,UAT-018; UAT-019; UAT-035,Draft untuk review
+BR-13,Pengawasan operasional,FR-041,Kesehatan perangkat dan alarm,MUST,D-17; SRC-10/SRC-11; O-05,UAT-011; UAT-031,Draft untuk review
+BR-15,Kesiapan pelayanan mandiri,FR-041,Kesehatan perangkat dan alarm,MUST,D-17; SRC-10/SRC-11; O-05,UAT-011; UAT-031,Draft untuk review
+BR-04,Kemandirian pengelolaan timbangan,FR-042,Matriks parity WB.NET lama,MUST,D-03; O-01,UAT-032,Draft untuk review
+BR-16,Keberlanjutan saat peralihan,FR-042,Matriks parity WB.NET lama,MUST,D-03; O-01,UAT-032,Draft untuk review
+BR-10,Keutuhan catatan perjalanan,FR-043,Audit dan siklus hidup data,MUST,SRC-02/SRC-07; usulan; O-09,UAT-024; UAT-029; UAT-030; UAT-036,Draft untuk review
+BR-13,Pengawasan operasional,FR-043,Audit dan siklus hidup data,MUST,SRC-02/SRC-07; usulan; O-09,UAT-024; UAT-029; UAT-030; UAT-036,Draft untuk review
+BR-14,Akuntabilitas kewenangan,FR-043,Audit dan siklus hidup data,MUST,SRC-02/SRC-07; usulan; O-09,UAT-024; UAT-029; UAT-030; UAT-036,Draft untuk review
+BR-04,Kemandirian pengelolaan timbangan,FR-044,"Cutover, migrasi dan rollback",MUST,D-03/D-11; usulan; O-06,UAT-032; UAT-036,Draft untuk review
+BR-15,Kesiapan pelayanan mandiri,FR-044,"Cutover, migrasi dan rollback",MUST,D-03/D-11; usulan; O-06,UAT-032; UAT-036,Draft untuk review
+BR-16,Keberlanjutan saat peralihan,FR-044,"Cutover, migrasi dan rollback",MUST,D-03/D-11; usulan; O-06,UAT-032; UAT-036,Draft untuk review
+BR-01,Registrasi dengan atau tanpa Customer Pre-Registration,FR-045,Jalur registrasi dengan atau tanpa Customer Pre-Registration,MUST,D-08/D-15; O-12,UAT-037; UAT-038; UAT-039,Draft untuk review
+BR-02,Kemandirian layanan registrasi,FR-045,Jalur registrasi dengan atau tanpa Customer Pre-Registration,MUST,D-08/D-15; O-12,UAT-037; UAT-038; UAT-039,Draft untuk review
+BR-10,Keutuhan catatan perjalanan,FR-045,Jalur registrasi dengan atau tanpa Customer Pre-Registration,MUST,D-08/D-15; O-12,UAT-037; UAT-038; UAT-039,Draft untuk review
+BR-01,Registrasi dengan atau tanpa Customer Pre-Registration,FR-046,Input registrasi oleh supir di kiosk,MUST,D-15; usulan field; O-12,UAT-037,Draft untuk review
+BR-02,Kemandirian layanan registrasi,FR-046,Input registrasi oleh supir di kiosk,MUST,D-15; usulan field; O-12,UAT-037,Draft untuk review
+BR-17,Kemudahan layanan dan dokumen,FR-046,Input registrasi oleh supir di kiosk,MUST,D-15; usulan field; O-12,UAT-037,Draft untuk review
+BR-01,Registrasi dengan atau tanpa Customer Pre-Registration,FR-047,Input registrasi oleh petugas HO,MUST,D-15; usulan; O-12,UAT-038,Draft untuk review
+BR-11,Keselarasan informasi HO dan pabrik,FR-047,Input registrasi oleh petugas HO,MUST,D-15; usulan; O-12,UAT-038,Draft untuk review
+BR-14,Akuntabilitas kewenangan,FR-047,Input registrasi oleh petugas HO,MUST,D-15; usulan; O-12,UAT-038,Draft untuk review
+BR-05,Keandalan hasil timbang,FR-048,Dua tap RFID pada kiosk WB IN/OUT,MUST,D-16; O-13,UAT-040; UAT-041,Draft untuk review
+BR-10,Keutuhan catatan perjalanan,FR-048,Dua tap RFID pada kiosk WB IN/OUT,MUST,D-16; O-13,UAT-040; UAT-041,Draft untuk review
+BR-17,Kemudahan layanan dan dokumen,FR-048,Dua tap RFID pada kiosk WB IN/OUT,MUST,D-16; O-13,UAT-040; UAT-041,Draft untuk review
+BR-05,Keandalan hasil timbang,FR-049,OCR pelat nomor dan pencocokan data truk,MUST,D-16; O-13,UAT-042,Draft untuk review
+BR-10,Keutuhan catatan perjalanan,FR-049,OCR pelat nomor dan pencocokan data truk,MUST,D-16; O-13,UAT-042,Draft untuk review
+BR-13,Pengawasan operasional,FR-049,OCR pelat nomor dan pencocokan data truk,MUST,D-16; O-13,UAT-042,Draft untuk review
+BR-05,Keandalan hasil timbang,FR-050,Kebijakan hasil AI/OCR dan area deteksi,MUST,D-16/D-17; O-05/O-13,UAT-042; UAT-043,Draft untuk review
+BR-14,Akuntabilitas kewenangan,FR-050,Kebijakan hasil AI/OCR dan area deteksi,MUST,D-16/D-17; O-05/O-13,UAT-042; UAT-043,Draft untuk review
+BR-15,Kesiapan pelayanan mandiri,FR-050,Kebijakan hasil AI/OCR dan area deteksi,MUST,D-16/D-17; O-05/O-13,UAT-042; UAT-043,Draft untuk review

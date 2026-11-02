@@ -1,0 +1,34 @@
+
+digraph G {
+graph [bgcolor="white", pad="0.25", nodesep="0.30", ranksep="0.35", dpi=180,
+       fontname="Noto Sans", fontsize=11, compound=true, outputorder="edgesfirst"];
+node [shape=box, style="rounded,filled", fillcolor="#F7F5F2", color="#BDB6B0",
+      fontname="Noto Sans", fontsize=12, fontcolor="#302F31",
+      margin="0.16,0.12", penwidth=1.1];
+edge [fontname="Noto Sans", fontsize=10, fontcolor="#635F5D", color="#8D8580",
+      penwidth=1.15, arrowsize=0.7];
+
+rankdir=TB;
+scan [label="Scan QR dan verifikasi\nID prereg + site + approval", fillcolor="#F7E9E7", color="#A13E34"];
+local [label="Data lokal ada?", shape=diamond, fillcolor="white"];
+normal [label="Registrasi normal\nAmbil kartu + tap / binding"];
+lookup [label="Lookup HO bila online\nData belum tersedia / offline"];
+form [label="Supir isi fallback\nField terverifikasi terkunci"];
+auth [label="Otorisasi / master\nterverifikasi?", shape=diamond, fillcolor="white"];
+pending [label="Draft / exception\nBelum boleh binding", color="#A13E34"];
+commit [label="Satu journey provisional\nBinding + outbox atomik", fillcolor="#F7E9E7", color="#A13E34"];
+sync [label="Saat online: sinkronkan fakta site\nCocokkan prereg global yang sama"];
+result [label="Matched: journey tetap sama\nConflict / orphan: resolusi berjejak"];
+scan -> local;
+local -> normal [label="ya"];
+local -> lookup [label="tidak"];
+lookup -> normal [label="data didapat"];
+lookup -> form [label="belum ada"];
+form -> auth;
+auth -> pending [label="tidak"];
+auth -> commit [label="ya"];
+commit -> sync -> result;
+{rank=same; normal; lookup;}
+{rank=same; pending; commit;}
+
+}

@@ -1,0 +1,11 @@
+// Plant database: SQL Server, one per plant. One .prisma file per domain next to this one.
+// SQL Server has no enum type: enum-like columns are strings validated in the app.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlserver"
+}

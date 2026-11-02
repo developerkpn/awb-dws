@@ -1,0 +1,41 @@
+
+digraph G {
+graph [bgcolor="white", pad="0.25", nodesep="0.30", ranksep="0.35", dpi=180,
+       fontname="Noto Sans", fontsize=11, compound=true, outputorder="edgesfirst"];
+node [shape=box, style="rounded,filled", fillcolor="#F7F5F2", color="#BDB6B0",
+      fontname="Noto Sans", fontsize=12, fontcolor="#302F31",
+      margin="0.16,0.12", penwidth=1.1];
+edge [fontname="Noto Sans", fontsize=10, fontcolor="#635F5D", color="#8D8580",
+      penwidth=1.15, arrowsize=0.7];
+
+rankdir=TB;
+newrank=true;
+subgraph cluster_ho {
+ label="AWS / HEAD OFFICE"; labelloc=t; color="#BCB3AC"; style="rounded";
+ customer [label="Customer (opsional)\nCustomer Pre-Registration"];
+ hostaff [label="Petugas HO\nRegistrasi tanpa prereg"];
+ portal [label="Portal prereg + QR\nApproval Logistik HO", fillcolor="#F7E9E7", color="#A13E34"];
+ hodb [label="Database HO (PostgreSQL)\nPrereg + registrasi HO + versi", shape=cylinder];
+ {rank=same; customer; hostaff;}
+ customer -> portal; hostaff -> portal; portal -> hodb;
+}
+sap [label="SAP / ERP\nKontrak integrasi TBD", fillcolor="#ECEAE7"];
+subgraph cluster_site {
+ label="ON PREMISE / SETIAP PABRIK"; labelloc=t; color="#A13E34"; style="rounded";
+ kiosk [label="Kiosk supir\nRegistrasi / WB 2 tap / keluar"];
+ tcs [label="Petugas TCS\nInspection / QC / handling"];
+ app [label="Aplikasi operasional terpadu\nWB baru + kontrol journey", fillcolor="#F7E9E7", color="#A13E34"];
+ db [label="SATU DATABASE SITE (SQL Server)\nCache prereg + journey + WB\nStasiun + audit + inbox/outbox", shape=cylinder, fillcolor="#F7E9E7", color="#A13E34"];
+ gateway [label="Gateway / adapter site"];
+ hw [label="RFID / indikator / sensor\nBarrier / kamera AI-OCR / printer"];
+ {rank=same; kiosk; tcs;}
+ {rank=same; db; gateway;}
+ kiosk -> app; tcs -> app; app -> db [dir=both];
+ app -> gateway [dir=both]; gateway -> hw [dir=both];
+}
+hodb -> kiosk [style=invis];
+hodb -> db [dir=both, style=dashed, color="#A13E34", label="Sinkronisasi dua arah\nprereg + registrasi HO / fakta operasional"];
+portal -> sap [dir=both, style=dashed, label="Dokumen / master"];
+app -> sap [dir=both, style=dashed, label="Posting / rekonsiliasi"];
+
+}

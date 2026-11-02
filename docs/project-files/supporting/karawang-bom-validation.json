@@ -1,0 +1,37 @@
+{
+  "source_file": "AWS-BOM All Plant Downstream.xlsx",
+  "source_sheet": "2-Priscolin Karawang-7803",
+  "source_sha256": "2cf64938268df7fad8e4d450eedb64962406d2c84f70f7e769262d048fe1829c",
+  "checks": {
+    "line_products_match": true,
+    "group_totals_match": true,
+    "sheet_total_matches": true,
+    "summary_total_matches": true,
+    "line_items": 49
+  },
+  "source_explicit_exclusions": "Estimaded Cost Belum Termasuk Pengerjaan Civil ( Pondasi ) , Pulling Cable & Network Termination",
+  "allocation_issues": [
+    {
+      "item_row": 3,
+      "item": "Barrier gate BAISHENG BS-3306-3S, boom 4 m",
+      "order_quantity": 5,
+      "allocation_note": "6 unit untuk WB, 1 unit untuk TCS",
+      "observation": "Total Order 5; catatan alokasi menyebut 6 unit WB + 1 unit TCS."
+    },
+    {
+      "item_row": 7,
+      "item": "RFID pole gooseneck + sirene/lampu/tombol",
+      "order_quantity": 8,
+      "allocation_note": "6 untuk WB (In dan Out ), 2 Untuk TCS, 4 Unit untuk Sampling&Unloading ",
+      "observation": "Total Order 8; catatan alokasi menyebut angka 6 untuk WB, 2 untuk TCS, dan 4 sampling/unloading."
+    },
+    {
+      "item_row": 10,
+      "item": "Controller board 2 Wiegand / TCP-IP",
+      "order_quantity": 7,
+      "allocation_note": "7 Unit untuk BG, 2 Uint untuk Sampling&Unloading",
+      "observation": "Total Order 7; catatan alokasi menyebut 7 untuk BG + 2 sampling/unloading."
+    }
+  ],
+  "grand_total": 863989020
+}

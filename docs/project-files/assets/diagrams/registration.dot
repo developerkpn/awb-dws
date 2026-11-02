@@ -1,0 +1,39 @@
+
+digraph G {
+graph [bgcolor="white", pad="0.25", nodesep="0.30", ranksep="0.35", dpi=180,
+       fontname="Noto Sans", fontsize=11, compound=true, outputorder="edgesfirst"];
+node [shape=box, style="rounded,filled", fillcolor="#F7F5F2", color="#BDB6B0",
+      fontname="Noto Sans", fontsize=12, fontcolor="#302F31",
+      margin="0.16,0.12", penwidth=1.1];
+edge [fontname="Noto Sans", fontsize=10, fontcolor="#635F5D", color="#8D8580",
+      penwidth=1.15, arrowsize=0.7];
+
+rankdir=TB;
+arrive [label="Truk tiba di kiosk registrasi"];
+hasqr [label="Membawa QR Customer\nPre-Registration?", shape=diamond, fillcolor="white"];
+qr [label="Scan QR + verifikasi\nprereg_qr"];
+local [label="Data prereg tersedia\ndi pabrik?", shape=diamond, fillcolor="white"];
+fallback [label="Fallback data QR\nSupir isi dari surat jalan\nqr_fallback"];
+hodata [label="Data sudah diisi\npetugas HO?", shape=diamond, fillcolor="white"];
+hoentry [label="Cari + konfirmasi data HO\nho_staff_entry"];
+driver [label="Supir isi data registrasi\ndriver_entry"];
+check [label="Lolos verifikasi / pemeriksaan\nsesuai jalur (O-02 / O-12)?", shape=diamond, fillcolor="white"];
+bind [label="Ambil kartu dari tempat biasa\nTap di kiosk yang sama → binding", fillcolor="#F7E9E7", color="#A13E34"];
+help [label="Draft / exception\nBelum boleh binding", color="#A13E34"];
+arrive -> hasqr;
+hasqr -> qr [label="ya"];
+hasqr -> hodata [label="tidak"];
+qr -> local;
+local -> check [label="ya"];
+local -> fallback [label="tidak"];
+fallback -> check;
+hodata -> hoentry [label="ya"];
+hodata -> driver [label="tidak / belum tiba"];
+hoentry -> check; driver -> check;
+check -> bind [label="ya"];
+check -> help [label="tidak"];
+{rank=same; qr; hodata;}
+{rank=same; fallback; hoentry; driver;}
+{rank=same; bind; help;}
+
+}
