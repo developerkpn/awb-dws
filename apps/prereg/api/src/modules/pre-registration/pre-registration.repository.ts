@@ -1,10 +1,18 @@
-import { prisma } from '../../config/prisma'
-import type { PreRegistration } from '../../generated/prisma/client'
+import type { TransactionType } from '@awb/contracts'
 
-export type { PreRegistration }
+export type PreRegistration = {
+  id: string
+  siteId: string
+  transactionType: TransactionType
+  referenceDocument: string
+  status: string
+}
+
+// Temporary in-memory store until the pre-registration table exists; keep the method signatures.
+const preRegistrations = new Map<string, PreRegistration>()
 
 export default {
-  findById(id: string): Promise<PreRegistration | null> {
-    return prisma.preRegistration.findUnique({ where: { id } })
+  async findById(id: string): Promise<PreRegistration | null> {
+    return preRegistrations.get(id) ?? null
   },
 }

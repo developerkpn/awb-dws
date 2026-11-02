@@ -2,6 +2,8 @@
 
 **Status: draf ditinjau** (2 November 2026). Jawaban atas bagian C dicatat sebagai keputusan K-18 s.d. K-22 (di `BLUEPRINT.md` dan `TECHNICAL.md`).
 
+Nama tabel di database baru mengikuti aturan penamaan di `TECHNICAL.md` (`mst_`, `awb_`, `sys_`), jadi nama lama di bawah hanya acuan.
+
 Keputusan dasarnya adalah K-13: database baru, dengan struktur tabel disalin dari sistem lama secara selektif dan boleh diubah.
 
 | Usulan | Artinya |
@@ -127,7 +129,7 @@ Temuan penting:
 
 | Tabel lama | Usulan | Catatan |
 |---|---|---|
-| `vcs_registrations` | Ubah | Menjadi tabel **journey** (menggantikan model contoh `Journey`). Tambah asal registrasi, id pre-registration/registrasi dan kode pabrik. Kolom CCTV dipindah ke tabel pemeriksaan AI/OCR. |
+| `vcs_registrations` | Ubah | Menjadi tabel **journey**. Tambah asal registrasi, id pre-registration/registrasi dan kode pabrik. Kolom CCTV dipindah ke tabel pemeriksaan AI/OCR. |
 | `vcs_tap_records` | Ubah | Tambah tap pertama/kedua di timbangan. |
 | `vcs_stage_submissions`, `vcs_stage_photos`, `manager_checks` | Salin | Dipakai aplikasi Android. |
 | `vcs_cancel_requests`, `vcs_driver_infractions`, `vcs_driver_photo_revisions` | Salin | |

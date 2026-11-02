@@ -19,5 +19,6 @@ Run `npm run check`. It needs the local databases (`npm run db:up`).
 
 ## Writing docs and comments
 
+- Table names: `mst_` (master), `awb_` (transaction), `sys_` (technical), singular `snake_case`; see "Aturan penamaan tabel" in `TECHNICAL.md`.
 - Comments only when the code can't explain itself; at most 2 lines each, and few of them. Longer explanations go in a README next to the code or in `TECHNICAL.md`.
 - Describe conventions directly. Don't name other projects as the source or inspiration of a convention anywhere in this repository.

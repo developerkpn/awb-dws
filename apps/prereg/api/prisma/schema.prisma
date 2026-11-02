@@ -9,18 +9,4 @@ datasource db {
   provider = "postgresql"
 }
 
-/// Customer Pre-Registration. Placeholder model: replace with the real schema
-/// (for example by introspecting the existing customer_prereg database with `prisma db pull`).
-model PreRegistration {
-  /// preregGlobalId in sync events.
-  id                String   @id @default(uuid()) @db.Uuid
-  siteId            String   @map("site_id") @db.VarChar(50)
-  /// BEL | JUL | LSK | LSM
-  transactionType   String   @map("transaction_type") @db.VarChar(3)
-  referenceDocument String   @map("reference_document") @db.VarChar(100)
-  status            String   @db.VarChar(30)
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-
-  @@map("pre_registrations")
-}
+// Models go below. Table names follow "Aturan penamaan tabel" in TECHNICAL.md (mst_ / awb_ / sys_).

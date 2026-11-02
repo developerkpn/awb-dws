@@ -39,7 +39,7 @@ Kedua sisi saling bertukar data secara otomatis.
 | Area | Status | Keterangan |
 |---|---|---|
 | Fondasi proyek | Selesai | Struktur proyek, aturan kerja tim, pengujian otomatis dan dokumen ini sudah siap. |
-| Database | Persiapan | Database untuk HO dan pabrik sudah disiapkan. Tabelnya sedang disusun dari sistem lama (K-13). |
+| Database | Persiapan | Database untuk HO dan pabrik sudah tersambung, tetapi belum berisi tabel. Tabel disusun tim pengembang dari sistem lama (K-13). |
 | Koneksi ke perangkat timbangan | Dikerjakan | Sistem sudah bisa tersambung ke controller timbangan (2 per jembatan timbang) dan menyambung ulang sendiri bila putus. Pembacaan tap kartu belum dibuat. |
 | Customer Pre-Registration | Persiapan | Belum ada fitur yang bisa dipakai. Akan mendukung penjualan (JUL) dan pembelian (BEL, dengan input PO) (K-15). |
 | Registrasi masuk dan keluar | Belum mulai | Scan QR, registrasi tanpa pre-registration dan pengambilan kartu RFID. |
