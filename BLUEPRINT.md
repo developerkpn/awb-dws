@@ -120,6 +120,7 @@ Riwayat hanya ditambah, tidak pernah diubah atau dihapus, sehingga kondisi awal 
 | R-014 | 2026-11-02 | Perangkat | Controller Priscolin diasumsikan sama dengan VCF | Format tap RFID dan perintah sama persis; logika sensor auto-close barrier dapat berubah | K-14 → K-17 |
 | R-015 | 2026-11-02 | Dokumentasi | — | Inventaris tabel sistem lama (usulan salin/ubah/tidak dipakai) dan protokol controller lengkap ditulis di `docs/design/` | K-13, K-17 |
 | R-016 | 2026-11-02 | Database | 6 pertanyaan terbuka di inventaris tabel; API aplikasi Android belum diputuskan | 4 diputuskan: acuan branch, master supir/kendaraan/transporter di HO, API meniru VCF, akun layanan SAP; layar re-adopt dan ekspor struktur WB.NET masih terbuka | K-18 s.d. K-21 |
+| R-017 | 2026-11-02 | Perangkat | R-010 menulis format input controller sebagai `:INPn!` | Koreksi: format input yang benar adalah `:INP<n><0/1>;`, diakhiri titik koma (lihat `docs/design/protokol-controller.md`) | Koreksi atas R-010 |
 
 ## 6. Hal yang belum diputuskan
 
