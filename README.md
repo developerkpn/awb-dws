@@ -94,7 +94,7 @@ Each API has its own Prisma setup: one `prisma/schema.prisma` (all models of tha
 
 SQL Server has no enum type, so enum-like columns are strings validated in the app with the schemas in `@awb/contracts`.
 
-Table names use a prefix: `mst_` for master data, `awb_` for transactions and `sys_` for technical tables (outbox, OTP, audit), in singular `snake_case`. Prisma models stay `PascalCase` and map to the table with `@@map`. Details and examples: `TECHNICAL.md`, "Aturan penamaan tabel".
+Table names start with `mst_` for master data and `awb_` for transactions. Anything else just needs a clear name. Examples: `TECHNICAL.md`, "Aturan penamaan tabel".
 
 Local development databases run in Docker (`infra/dev/compose.yaml`): Postgres on host port **5450** (5432–5445 are taken by other local project databases) and SQL Server on 1433. Tests use separate `*_test` databases from `.env.test` and refuse to run against anything else.
 
@@ -161,4 +161,4 @@ The full list, in Indonesian, is section 5 of `BLUEPRINT.md`.
 - **Which tables to copy.** Both apps get new databases, with table structures copied selectively from the old systems (customer_prereg, VCF, WB.NET) and changed where needed (decision K-13). The Prisma schemas are empty on purpose: the team adds the first tables and migrations following the naming rules; the two example modules keep data in memory until then. Draft list for review (Indonesian): `docs/design/inventaris-tabel.md`.
 - **Old data and cutover:** later (PRD O-06).
 - **Backup server if a plant server fails:** later (PRD O-09). Until then `site/api` runs as exactly one instance per plant, because it holds the controller sockets.
-- **Controller relays:** what each relay (`OPEN1`, `OPEN4`, ...) does is checked during the site survey. The message format comes from VCF (`WbGateListenerService`); the RFID tap format stays exactly the same, while the barrier sensor logic may change because Priscolin uses different sensors (K-17). The exact format is in `docs/design/protokol-controller.md`; `controller.protocol.ts` passes raw data through until it is implemented.
+- **Controller relays:** relay 1 opens the barrier, relay 2 closes it, relay 3 drives the traffic light and relay 4 the buzzer. `docs/design/protokol-controller.md` (Indonesian) describes what each relay and sensor does, how the site service handles them, and the message format, which stays the same as VCF (K-17). The wiring at Priscolin and the barrier sensor logic are confirmed during the site survey. Until then `controller.protocol.ts` passes raw data through.

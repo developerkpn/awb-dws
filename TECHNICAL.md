@@ -54,14 +54,10 @@ Berlaku untuk kedua database (PostgreSQL di prereg, SQL Server di pabrik).
 
 | Awalan | Untuk | Contoh |
 |---|---|---|
-| `mst_` | Data master: data acuan yang jarang berubah, termasuk tabel penghubung antar master | `mst_user`, `mst_role`, `mst_customer`, `mst_vendor`, `mst_driver`, `mst_vehicle`, `mst_commodity`, `mst_flow_stage`, `mst_controller` |
-| `awb_` | Data transaksi: kejadian bisnis yang terus bertambah | `awb_pre_registration`, `awb_driver_request`, `awb_journey`, `awb_weighing`, `awb_stage_submission` |
-| `sys_` | Data teknis sistem, bukan data bisnis | `sys_outbox`, `sys_inbox`, `sys_otp`, `sys_audit_log` |
+| `mst_` | Data master | `mst_customer`, `mst_driver`, `mst_controller` |
+| `awb_` | Data transaksi | `awb_pre_registration`, `awb_journey`, `awb_weighing` |
 
-- Nama tabel memakai `snake_case` dan bentuk tunggal (`mst_user`, bukan `mst_users`).
-- Model Prisma tetap `PascalCase` tanpa awalan, dipetakan dengan `@@map`, misalnya `model Journey { ... @@map("awb_journey") }`.
-- Kolom memakai `snake_case` di database dan `camelCase` di Prisma (`@map`).
-- Tabel yang disalin dari sistem lama ikut diganti namanya, misalnya `req_drvr_vhcl` → `awb_driver_request` dan `loading_note_hd` → `awb_pre_registration`.
+Selain dua awalan ini tidak ada aturan khusus. Tabel lain (misalnya antrean sinkronisasi atau OTP) cukup diberi nama yang jelas.
 
 ## Keputusan teknis
 
@@ -84,8 +80,9 @@ Berlaku untuk kedua database (PostgreSQL di prereg, SQL Server di pabrik).
 | K-20 | 2026-11-02 | Layanan pabrik menyediakan API dengan alamat dan format yang sama dengan VCF untuk aplikasi Android | Aplikasi cukup diganti alamat servernya | berlaku |
 | K-23 | 2026-11-02 | Blueprint untuk manajemen (`BLUEPRINT.md`, dicetak PDF) dipisah dari catatan teknis (`TECHNICAL.md`) | Blueprint terlalu teknis untuk manajemen | berlaku |
 | K-24 | 2026-11-02 | Satu file `prisma/schema.prisma` per aplikasi (prereg dan site), berisi semua model aplikasi itu | Lebih rapi daripada satu file `.prisma` per domain/modul | berlaku |
-| K-25 | 2026-11-02 | Nama tabel memakai awalan `mst_` (master), `awb_` (transaksi) dan `sys_` (teknis), `snake_case` dan bentuk tunggal | Jenis data langsung terlihat dari nama tabelnya | berlaku |
+| K-25 | 2026-11-02 | Nama tabel memakai awalan `mst_` (master), `awb_` (transaksi) dan `sys_` (teknis), `snake_case` dan bentuk tunggal | Jenis data langsung terlihat dari nama tabelnya | digantikan oleh K-27 |
 | K-26 | 2026-11-02 | Schema database dibiarkan kosong (tanpa model dan migrasi); tabel dan migrasi pertama dibuat tim pengembang mengikuti aturan penamaan. Modul contoh tetap ada sebagai kerangka dan menyimpan data sementara di memori | Tabel dirancang oleh tim; repo hanya memberi kerangka dan panduan | berlaku |
+| K-27 | 2026-11-03 | Aturan nama tabel cukup dua awalan: `mst_` untuk data master dan `awb_` untuk data transaksi; selebihnya bebas asal jelas | Aturan K-25 terlalu ketat; keputusan pemilik kebutuhan | berlaku |
 
 ## Riwayat teknis
 
@@ -105,6 +102,8 @@ Berlaku untuk kedua database (PostgreSQL di prereg, SQL Server di pabrik).
 | R-020 | 2026-11-02 | Database | Satu file `.prisma` per domain/modul di folder `prisma/schema/` | Satu `prisma/schema.prisma` per aplikasi; model dan migrasi tidak berubah | K-24 |
 | R-021 | 2026-11-02 | Database | Belum ada aturan penamaan tabel | Awalan `mst_` (master), `awb_` (transaksi) dan `sys_` (teknis), `snake_case`, bentuk tunggal | K-25 |
 | R-022 | 2026-11-02 | Database | Model contoh `Journey` dan `PreRegistration` dengan migrasi awal di kedua database | Schema tanpa model dan migrasi; modul contoh tetap ada dan menyimpan data sementara di memori; tabel contoh di database lokal dihapus | K-26 |
+| R-023 | 2026-11-03 | Database | Awalan `mst_` (master), `awb_` (transaksi) dan `sys_` (teknis), `snake_case`, bentuk tunggal, aturan model dan kolom Prisma | Hanya awalan `mst_` (master) dan `awb_` (transaksi); selebihnya bebas asal jelas | K-25 → K-27 |
+| R-024 | 2026-11-03 | Perangkat | `docs/design/protokol-controller.md` merujuk beberapa sumber dan membandingkan dua implementasi lama | Hanya merujuk kode VCF di GitHub; isinya fungsi tiap relay dan input, dan cara layanan pabrik menanganinya (satu koneksi, tap, auto-close, buka dari aplikasi, sirene) | Permintaan pemilik kebutuhan; K-17 |
 
 ## A. Aplikasi
 

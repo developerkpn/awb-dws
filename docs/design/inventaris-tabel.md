@@ -2,7 +2,7 @@
 
 **Status: draf ditinjau** (2 November 2026). Jawaban atas bagian C dicatat sebagai keputusan K-18 s.d. K-22 (di `BLUEPRINT.md` dan `TECHNICAL.md`).
 
-Nama tabel di database baru mengikuti aturan penamaan di `TECHNICAL.md` (`mst_`, `awb_`, `sys_`), jadi nama lama di bawah hanya acuan.
+Nama tabel di database baru memakai awalan `mst_` untuk data master dan `awb_` untuk data transaksi (aturan penamaan di `TECHNICAL.md`), jadi nama lama di bawah hanya acuan.
 
 Keputusan dasarnya adalah K-13: database baru, dengan struktur tabel disalin dari sistem lama secara selektif dan boleh diubah.
 
