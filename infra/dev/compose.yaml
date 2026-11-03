@@ -38,6 +38,14 @@ services:
       retries: 30
       start_period: 20s
 
+# Never let Docker pick 172.x here: the office network uses 172.22.0.0/16
+# and an automatic bridge on it hijacks the route to internal servers.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 192.168.243.0/24
+
 volumes:
   postgres-data:
   sqlserver-data:

@@ -104,6 +104,7 @@ Selain dua awalan ini tidak ada aturan khusus. Tabel lain (misalnya antrean sink
 | R-022 | 2026-11-02 | Database | Model contoh `Journey` dan `PreRegistration` dengan migrasi awal di kedua database | Schema tanpa model dan migrasi; modul contoh tetap ada dan menyimpan data sementara di memori; tabel contoh di database lokal dihapus | K-26 |
 | R-023 | 2026-11-03 | Database | Awalan `mst_` (master), `awb_` (transaksi) dan `sys_` (teknis), `snake_case`, bentuk tunggal, aturan model dan kolom Prisma | Hanya awalan `mst_` (master) dan `awb_` (transaksi); selebihnya bebas asal jelas | K-25 → K-27 |
 | R-024 | 2026-11-03 | Perangkat | `docs/design/protokol-controller.md` merujuk beberapa sumber dan membandingkan dua implementasi lama | Hanya merujuk kode VCF di GitHub; isinya fungsi tiap relay dan input, dan cara layanan pabrik menanganinya (satu koneksi, tap, auto-close, buka dari aplikasi, sirene) | Permintaan pemilik kebutuhan; K-17 |
+| R-025 | 2026-11-03 | Infrastruktur | Jaringan Docker database lokal dipilih otomatis oleh Docker (`172.22.0.0/16`), bentrok dengan jaringan kantor sehingga server internal di `172.22.x.x` tidak terjangkau | Subnet dipatok ke `192.168.243.0/24` di `infra/dev/compose.yaml` | Jaringan kantor memakai `172.22.0.0/16` |
 
 ## A. Aplikasi
 
