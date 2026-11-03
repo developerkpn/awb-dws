@@ -101,6 +101,7 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 | R-025 | 2026-11-03 | Infrastruktur | Jaringan Docker database lokal dipilih otomatis oleh Docker (`172.22.0.0/16`), bentrok dengan jaringan kantor sehingga server internal di `172.22.x.x` tidak terjangkau | Subnet dipatok ke `192.168.243.0/24` di `infra/dev/compose.yaml` | Jaringan kantor memakai `172.22.0.0/16` |
 | R-026 | 2026-11-03 | Database | Belum ada aturan nama kolom | `snake_case` berbahasa Inggris dengan `id`, `<tabel>_id`, `is_`/`has_`, `_at`, `_date`, `_by`; setiap tabel punya `created_at` dan `updated_at` | K-28 |
 | R-027 | 2026-11-03 | Dokumentasi | `docs/design/inventaris-tabel.md`: usulan salin/ubah/tidak dipakai untuk setiap tabel sistem lama | `docs/design/penamaan-tabel.md`: panduan singkat nama tabel dan kolom; struktur tabel lama dilihat langsung oleh tim. Keputusan dari inventaris tetap di K-18 s.d. K-22, hal terbuka tetap di `BLUEPRINT.md` | Permintaan pemilik kebutuhan |
+| R-028 | 2026-11-03 | Pengujian | `tests/global-setup.ts` menjalankan migrasi lewat `npx prisma`; di Windows gagal karena `npx.cmd` tidak bisa dijalankan tanpa shell, dan pesannya tertutup error Vitest `code.charCodeAt is not a function` | Prisma CLI dijalankan langsung dengan Node (`process.execPath`); pesan gagal setup selalu dicetak lebih dulu | `npm run check` gagal di laptop Windows pengembang |
 
 ## A. Aplikasi
 
