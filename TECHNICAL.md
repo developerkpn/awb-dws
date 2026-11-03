@@ -46,18 +46,11 @@ Pemeriksaan ini juga memberi peringatan bila PDF lebih lama dari `BLUEPRINT.md`.
 
 ![Arsitektur: Customer Pre-Registration di AWS dan sistem pabrik on-premise, tersinkronisasi dua arah.](docs/project-files/assets/diagrams/architecture.png)
 
-Susunan folder, aturan dan perintah ada di `README.md`. Rancangan tabel ada di `docs/design/inventaris-tabel.md`, protokol controller di `docs/design/protokol-controller.md`.
+Susunan folder, aturan dan perintah ada di `README.md`. Penamaan tabel dan kolom ada di `docs/design/penamaan-tabel.md`, protokol controller di `docs/design/protokol-controller.md`.
 
 ## Aturan penamaan tabel
 
-Berlaku untuk kedua database (PostgreSQL di prereg, SQL Server di pabrik).
-
-| Awalan | Untuk | Contoh |
-|---|---|---|
-| `mst_` | Data master | `mst_customer`, `mst_driver`, `mst_controller` |
-| `awb_` | Data transaksi | `awb_pre_registration`, `awb_journey`, `awb_weighing` |
-
-Selain dua awalan ini tidak ada aturan khusus. Tabel lain (misalnya antrean sinkronisasi atau OTP) cukup diberi nama yang jelas.
+Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake_case`, dengan `id`, `<tabel>_id`, `is_`, `_at`, `_date` dan `_by`. Aturan lengkap dan contohnya ada di `docs/design/penamaan-tabel.md`.
 
 ## Keputusan teknis
 
@@ -83,6 +76,7 @@ Selain dua awalan ini tidak ada aturan khusus. Tabel lain (misalnya antrean sink
 | K-25 | 2026-11-02 | Nama tabel memakai awalan `mst_` (master), `awb_` (transaksi) dan `sys_` (teknis), `snake_case` dan bentuk tunggal | Jenis data langsung terlihat dari nama tabelnya | digantikan oleh K-27 |
 | K-26 | 2026-11-02 | Schema database dibiarkan kosong (tanpa model dan migrasi); tabel dan migrasi pertama dibuat tim pengembang mengikuti aturan penamaan. Modul contoh tetap ada sebagai kerangka dan menyimpan data sementara di memori | Tabel dirancang oleh tim; repo hanya memberi kerangka dan panduan | berlaku |
 | K-27 | 2026-11-03 | Aturan nama tabel cukup dua awalan: `mst_` untuk data master dan `awb_` untuk data transaksi; selebihnya bebas asal jelas | Aturan K-25 terlalu ketat; keputusan pemilik kebutuhan | berlaku |
+| K-28 | 2026-11-03 | Nama kolom memakai `snake_case` berbahasa Inggris: kunci utama `id`, relasi `<tabel>_id`, ya/tidak `is_`/`has_`, waktu `_at`, tanggal `_date`, pengguna `_by`; setiap tabel punya `created_at` dan `updated_at` | Tim butuh panduan singkat yang sama untuk kedua database | berlaku |
 
 ## Riwayat teknis
 
@@ -105,6 +99,8 @@ Selain dua awalan ini tidak ada aturan khusus. Tabel lain (misalnya antrean sink
 | R-023 | 2026-11-03 | Database | Awalan `mst_` (master), `awb_` (transaksi) dan `sys_` (teknis), `snake_case`, bentuk tunggal, aturan model dan kolom Prisma | Hanya awalan `mst_` (master) dan `awb_` (transaksi); selebihnya bebas asal jelas | K-25 → K-27 |
 | R-024 | 2026-11-03 | Perangkat | `docs/design/protokol-controller.md` merujuk beberapa sumber dan membandingkan dua implementasi lama | Hanya merujuk kode VCF di GitHub; isinya fungsi tiap relay dan input, dan cara layanan pabrik menanganinya (satu koneksi, tap, auto-close, buka dari aplikasi, sirene) | Permintaan pemilik kebutuhan; K-17 |
 | R-025 | 2026-11-03 | Infrastruktur | Jaringan Docker database lokal dipilih otomatis oleh Docker (`172.22.0.0/16`), bentrok dengan jaringan kantor sehingga server internal di `172.22.x.x` tidak terjangkau | Subnet dipatok ke `192.168.243.0/24` di `infra/dev/compose.yaml` | Jaringan kantor memakai `172.22.0.0/16` |
+| R-026 | 2026-11-03 | Database | Belum ada aturan nama kolom | `snake_case` berbahasa Inggris dengan `id`, `<tabel>_id`, `is_`/`has_`, `_at`, `_date`, `_by`; setiap tabel punya `created_at` dan `updated_at` | K-28 |
+| R-027 | 2026-11-03 | Dokumentasi | `docs/design/inventaris-tabel.md`: usulan salin/ubah/tidak dipakai untuk setiap tabel sistem lama | `docs/design/penamaan-tabel.md`: panduan singkat nama tabel dan kolom; struktur tabel lama dilihat langsung oleh tim. Keputusan dari inventaris tetap di K-18 s.d. K-22, hal terbuka tetap di `BLUEPRINT.md` | Permintaan pemilik kebutuhan |
 
 ## A. Aplikasi
 
