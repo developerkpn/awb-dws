@@ -102,6 +102,7 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 | R-026 | 2026-11-03 | Database | Belum ada aturan nama kolom | `snake_case` berbahasa Inggris dengan `id`, `<tabel>_id`, `is_`/`has_`, `_at`, `_date`, `_by`; setiap tabel punya `created_at` dan `updated_at` | K-28 |
 | R-027 | 2026-11-03 | Dokumentasi | `docs/design/inventaris-tabel.md`: usulan salin/ubah/tidak dipakai untuk setiap tabel sistem lama | `docs/design/penamaan-tabel.md`: panduan singkat nama tabel dan kolom; struktur tabel lama dilihat langsung oleh tim. Keputusan dari inventaris tetap di K-18 s.d. K-22, hal terbuka tetap di `BLUEPRINT.md` | Permintaan pemilik kebutuhan |
 | R-028 | 2026-11-03 | Pengujian | `tests/global-setup.ts` menjalankan migrasi lewat `npx prisma`; di Windows gagal karena `npx.cmd` tidak bisa dijalankan tanpa shell, dan pesannya tertutup error Vitest `code.charCodeAt is not a function` | Prisma CLI dijalankan langsung dengan Node (`process.execPath`); pesan gagal setup selalu dicetak lebih dulu | `npm run check` gagal di laptop Windows pengembang |
+| R-029 | 2026-11-04 | Frontend | Halaman prereg/web berupa kerangka sederhana tanpa autentikasi | Halaman login publik dan alur lupa password dengan verifikasi OTP email (AWB-6); pemisahan logic (pages/auth) dan presentasi (components/auth), routing dengan React.lazy, serta penambahan komponen Button, Input, dan AuthLayout di packages/ui | Kebutuhan antarmuka AWB-6 |
 
 ## A. Aplikasi
 
@@ -204,4 +205,4 @@ Skema di `@awb/contracts`; penjelasannya ada di README, bagian "Shared packages"
 |---|---|---|
 | `packages/contracts` | Skema zod antar aplikasi (bagian E) | dikerjakan |
 | `packages/server-core` | `CustomError`, `NotFoundError`, `ValidationError`, `errorHandler`, `success()`, `loadEnv()` | selesai untuk saat ini |
-| `packages/ui` | `AppShell`, `Screen` | kerangka |
+| `packages/ui` | `AppShell`, `Screen`, `Button`, `Input`, `AuthLayout` | kerangka |
