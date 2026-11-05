@@ -1,7 +1,7 @@
 import { useState, type InputHTMLAttributes, type ReactNode } from 'react'
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label?: string
+  label?: ReactNode
   error?: string
   helperText?: string
   rightLabelAction?: ReactNode
@@ -21,7 +21,7 @@ export function Input({
 }: InputProps) {
   const [isFocused, setIsFocused] = useState(false)
 
-  const inputId = id || (label ? `input-${label.toLowerCase().replace(/[^a-z0-9]/g, '-')}` : undefined)
+  const inputId = id || (typeof label === 'string' ? `input-${label.toLowerCase().replace(/[^a-z0-9]/g, '-')}` : undefined)
 
   const borderColor = error
     ? '#ef4444'
@@ -50,6 +50,9 @@ export function Input({
               }}
             >
               {label}
+              {props.required && (
+                <span style={{ color: '#dc2626', marginLeft: '4px', fontWeight: 700 }}>*</span>
+              )}
             </label>
           )}
           {rightLabelAction}
