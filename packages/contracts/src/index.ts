@@ -1,4 +1,6 @@
 export * from './common/transaction'
+export * from './common/account'
+export * from './common/permission'
 export * from './sync/envelope'
 export * from './sync/prereg-approved'
 export * from './realtime/lane-event'

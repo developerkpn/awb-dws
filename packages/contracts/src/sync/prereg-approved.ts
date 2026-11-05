@@ -4,7 +4,7 @@ import { syncEnvelope } from './envelope'
 
 export const preregApprovedPayload = z.object({
   preregGlobalId: z.string(),
-  documentVersion: z.number().int().positive(),
+  documentVersion: z.int().positive(),
   siteId: z.string(),
   transactionType,
   referenceDocument: z.string(),

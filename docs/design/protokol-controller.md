@@ -13,12 +13,12 @@ Board controller-nya SMIO, dengan 4 relay (OUT1–OUT4) dan 4 input (IN1–IN4).
 
 ## Fungsi tiap relay
 
-| Relay | Perintah | Fungsinya | Kapan dikirim |
-|---|---|---|---|
-| 1 | `OPEN1` | Membuka palang. Palang tetap terbuka sampai ditutup lewat relay 2 | Tap kartu yang sah, kartu bypass, buka dari aplikasi, buka ulang bila ada halangan saat menutup |
-| 2 | `OPEN2` | Menutup palang | Oleh auto-close, setelah semua sensor aman |
-| 3 | `OUT3ON` / `OUT3OFF`, atau `OPEN3` | Lampu lalu lintas | Menyala (tanda jalan) saat palang dibuka, mati saat ditutup |
-| 4 | `OUT4ON`, lalu `OUT4OFF` | Buzzer / sirene | Tap ditolak (5 detik), atau sirene yang diminta operator |
+| Relay | Perintah                           | Fungsinya                                                         | Kapan dikirim                                                                                   |
+| ----- | ---------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 1     | `OPEN1`                            | Membuka palang. Palang tetap terbuka sampai ditutup lewat relay 2 | Tap kartu yang sah, kartu bypass, buka dari aplikasi, buka ulang bila ada halangan saat menutup |
+| 2     | `OPEN2`                            | Menutup palang                                                    | Oleh auto-close, setelah semua sensor aman                                                      |
+| 3     | `OUT3ON` / `OUT3OFF`, atau `OPEN3` | Lampu lalu lintas                                                 | Menyala (tanda jalan) saat palang dibuka, mati saat ditutup                                     |
+| 4     | `OUT4ON`, lalu `OUT4OFF`           | Buzzer / sirene                                                   | Tap ditolak (5 detik), atau sirene yang diminta operator                                        |
 
 - **`OPENn` dan `OUTnON`/`OUTnOFF`:**
   - `OPENn` memberi pulsa singkat ke relay n.
@@ -33,11 +33,11 @@ Board controller-nya SMIO, dengan 4 relay (OUT1–OUT4) dan 4 input (IN1–IN4).
 
 ## Input (sensor)
 
-| Input | Fungsinya |
-|---|---|
-| IN1 | Loop kendaraan: ada truk di atasnya |
-| IN2, IN3 | Photocell di dalam dan di luar palang |
-| IN4 | Saklar batas lengan palang (ON = naik, OFF = turun). Di VCF belum tersambung ke controller mana pun |
+| Input    | Fungsinya                                                                                           |
+| -------- | --------------------------------------------------------------------------------------------------- |
+| IN1      | Loop kendaraan: ada truk di atasnya                                                                 |
+| IN2, IN3 | Photocell di dalam dan di luar palang                                                               |
+| IN4      | Saklar batas lengan palang (ON = naik, OFF = turun). Di VCF belum tersambung ke controller mana pun |
 
 - **Perubahan input:** datang sendiri sebagai `:INP<n><0/1>;` (diakhiri titik koma). Contoh: `:INP21;` berarti IN2 aktif.
 - **Status lengkap:** diminta dengan `INFO`.
@@ -111,14 +111,14 @@ Board controller-nya SMIO, dengan 4 relay (OUT1–OUT4) dan 4 input (IN1–IN4).
 - **Beberapa pesan bisa datang sekaligus** dalam satu pembacaan, tanpa pemisah. Contoh: `:W1<10 digit>!:PINGOK!:OUT11!:INP41;`.
 - **Pesan yang terpotong** di antara dua pembacaan disimpan sampai pembacaan berikutnya.
 
-| Pesan masuk | Artinya |
-|---|---|
-| `:W1<angka>!` | Kartu di-tap di reader 1 |
-| `:W2<angka>!` | Kartu di-tap di reader 2. Nomor reader dibaca terpisah dari nomor kartu |
-| `:PINGOK!` | Balasan `PING` |
-| `:OUT<n><0/1>!` | Konfirmasi relay |
-| `:INP<n><0/1>;` | Input n berubah (1 = aktif) |
-| `:IN1ONIN2OFF...OUT1OFF...!` | Status lengkap, balasan `INFO` |
+| Pesan masuk                  | Artinya                                                                 |
+| ---------------------------- | ----------------------------------------------------------------------- |
+| `:W1<angka>!`                | Kartu di-tap di reader 1                                                |
+| `:W2<angka>!`                | Kartu di-tap di reader 2. Nomor reader dibaca terpisah dari nomor kartu |
+| `:PINGOK!`                   | Balasan `PING`                                                          |
+| `:OUT<n><0/1>!`              | Konfirmasi relay                                                        |
+| `:INP<n><0/1>;`              | Input n berubah (1 = aktif)                                             |
+| `:IN1ONIN2OFF...OUT1OFF...!` | Status lengkap, balasan `INFO`                                          |
 
 ## Pengaturan per controller
 

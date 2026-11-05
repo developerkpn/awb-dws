@@ -1,20 +1,23 @@
 import { CustomError, NotFoundError } from '@awb/server-core'
 import repository from './role-permission.repository'
+import { permissionCodes as supportedCodes } from './permissions'
 
-export function formatRolePermissions(role: any) {
+type Role = NonNullable<Awaited<ReturnType<typeof repository.findRoleById>>>
+
+export function formatRolePermissions(role: Role) {
   return {
     id: role.id,
     code: role.code,
     name: role.name,
     description: role.description,
     isActive: role.isActive,
-    permissions: (role.permissions || []).map((rp: any) => ({
+    permissions: role.permissions.map((rp) => ({
       id: rp.permission?.id || rp.permissionId,
       code: rp.permission?.code,
       name: rp.permission?.name,
       module: rp.permission?.module,
     })),
-    permissionCodes: (role.permissions || []).map((rp: any) => rp.permission?.code).filter(Boolean),
+    permissionCodes: role.permissions.map((rp) => rp.permission.code),
   }
 }
 
@@ -54,11 +57,17 @@ export default {
   /**
    * Update role permissions (assign/revoke menu and page access)
    */
-  async updateRolePermissions(roleId: string, permissionCodes: string[]) {
+  async updateRolePermissions(roleId: string, permissionCodes: string[], actorId: string) {
     const role = await repository.findRoleById(roleId)
     if (!role) {
       throw new NotFoundError(`Role with ID '${roleId}' not found`)
     }
+
+    if (role.code === 'ADMIN')
+      throw new CustomError('Administrator permissions cannot be restricted', 409)
+    if (!role.isActive) throw new CustomError('Role is inactive', 422)
+    if (permissionCodes.some((code) => !supportedCodes.has(code)))
+      throw new CustomError('Unsupported permission code', 422)
 
     // Resolve permission IDs from codes
     let permissionIds: string[] = []
@@ -67,15 +76,13 @@ export default {
       if (permissions.length !== permissionCodes.length) {
         const foundCodes = new Set(permissions.map((p) => p.code))
         const missingCodes = permissionCodes.filter((c) => !foundCodes.has(c))
-        throw new CustomError(
-          `Invalid permission codes: ${missingCodes.join(', ')}`,
-          400
-        )
+        throw new CustomError(`Invalid permission codes: ${missingCodes.join(', ')}`, 400)
       }
       permissionIds = permissions.map((p) => p.id)
     }
 
-    const updated = await repository.updateRolePermissions(roleId, permissionIds)
+    const updated = await repository.updateRolePermissions(roleId, permissionIds, actorId)
+    if (!updated) throw new NotFoundError('Role not found')
     return formatRolePermissions(updated)
   },
 

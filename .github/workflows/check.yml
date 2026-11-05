@@ -1,0 +1,40 @@
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TURBO_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Configure local test databases
+        run: |
+          cp apps/prereg/api/.env.example apps/prereg/api/.env
+          cp apps/prereg/api/.env.test.example apps/prereg/api/.env.test
+          cp apps/site/api/.env.example apps/site/api/.env
+          cp apps/site/api/.env.test.example apps/site/api/.env.test
+          npm run db:up
+      - run: npm run check
+        env:
+          BLUEPRINT_BASE: ${{ github.event.pull_request.base.sha || github.event.before || 'HEAD^' }}
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - if: always()
+        run: npm run db:down

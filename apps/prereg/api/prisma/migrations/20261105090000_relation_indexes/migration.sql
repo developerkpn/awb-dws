@@ -1,0 +1,10 @@
+CREATE INDEX "mst_role_permission_permission_id_idx" ON "mst_role_permission"("permission_id");
+CREATE INDEX "sys_otp_user_id_idx" ON "sys_otp"("user_id");
+CREATE INDEX "mst_transporter_city_id_idx" ON "mst_transporter"("city_id");
+CREATE INDEX "mst_driver_city_id_idx" ON "mst_driver"("city_id");
+CREATE INDEX "mst_vehicle_transporter_id_idx" ON "mst_vehicle"("transporter_id");
+CREATE INDEX "awb_driver_request_driver_city_id_idx" ON "awb_driver_request"("driver_city_id");
+CREATE INDEX "awb_driver_request_transporter_id_idx" ON "awb_driver_request"("transporter_id");
+CREATE INDEX "awb_driver_request_decided_by_idx" ON "awb_driver_request"("decided_by");
+CREATE INDEX "auth_session_last_seen_at_idx" ON "auth_session"("last_seen_at");
+CREATE UNIQUE INDEX "mst_partner_sap_code_lower_key" ON "mst_partner"(lower("sap_code"));

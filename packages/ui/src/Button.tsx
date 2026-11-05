@@ -43,11 +43,12 @@ export function Button({
     boxSizing: 'border-box',
     fontFamily: 'inherit',
     letterSpacing: '0.01em',
-    boxShadow: variant === 'primary' && !isActuallyDisabled
-      ? isHovered
-        ? '0 6px 16px rgba(139, 36, 36, 0.32)'
-        : '0 2px 8px rgba(139, 36, 36, 0.2)'
-      : 'none',
+    boxShadow:
+      variant === 'primary' && !isActuallyDisabled
+        ? isHovered
+          ? '0 6px 16px rgba(139, 36, 36, 0.32)'
+          : '0 2px 8px rgba(139, 36, 36, 0.2)'
+        : 'none',
     ...style,
   }
 

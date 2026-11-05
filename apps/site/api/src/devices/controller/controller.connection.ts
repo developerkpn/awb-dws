@@ -50,7 +50,9 @@ export class ControllerConnection extends EventEmitter<ConnectionEvents> {
       this.lastError = null
       this.setStatus('connected')
     })
-    socket.on('data', (chunk) => this.emit('data', Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)))
+    socket.on('data', (chunk) =>
+      this.emit('data', Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)),
+    )
     socket.on('error', (err) => {
       this.lastError = err.message // 'close' follows and schedules the reconnect
     })

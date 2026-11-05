@@ -1,15 +1,17 @@
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { createHash } from 'node:crypto'
 import XLSX from 'xlsx'
 import { prisma } from '../src/config/prisma'
-
-function hashPassword(password: string): string {
-  // Deterministic SHA-256 hex digest for development seeds
-  return createHash('sha256').update(password).digest('hex')
-}
+import { env } from '../src/config/env'
+import { generatePassword, hashPassword } from '../src/lib/password'
+import { deliverCredentials } from '../src/services/mailer'
+import { permissionCatalogue } from '../src/modules/role-permission/permissions'
+import { seedCitiesAndTransporters } from './seed-master'
 
 async function main() {
+  if (env.NODE_ENV !== 'development')
+    throw new Error('Development seed is disabled outside development')
+  await seedCitiesAndTransporters()
   console.log('🌱 Starting database seeding for @awb/prereg-api...')
 
   // =========================================================================
@@ -17,13 +19,42 @@ async function main() {
   // =========================================================================
   console.log('📦 Seeding roles...')
   const rolesData = [
-    { code: 'ADMIN', name: 'Administrator HO', description: 'Head Office Admin with full system access' },
-    { code: 'MANAGER', name: 'Plant Manager', description: 'Plant Manager with operational approval rights' },
-    { code: 'LOGISTIC', name: 'Logistics Staff HO', description: 'Logistics coordinator across plant sites' },
-    { code: 'COMMERCIAL', name: 'Commercial Staff', description: 'Commercial and sales operations' },
-    { code: 'KRANIWB', name: 'Krani Weighbridge', description: 'Weighbridge and scale operator at site' },
-    { code: 'CUSTOMER', name: 'Customer Partner', description: 'Registered customer partner (SAP KUNNR)' },
-    { code: 'VENDOR', name: 'Vendor Partner', description: 'Registered vendor partner (SAP LIFNR)' },
+    {
+      code: 'ADMIN',
+      name: 'Administrator HO',
+      description: 'Head Office Admin with full system access',
+    },
+    {
+      code: 'MANAGER',
+      name: 'Plant Manager',
+      description: 'Plant Manager with operational approval rights',
+    },
+    {
+      code: 'LOGISTIC',
+      name: 'Logistics Staff HO',
+      description: 'Logistics coordinator across plant sites',
+    },
+    {
+      code: 'COMMERCIAL',
+      name: 'Commercial Staff',
+      description: 'Commercial and sales operations',
+    },
+    {
+      code: 'KRANIWB',
+      name: 'Krani Weighbridge',
+      description: 'Weighbridge and scale operator at site',
+    },
+    {
+      code: 'CUSTOMER',
+      name: 'Customer Partner',
+      description: 'Registered customer partner (SAP KUNNR)',
+    },
+    {
+      code: 'VENDOR',
+      name: 'Vendor Partner',
+      description: 'Registered vendor partner (SAP LIFNR)',
+    },
+    { code: 'INTERCO', name: 'Intercompany Partner', description: 'Intercompany partner' },
   ]
 
   const rolesByCode = new Map<string, string>()
@@ -41,14 +72,11 @@ async function main() {
   // 2. Seed Permissions & Role Permissions
   // =========================================================================
   console.log('🔐 Seeding permissions...')
-  const permissionsData = [
-    { code: 'admin:users', name: 'Manage Accounts and Roles', module: 'admin' },
-    { code: 'admin:plants', name: 'Manage Plant Access', module: 'admin' },
-    { code: 'prereg:view', name: 'View Pre-Registration Queue', module: 'prereg' },
-    { code: 'prereg:create', name: 'Create Pre-Registration Ticket', module: 'prereg' },
-    { code: 'weighbridge:view', name: 'View Weighbridge Operations', module: 'weighbridge' },
-    { code: 'weighbridge:operate', name: 'Operate Weighbridge Scale', module: 'weighbridge' },
-  ]
+  const permissionsData = permissionCatalogue.map(([code, name, module]) => ({
+    code,
+    name,
+    module,
+  }))
 
   const permissionsByCode = new Map<string, string>()
   for (const p of permissionsData) {
@@ -105,18 +133,12 @@ async function main() {
   // 4. Seed First Admin Account (AWB-7 / AWB-2 seed requirement)
   // =========================================================================
   console.log('👤 Seeding default admin account...')
-  const defaultPasswordHash = hashPassword('Admin1234!')
+  const defaultPassword = generatePassword()
+  const defaultPasswordHash = await hashPassword(defaultPassword)
+  const existingAdmin = await prisma.user.findUnique({ where: { username: 'admin' } })
   const adminUser = await prisma.user.upsert({
     where: { username: 'admin' },
-    update: {
-      name: 'Bambang Admin HO',
-      email: 'admin@kpncorp.com',
-      phone: '+62 811 1234 567',
-      passwordHash: defaultPasswordHash,
-      accountType: 'INTERNAL',
-      roleId: adminRoleId,
-      isActive: true,
-    },
+    update: {},
     create: {
       name: 'Bambang Admin HO',
       username: 'admin',
@@ -128,6 +150,7 @@ async function main() {
       isActive: true,
     },
   })
+  if (!existingAdmin) deliverCredentials(adminUser.username, defaultPassword)
   console.log(`✅ Admin account seeded: ${adminUser.username} (${adminUser.email})`)
 
   // =========================================================================
@@ -136,7 +159,10 @@ async function main() {
   console.log('🤝 Seeding SAP partner accounts...')
 
   // Possible paths for the reference Excel files (outside repo)
-  const preregExcelPath = resolve(process.cwd(), '../../../references/data_mitra_customer_prereg.xlsx')
+  const preregExcelPath = resolve(
+    process.cwd(),
+    '../../../references/data_mitra_customer_prereg.xlsx',
+  )
   const vmsExcelPath = resolve(process.cwd(), '../../../references/data_vendor_vms.xlsx')
   const altPreregExcelPath = 'd:/KPN/references/data_mitra_customer_prereg.xlsx'
   const altVmsExcelPath = 'd:/KPN/references/data_vendor_vms.xlsx'
@@ -173,7 +199,9 @@ async function main() {
 
     // 1. Customers
     if (wbPrereg.Sheets['mst_customer']) {
-      const customers: any[] = XLSX.utils.sheet_to_json(wbPrereg.Sheets['mst_customer'])
+      const customers = XLSX.utils.sheet_to_json<Record<string, string | number>>(
+        wbPrereg.Sheets['mst_customer'],
+      )
       for (const r of customers) {
         const code = (r.kunnr || '').toString().trim()
         if (!code || partnersMap.has(code)) continue
@@ -189,7 +217,9 @@ async function main() {
 
     // 2. Vendors from prereg
     if (wbPrereg.Sheets['mst_vendor']) {
-      const vendors: any[] = XLSX.utils.sheet_to_json(wbPrereg.Sheets['mst_vendor'])
+      const vendors = XLSX.utils.sheet_to_json<Record<string, string | number>>(
+        wbPrereg.Sheets['mst_vendor'],
+      )
       for (const r of vendors) {
         const code = (r.lifnr || '').toString().trim()
         if (!code || partnersMap.has(code)) continue
@@ -205,7 +235,9 @@ async function main() {
 
     // 3. Interco from prereg
     if (wbPrereg.Sheets['mst_interco']) {
-      const interco: any[] = XLSX.utils.sheet_to_json(wbPrereg.Sheets['mst_interco'])
+      const interco = XLSX.utils.sheet_to_json<Record<string, string | number>>(
+        wbPrereg.Sheets['mst_interco'],
+      )
       for (const r of interco) {
         const code = (r.kunnr || '').toString().trim()
         if (!code || partnersMap.has(code)) continue
@@ -221,7 +253,9 @@ async function main() {
 
     // 4. Enrich & add from VMS
     if (wbVms.Sheets['vendor']) {
-      const vmsVendors: any[] = XLSX.utils.sheet_to_json(wbVms.Sheets['vendor'])
+      const vmsVendors = XLSX.utils.sheet_to_json<Record<string, string | number>>(
+        wbVms.Sheets['vendor'],
+      )
       for (const r of vmsVendors) {
         const code = (r.ven_code || '').toString().trim()
         if (!code) continue
@@ -241,16 +275,66 @@ async function main() {
       }
     }
   } else {
-    console.log('⚠️  Excel reference files not found outside repo. Using benchmark partner dataset.')
+    console.log(
+      '⚠️  Excel reference files not found outside repo. Using benchmark partner dataset.',
+    )
     const benchmarkPartners: PartnerItem[] = [
-      { sapCode: 'KUNNR-10042', name: 'PT Indofood Sukses Makmur', partnerType: 'CUSTOMER', city: 'Jakarta', country: 'ID' },
-      { sapCode: 'LIFNR-20085', name: 'CV Sawit Makmur Perkasa', partnerType: 'VENDOR', city: 'Dumai', country: 'ID' },
-      { sapCode: 'CU00001000', name: 'ANEKA BOGA CARAKA', partnerType: 'CUSTOMER', city: 'JAKARTA PUSAT', country: 'ID' },
-      { sapCode: 'CU00002000', name: 'CV. KHARISMA JAYA', partnerType: 'CUSTOMER', city: 'DELI SERDANG', country: 'ID' },
-      { sapCode: 'AT11000001', name: 'PACIFIC INDOPALM INDUSTRIES PT.', partnerType: 'VENDOR', city: 'DUMAI', country: 'ID' },
-      { sapCode: 'AT11000002', name: 'KHARISMA PEMASARAN BERSAMA PT.', partnerType: 'VENDOR', city: 'JAKARTA PUSAT', country: 'ID' },
-      { sapCode: 'CI00001000', name: 'PT. BERKAT SAWIT UTAMA', partnerType: 'INTERCO', city: 'JAMBI', country: 'ID' },
-      { sapCode: 'CI00002000', name: 'PT. AGRIPRIMA CIPTA PERSADA', partnerType: 'INTERCO', city: 'MERAUKE', country: 'ID' },
+      {
+        sapCode: 'KUNNR-10042',
+        name: 'PT Indofood Sukses Makmur',
+        partnerType: 'CUSTOMER',
+        city: 'Jakarta',
+        country: 'ID',
+      },
+      {
+        sapCode: 'LIFNR-20085',
+        name: 'CV Sawit Makmur Perkasa',
+        partnerType: 'VENDOR',
+        city: 'Dumai',
+        country: 'ID',
+      },
+      {
+        sapCode: 'CU00001000',
+        name: 'ANEKA BOGA CARAKA',
+        partnerType: 'CUSTOMER',
+        city: 'JAKARTA PUSAT',
+        country: 'ID',
+      },
+      {
+        sapCode: 'CU00002000',
+        name: 'CV. KHARISMA JAYA',
+        partnerType: 'CUSTOMER',
+        city: 'DELI SERDANG',
+        country: 'ID',
+      },
+      {
+        sapCode: 'AT11000001',
+        name: 'PACIFIC INDOPALM INDUSTRIES PT.',
+        partnerType: 'VENDOR',
+        city: 'DUMAI',
+        country: 'ID',
+      },
+      {
+        sapCode: 'AT11000002',
+        name: 'KHARISMA PEMASARAN BERSAMA PT.',
+        partnerType: 'VENDOR',
+        city: 'JAKARTA PUSAT',
+        country: 'ID',
+      },
+      {
+        sapCode: 'CI00001000',
+        name: 'PT. BERKAT SAWIT UTAMA',
+        partnerType: 'INTERCO',
+        city: 'JAMBI',
+        country: 'ID',
+      },
+      {
+        sapCode: 'CI00002000',
+        name: 'PT. AGRIPRIMA CIPTA PERSADA',
+        partnerType: 'INTERCO',
+        city: 'MERAUKE',
+        country: 'ID',
+      },
     ]
     for (const bp of benchmarkPartners) {
       partnersMap.set(bp.sapCode, bp)
@@ -273,7 +357,9 @@ async function main() {
       })),
       skipDuplicates: true,
     })
-    process.stdout.write(`   Inserted ${Math.min(i + chunkSize, partnerList.length)} / ${partnerList.length} partners...\r`)
+    process.stdout.write(
+      `   Inserted ${Math.min(i + chunkSize, partnerList.length)} / ${partnerList.length} partners...\r`,
+    )
   }
   console.log(`\n✅ Finished inserting ${partnerList.length} partners.`)
 
@@ -290,7 +376,6 @@ async function main() {
       where: { username: 'CU00001000' },
       update: {
         name: sampleCustomer.name,
-        passwordHash: defaultPasswordHash,
         accountType: 'PARTNER',
         roleId: customerRoleId,
         isActive: true,

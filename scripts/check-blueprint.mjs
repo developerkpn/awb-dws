@@ -14,7 +14,11 @@ const PDF_SOURCE = 'BLUEPRINT.md'
 const PDF_BUILD_INFO = join(ROOT, 'docs/project-files/supporting/blueprint-build.json')
 
 const dirs = (path) =>
-  existsSync(path) ? readdirSync(path).filter((name) => statSync(join(path, name)).isDirectory()).sort() : []
+  existsSync(path)
+    ? readdirSync(path)
+        .filter((name) => statSync(join(path, name)).isDirectory())
+        .sort()
+    : []
 
 const files = (path, ext) => {
   if (!existsSync(path)) return []
@@ -25,7 +29,10 @@ const files = (path, ext) => {
     .sort()
 }
 
-const read = (name) => (existsSync(join(ROOT, name)) ? readFileSync(join(ROOT, name), 'utf8').replace(/\r\n/g, '\n') : null)
+const read = (name) =>
+  existsSync(join(ROOT, name))
+    ? readFileSync(join(ROOT, name), 'utf8').replace(/\r\n/g, '\n')
+    : null
 const current = Object.fromEntries(DOCS.map((name) => [name, read(name)]))
 for (const name of DOCS) {
   if (current[name] === null) {
@@ -46,13 +53,25 @@ for (const system of dirs(join(ROOT, 'apps'))) {
     add('A. Aplikasi', `${system}/${role}`, app)
 
     for (const domain of dirs(join(app, 'src/domains'))) {
-      add('B. Domain dan modul backend', `${system}/${role}/domains/${domain}`, join(app, 'src/domains', domain))
+      add(
+        'B. Domain dan modul backend',
+        `${system}/${role}/domains/${domain}`,
+        join(app, 'src/domains', domain),
+      )
       for (const module of dirs(join(app, 'src/domains', domain))) {
-        add('B. Domain dan modul backend', `${system}/${role}/domains/${domain}/${module}`, join(app, 'src/domains', domain, module))
+        add(
+          'B. Domain dan modul backend',
+          `${system}/${role}/domains/${domain}/${module}`,
+          join(app, 'src/domains', domain, module),
+        )
       }
     }
     for (const module of dirs(join(app, 'src/modules'))) {
-      add('B. Domain dan modul backend', `${system}/${role}/modules/${module}`, join(app, 'src/modules', module))
+      add(
+        'B. Domain dan modul backend',
+        `${system}/${role}/modules/${module}`,
+        join(app, 'src/modules', module),
+      )
     }
 
     for (const file of [join(app, 'prisma/schema.prisma')].filter((path) => existsSync(path))) {
@@ -65,10 +84,25 @@ for (const system of dirs(join(ROOT, 'apps'))) {
     }
 
     for (const device of dirs(join(app, 'src/devices'))) {
-      add('G. Perangkat dan integrasi', `${system}/${role}/devices/${device}`, join(app, 'src/devices', device))
+      add(
+        'G. Perangkat dan integrasi',
+        `${system}/${role}/devices/${device}`,
+        join(app, 'src/devices', device),
+      )
     }
     for (const feature of dirs(join(app, 'src/features'))) {
-      add('F. Fitur frontend', `${system}/${role}/features/${feature}`, join(app, 'src/features', feature))
+      add(
+        'F. Fitur frontend',
+        `${system}/${role}/features/${feature}`,
+        join(app, 'src/features', feature),
+      )
+    }
+    for (const file of files(join(app, 'src/pages'), '.tsx')) {
+      if (!file.endsWith('/index.tsx')) continue
+      const page = relative(join(app, 'src/pages'), file)
+        .replace(/\\/g, '/')
+        .replace(/\/index\.tsx$/, '')
+      add('F. Fitur frontend', `${system}/${role}/pages/${page}`, file)
     }
   }
 }
@@ -89,9 +123,12 @@ if (missing.length === 0) {
   console.error(`✘ ${COVERAGE_DOC} belum mencantumkan ${missing.length} item yang ada di kode:\n`)
   for (const section of [...new Set(missing.map((m) => m.section))]) {
     console.error(`  ${section}`)
-    for (const m of missing.filter((x) => x.section === section)) console.error(`    \`${m.id}\`   (${m.source})`)
+    for (const m of missing.filter((x) => x.section === section))
+      console.error(`    \`${m.id}\`   (${m.source})`)
   }
-  console.error(`\n  Tambahkan ke bagian yang sesuai di ${COVERAGE_DOC} (sebagai inline code) dan catat di riwayat.\n`)
+  console.error(
+    `\n  Tambahkan ke bagian yang sesuai di ${COVERAGE_DOC} (sebagai inline code) dan catat di riwayat.\n`,
+  )
 }
 
 // ---------------------------------------------------------------- 2. decisions and history are never overwritten
@@ -102,7 +139,11 @@ function tableRows(markdown, prefix) {
   let seenHeader = false
   for (const line of markdown.split('\n')) {
     if (line.startsWith('## ')) {
-      inSection = line.slice(3).trim().replace(/^\d+\.\s+/, '').startsWith(prefix)
+      inSection = line
+        .slice(3)
+        .trim()
+        .replace(/^\d+\.\s+/, '')
+        .startsWith(prefix)
       seenHeader = false
       continue
     }
@@ -112,17 +153,25 @@ function tableRows(markdown, prefix) {
       seenHeader = true
       continue
     }
-    rows.push(trimmed.slice(1, -1).split('|').map((cell) => cell.trim()))
+    rows.push(
+      trimmed
+        .slice(1, -1)
+        .split('|')
+        .map((cell) => cell.trim()),
+    )
   }
   return rows
 }
-const allRows = (docs, prefix) => Object.values(docs).flatMap((markdown) => (markdown ? tableRows(markdown, prefix) : []))
+const allRows = (docs, prefix) =>
+  Object.values(docs).flatMap((markdown) => (markdown ? tableRows(markdown, prefix) : []))
 
 const base = process.env.BLUEPRINT_BASE || 'HEAD'
 const showAtBase = (name) => {
   try {
     return execFileSync('git', ['show', `${base}:${name}`], {
-      cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+      cwd: ROOT,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
     }).replace(/\r\n/g, '\n')
   } catch {
     return null
@@ -139,7 +188,9 @@ if (Object.values(previous).every((markdown) => markdown === null)) {
   const newHistoryRows = new Set(newHistory.map((row) => row.join(' | ')))
   for (const row of oldHistory) {
     if (!newHistoryRows.has(row.join(' | '))) {
-      problems.push(`Riwayat ${row[0]} diubah atau dihapus. Riwayat hanya boleh ditambah; tulis koreksi sebagai baris baru.`)
+      problems.push(
+        `Riwayat ${row[0]} diubah atau dihapus. Riwayat hanya boleh ditambah; tulis koreksi sebagai baris baru.`,
+      )
     }
   }
 
@@ -147,15 +198,21 @@ if (Object.values(previous).every((markdown) => markdown === null)) {
   for (const row of allRows(previous, 'Keputusan')) {
     const now = newDecisions.get(row[0])
     if (!now) {
-      problems.push(`Keputusan ${row[0]} dihapus. Jangan dihapus; ubah statusnya menjadi "digantikan oleh K-xx".`)
+      problems.push(
+        `Keputusan ${row[0]} dihapus. Jangan dihapus; ubah statusnya menjadi "digantikan oleh K-xx".`,
+      )
     } else if (row.slice(0, -1).join(' | ') !== now.slice(0, -1).join(' | ')) {
-      problems.push(`Keputusan ${row[0]} ditimpa. Tambahkan keputusan baru dan ubah status yang lama; hanya kolom Status yang boleh berubah.`)
+      problems.push(
+        `Keputusan ${row[0]} ditimpa. Tambahkan keputusan baru dan ubah status yang lama; hanya kolom Status yang boleh berubah.`,
+      )
     }
   }
 
   const changed = DOCS.some((name) => previous[name] !== current[name])
   if (changed && newHistory.length <= oldHistory.length) {
-    problems.push('BLUEPRINT.md atau TECHNICAL.md berubah tetapi belum ada baris riwayat baru (isi Sebelumnya, Sekarang dan Alasan).')
+    problems.push(
+      'BLUEPRINT.md atau TECHNICAL.md berubah tetapi belum ada baris riwayat baru (isi Sebelumnya, Sekarang dan Alasan).',
+    )
   }
 
   if (problems.length === 0) {
@@ -168,11 +225,15 @@ if (Object.values(previous).every((markdown) => markdown === null)) {
 }
 
 // ---------------------------------------------------------------- 3. PDF freshness (warning only)
-const sourceHash = createHash('sha256').update(readFileSync(join(ROOT, PDF_SOURCE))).digest('hex')
+const sourceHash = createHash('sha256')
+  .update(readFileSync(join(ROOT, PDF_SOURCE)))
+  .digest('hex')
 if (!existsSync(PDF_BUILD_INFO)) {
   console.warn('⚠ PDF blueprint belum pernah dibuat: jalankan npm run blueprint:pdf.')
 } else if (JSON.parse(readFileSync(PDF_BUILD_INFO, 'utf8')).source_sha256 !== sourceHash) {
-  console.warn(`⚠ PDF blueprint lebih lama dari ${PDF_SOURCE}: jalankan npm run blueprint:pdf sebelum dibagikan.`)
+  console.warn(
+    `⚠ PDF blueprint lebih lama dari ${PDF_SOURCE}: jalankan npm run blueprint:pdf sebelum dibagikan.`,
+  )
 } else {
   console.log(`✔ PDF blueprint sesuai dengan ${PDF_SOURCE}.`)
 }

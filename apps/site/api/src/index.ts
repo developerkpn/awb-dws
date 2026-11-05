@@ -5,7 +5,9 @@ import { prisma } from './config/prisma'
 import { startControllers } from './devices'
 
 const server = app.listen(env.PORT, () => {
-  console.log(`site-api listening on :${env.PORT} (site ${env.SITE_ID}, ${controllers.length} controllers)`)
+  console.log(
+    `site-api listening on :${env.PORT} (site ${env.SITE_ID}, ${controllers.length} controllers)`,
+  )
 })
 
 const stopControllers = startControllers(controllers, (event) => {

@@ -4,10 +4,10 @@ Berlaku untuk kedua database (PostgreSQL di prereg, SQL Server di pabrik). Struk
 
 ## Tabel
 
-| Awalan | Untuk | Contoh |
-|---|---|---|
-| `mst_` | Data master: data acuan yang jarang berubah | `mst_customer`, `mst_driver`, `mst_vehicle`, `mst_controller` |
-| `awb_` | Data transaksi: kejadian yang terus bertambah | `awb_pre_registration`, `awb_journey`, `awb_weighing` |
+| Awalan | Untuk                                         | Contoh                                                        |
+| ------ | --------------------------------------------- | ------------------------------------------------------------- |
+| `mst_` | Data master: data acuan yang jarang berubah   | `mst_customer`, `mst_driver`, `mst_vehicle`, `mst_controller` |
+| `awb_` | Data transaksi: kejadian yang terus bertambah | `awb_pre_registration`, `awb_journey`, `awb_weighing`         |
 
 Tabel lain, misalnya antrean sinkronisasi atau OTP, cukup diberi nama yang jelas.
 
@@ -15,14 +15,14 @@ Tabel lain, misalnya antrean sinkronisasi atau OTP, cukup diberi nama yang jelas
 
 Pakai bahasa Inggris, huruf kecil dan garis bawah (`snake_case`).
 
-| Jenis | Aturan | Contoh |
-|---|---|---|
-| Kunci utama | `id` | `id` |
-| Relasi ke tabel lain | nama tabel tanpa awalan + `_id` | `customer_id`, `journey_id` |
-| Ya/tidak | awalan `is_` atau `has_` | `is_active`, `is_bypass` |
-| Tanggal dan jam | akhiran `_at` | `created_at`, `weighed_at` |
-| Tanggal saja | akhiran `_date` | `do_date` |
-| Pengguna yang melakukan | akhiran `_by` (id pengguna) | `created_by`, `approved_by` |
+| Jenis                   | Aturan                          | Contoh                      |
+| ----------------------- | ------------------------------- | --------------------------- |
+| Kunci utama             | `id`                            | `id`                        |
+| Relasi ke tabel lain    | nama tabel tanpa awalan + `_id` | `customer_id`, `journey_id` |
+| Ya/tidak                | awalan `is_` atau `has_`        | `is_active`, `is_bypass`    |
+| Tanggal dan jam         | akhiran `_at`                   | `created_at`, `weighed_at`  |
+| Tanggal saja            | akhiran `_date`                 | `do_date`                   |
+| Pengguna yang melakukan | akhiran `_by` (id pengguna)     | `created_by`, `approved_by` |
 
 Setiap tabel punya `created_at` dan `updated_at`.
 

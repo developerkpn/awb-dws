@@ -3,10 +3,10 @@ import { z } from 'zod'
 export const syncEnvelope = <T extends z.ZodType>(payload: T) =>
   z.object({
     eventId: z.uuid(),
-    schemaVersion: z.number().int().positive(),
+    schemaVersion: z.int().positive(),
     eventType: z.string(),
     aggregateId: z.string(),
-    aggregateVersion: z.number().int().nonnegative(),
+    aggregateVersion: z.int().nonnegative(),
     siteId: z.string(),
     source: z.string(),
     target: z.string(),

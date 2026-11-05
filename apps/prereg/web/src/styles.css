@@ -1,0 +1,290 @@
+* {
+  box-sizing: border-box;
+}
+.awb-text-button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #8b2424;
+  font-size: 13px;
+  font-weight: 600;
+}
+.awb-remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 20px;
+  color: #475569;
+  font-size: 13px;
+}
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #0f172a;
+  background: #f8fafc;
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #8b2424;
+  outline-offset: 3px;
+}
+.awb-loading {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.awb-app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.awb-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 24px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+}
+.awb-brand {
+  background: none;
+  border: 0;
+}
+.awb-brand img {
+  height: 32px;
+}
+.awb-profile {
+  margin-left: auto;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.awb-profile small {
+  color: #64748b;
+}
+.awb-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.awb-sidebar {
+  width: 230px;
+  flex-shrink: 0;
+  background: white;
+  border-right: 1px solid #e2e8f0;
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.awb-sidebar.collapsed {
+  width: 64px;
+}
+.awb-sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.awb-sidebar button,
+.awb-sidebar nav a {
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: left;
+  color: #475569;
+}
+.awb-sidebar button.active,
+.awb-sidebar nav a.active {
+  color: #8b2424;
+  background: #fef2f2;
+  font-weight: 600;
+}
+.awb-sidebar .awb-signout {
+  color: #a32727;
+  border-top: 1px solid #e2e8f0;
+}
+.awb-sidebar nav a {
+  display: block;
+  text-decoration: none;
+}
+.awb-content {
+  flex: 1;
+  overflow: auto;
+  padding: 28px;
+}
+.awb-card {
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: white;
+}
+.awb-card h1 {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+.awb-user-form {
+  max-width: 760px;
+  margin: auto;
+}
+.awb-user-form fieldset {
+  border: 0;
+  padding: 0;
+  margin: 20px 0 0;
+}
+.awb-user-form .awb-field select {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+  padding: 10px;
+}
+.awb-user-form .awb-field select[multiple] {
+  min-height: 110px;
+}
+.awb-card p {
+  color: #64748b;
+}
+.awb-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1280px;
+  margin: auto;
+}
+.awb-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.awb-toolbar input,
+.awb-toolbar select,
+.awb-form select {
+  border: 1px solid #cbd5e1;
+  background: white;
+  border-radius: 8px;
+  padding: 10px;
+}
+.awb-toolbar input {
+  flex: 1;
+  min-width: 160px;
+}
+.awb-toolbar select {
+  max-width: 220px;
+}
+.awb-error {
+  padding: 12px;
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+}
+.awb-success {
+  padding: 12px;
+  background: #f0fdf4;
+  color: #166534;
+  border-radius: 8px;
+}
+.awb-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.awb-actions button {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: white;
+  padding: 6px 10px;
+}
+.awb-modal {
+  position: fixed;
+  inset: 0;
+  background: #0f172a80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 20;
+}
+.awb-form {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 620px;
+  max-width: 100%;
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 20px 60px #0003;
+}
+.awb-form h2 {
+  margin-top: 0;
+}
+.awb-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+.awb-field select[multiple] {
+  min-height: 110px;
+}
+.awb-field small {
+  color: #64748b;
+}
+.awb-matrix {
+  overflow: auto;
+  margin-top: 20px;
+}
+.awb-matrix table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+.awb-matrix th,
+.awb-matrix td {
+  padding: 14px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: center;
+}
+.awb-matrix th small {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+}
+@media (max-width: 700px) {
+  .awb-header {
+    gap: 12px;
+    padding: 12px;
+  }
+  .awb-header strong {
+    font-size: 13px;
+  }
+  .awb-profile {
+    font-size: 12px;
+  }
+  .awb-sidebar {
+    width: 155px;
+    padding: 12px 6px;
+  }
+  .awb-content {
+    padding: 14px;
+  }
+}

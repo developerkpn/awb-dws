@@ -1,221 +1,116 @@
-import { createHash } from 'node:crypto'
 import { CustomError, NotFoundError } from '@awb/server-core'
-import { generateSecurePassword, sendPasswordEmail } from '../../services/mailer'
+import { accountProfile } from '@awb/contracts'
+import { hashPassword, generatePassword } from '../../lib/password'
+import { deliverCredentials, requireCredentialDelivery } from '../../services/mailer'
 import repository from './internal-user.repository'
-import type {
-  CreateInternalUserInput,
-  LoginInput,
-  UpdateInternalUserInput,
-} from './internal-user.schema'
+import type { AccountInput, listUsersSchema } from './internal-user.schema'
+import type { Prisma } from '../../generated/prisma/client'
+import type { z } from 'zod'
 
-export function hashPassword(password: string): string {
-  return createHash('sha256').update(password).digest('hex')
+type User = NonNullable<Awaited<ReturnType<typeof repository.findById>>>
+export function formatUserResponse(user: User) {
+  const { passwordHash: _password, roleId: _roleId, role, plants, partners, ...data } = user
+  return accountProfile.parse({
+    ...data,
+    role: role.code,
+    roleName: role.name,
+    plantAccess: plants.map((p) => ({ id: p.plant.id, code: p.plant.code, name: p.plant.name })),
+    partners: partners.map((p) => ({
+      id: p.partner.id,
+      sapCode: p.partner.sapCode,
+      name: p.partner.name,
+      partnerType: p.partner.partnerType,
+    })),
+  })
 }
 
-export function formatUserResponse(u: any) {
-  return {
-    id: u.id,
-    name: u.name,
-    username: u.username,
-    email: u.email,
-    phone: u.phone,
-    accountType: u.accountType,
-    role: u.role?.code || u.roleId,
-    roleName: u.role?.name,
-    isActive: u.isActive,
-    plantAccess: (u.plants || []).map((p: any) => ({
-      id: p.plant?.id || p.plantId,
-      code: p.plant?.code,
-      name: p.plant?.name,
-      city: p.plant?.city,
-    })),
-    createdAt: u.createdAt,
-    updatedAt: u.updatedAt,
+async function resolveAccount(input: AccountInput) {
+  const [role, plants, partners] = await Promise.all([
+    repository.findRoleByCode(input.role),
+    repository.findPlants(input.plantIds),
+    repository.findPartners(input.partnerIds),
+  ])
+  if (!role?.isActive) throw new CustomError('Role is unavailable', 422)
+  if (plants.length !== input.plantIds.length)
+    throw new CustomError('One or more plants are unavailable', 422)
+  if (
+    partners.length !== input.partnerIds.length ||
+    partners.some((p) => p.partnerType !== input.role)
+  ) {
+    throw new CustomError('Select active SAP partners matching the account role', 422)
+  }
+  const { role: _code, ...data } = input
+  return { ...data, roleId: role.id }
+}
+
+async function write<T>(action: () => Promise<T>): Promise<T> {
+  try {
+    return await action()
+  } catch (error) {
+    if (typeof error === 'object' && error && 'code' in error && error.code === 'P2002')
+      throw new CustomError('Username or email is already in use', 409)
+    throw error
   }
 }
 
 export default {
-  /**
-   * List all internal users (ADMIN only)
-   */
-  async listInternalUsers() {
-    const users = await repository.findAllInternal()
-    return users.map(formatUserResponse)
+  async list(query: z.infer<typeof listUsersSchema>) {
+    const where: Prisma.UserWhereInput = {
+      accountType: query.accountType,
+      role: query.role ? { code: query.role } : undefined,
+      ...(query.plantId ? { plants: { some: { plantId: query.plantId } } } : {}),
+      ...(query.q
+        ? {
+            OR: [
+              { name: { contains: query.q, mode: 'insensitive' } },
+              { username: { contains: query.q, mode: 'insensitive' } },
+              { email: { contains: query.q, mode: 'insensitive' } },
+              {
+                partners: {
+                  some: { partner: { sapCode: { contains: query.q, mode: 'insensitive' } } },
+                },
+              },
+            ],
+          }
+        : {}),
+    }
+    const result = await repository.list(where, query.page, query.limit)
+    return { ...result, items: result.items.map(formatUserResponse) }
   },
-
-  /**
-   * Get single user by ID (ADMIN only)
-   */
+  options: (q: string) => repository.options(q),
   async getById(id: string) {
     const user = await repository.findById(id)
-    if (!user || user.accountType !== 'INTERNAL') {
-      throw new NotFoundError('Internal user not found')
-    }
+    if (!user) throw new NotFoundError('User not found')
     return formatUserResponse(user)
   },
-
-  /**
-   * Create new internal user (ADMIN only)
-   * System generates password and sends credentials to user's email
-   */
-  async createInternalUser(input: CreateInternalUserInput) {
-    // 1. Check unique username
-    const existingByUsername = await repository.findByUsername(input.username)
-    if (existingByUsername) {
-      throw new CustomError(`Username '${input.username}' is already in use`, 409)
-    }
-
-    // 2. Check unique email
-    const existingByEmail = await repository.findByEmail(input.email)
-    if (existingByEmail) {
-      throw new CustomError(`Email '${input.email}' is already in use`, 409)
-    }
-
-    // 3. Resolve role
-    const role = await repository.findRoleByCode(input.role)
-    if (!role) {
-      throw new CustomError(`Role '${input.role}' does not exist`, 400)
-    }
-
-    // 4. Validate plant IDs if provided
-    if (input.plantIds && input.plantIds.length > 0) {
-      const plants = await repository.findPlantsByIds(input.plantIds)
-      if (plants.length !== input.plantIds.length) {
-        throw new CustomError('One or more selected plant IDs are invalid', 400)
-      }
-    }
-
-    // 5. Generate secure temporary password by system
-    const tempPassword = generateSecurePassword(12)
-    const passwordHash = hashPassword(tempPassword)
-
-    // 6. Save in database
-    const user = await repository.create({
-      name: input.name,
-      username: input.username,
-      email: input.email,
-      phone: input.phone,
-      passwordHash,
-      roleId: role.id,
-      plantIds: input.plantIds,
-    })
-
-    // 7. Dispatch credentials to user's email
-    await sendPasswordEmail(user.email!, user.username, tempPassword, false)
-
+  async create(input: AccountInput, actorId: string) {
+    requireCredentialDelivery()
+    const data = await resolveAccount(input)
+    const password = generatePassword()
+    const passwordHash = await hashPassword(password)
+    const user = await write(() => repository.create(data, passwordHash, actorId))
+    deliverCredentials(user.username, password)
     return {
       user: formatUserResponse(user),
-      temporaryPassword: tempPassword,
-      message: `Internal account created. Credentials have been sent to ${user.email}.`,
+      message: 'Account created. Credentials are available in the local development console.',
     }
   },
-
-  /**
-   * Update internal user data (ADMIN only)
-   */
-  async updateInternalUser(id: string, input: UpdateInternalUserInput) {
-    const existing = await repository.findById(id)
-    if (!existing || existing.accountType !== 'INTERNAL') {
-      throw new NotFoundError('Internal user not found')
-    }
-
-    let roleId: string | undefined
-    if (input.role) {
-      const role = await repository.findRoleByCode(input.role)
-      if (!role) throw new CustomError(`Role '${input.role}' does not exist`, 400)
-      roleId = role.id
-    }
-
-    if (input.email && input.email !== existing.email) {
-      const emailTaken = await repository.findByEmail(input.email)
-      if (emailTaken && emailTaken.id !== id) {
-        throw new CustomError(`Email '${input.email}' is already in use`, 409)
-      }
-    }
-
-    if (input.plantIds !== undefined && input.plantIds.length > 0) {
-      const plants = await repository.findPlantsByIds(input.plantIds)
-      if (plants.length !== input.plantIds.length) {
-        throw new CustomError('One or more selected plant IDs are invalid', 400)
-      }
-    }
-
-    const updated = await repository.update(id, {
-      name: input.name,
-      email: input.email,
-      phone: input.phone,
-      roleId,
-      plantIds: input.plantIds,
+  async update(id: string, input: AccountInput, actorId: string) {
+    const data = await resolveAccount(input)
+    return formatUserResponse(await write(() => repository.change(id, actorId, { data })))
+  },
+  async setStatus(id: string, isActive: boolean, actorId: string) {
+    return formatUserResponse(await repository.change(id, actorId, { isActive }))
+  },
+  async resetPassword(id: string, actorId: string) {
+    requireCredentialDelivery()
+    const password = generatePassword()
+    const user = await repository.change(id, actorId, {
+      passwordHash: await hashPassword(password),
     })
-
-    return formatUserResponse(updated)
-  },
-
-  /**
-   * Toggle Active / Deactivated status (ADMIN only)
-   */
-  async setStatus(id: string, isActive: boolean) {
-    const existing = await repository.findById(id)
-    if (!existing || existing.accountType !== 'INTERNAL') {
-      throw new NotFoundError('Internal user not found')
-    }
-
-    const updated = await repository.updateStatus(id, isActive)
-    return formatUserResponse(updated)
-  },
-
-  /**
-   * Reset user password by Admin: new password is generated by system and dispatched to email
-   */
-  async resetPassword(id: string) {
-    const user = await repository.findById(id)
-    if (!user || user.accountType !== 'INTERNAL') {
-      throw new NotFoundError('Internal user not found')
-    }
-
-    if (!user.email) {
-      throw new CustomError('User does not have a registered email address for password delivery', 400)
-    }
-
-    // 1. Generate new password
-    const newPassword = generateSecurePassword(12)
-    const newPasswordHash = hashPassword(newPassword)
-
-    // 2. Update hash in database
-    await repository.updatePassword(id, newPasswordHash)
-
-    // 3. Send email to user
-    await sendPasswordEmail(user.email, user.username, newPassword, true)
-
+    deliverCredentials(user.username, password)
     return {
-      message: `Password reset successfully. New password sent to ${user.email}.`,
-      temporaryPassword: newPassword,
-    }
-  },
-
-  /**
-   * Login Authentication
-   * Rejects if account is inactive (Checklist 3: Akun nonaktif tidak bisa login)
-   */
-  async login(input: LoginInput) {
-    const user = await repository.findByUsername(input.username)
-    if (!user) {
-      throw new CustomError('Invalid username or password', 401)
-    }
-
-    // Verification check for inactive account
-    if (!user.isActive) {
-      throw new CustomError('Account is inactive and cannot log in. Please contact administrator.', 403)
-    }
-
-    const inputHash = hashPassword(input.password)
-    if (user.passwordHash !== inputHash) {
-      throw new CustomError('Invalid username or password', 401)
-    }
-
-    return {
-      user: formatUserResponse(user),
-      token: `auth-token-${user.id}-${Date.now()}`,
+      message: 'Password reset. Credentials are available in the local development console.',
     }
   },
 }

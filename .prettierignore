@@ -1,0 +1,13 @@
+node_modules
+dist
+.turbo
+**/src/generated
+**/prisma/migrations
+docs/project-files
+docs/documents
+docs/.venv
+package-lock.json
+**/.data
+**/uploads
+**/test-results
+**/playwright-report

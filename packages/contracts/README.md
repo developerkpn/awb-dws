@@ -16,12 +16,16 @@ Customer Pre-Registration (AWS) dan sistem pabrik (on-premise) adalah aplikasi t
 
 ## Isi
 
-| File | Formulir | Dikirim dari → ke |
-|---|---|---|
-| `src/common/transaction.ts` | Daftar jenis transaksi (BEL/JUL/LSK/LSM) dan jenis registrasi | semua aplikasi |
-| `src/sync/envelope.ts` | Amplop standar untuk semua data sinkronisasi | HO ↔ pabrik |
-| `src/sync/prereg-approved.ts` | Pre-registration sudah di-approve | HO → pabrik |
-| `src/realtime/lane-event.ts` | Status timbangan untuk layar kiosk | sistem pabrik → kiosk |
+`src/common/account.ts` mendefinisikan `sessionUser`, `accountChoice`, `accountPartner`
+dan `accountProfile` untuk respons akun/sesi prereg-api ke prereg-web. Tidak ada hash,
+password atau token sesi di dalam respons ini. Cookie sesi dikelola browser.
+
+| File                          | Formulir                                                      | Dikirim dari → ke     |
+| ----------------------------- | ------------------------------------------------------------- | --------------------- |
+| `src/common/transaction.ts`   | Daftar jenis transaksi (BEL/JUL/LSK/LSM) dan jenis registrasi | semua aplikasi        |
+| `src/sync/envelope.ts`        | Amplop standar untuk semua data sinkronisasi                  | HO ↔ pabrik           |
+| `src/sync/prereg-approved.ts` | Pre-registration sudah di-approve                             | HO → pabrik           |
+| `src/realtime/lane-event.ts`  | Status timbangan untuk layar kiosk                            | sistem pabrik → kiosk |
 
 ---
 
@@ -32,20 +36,20 @@ File: `src/realtime/lane-event.ts`. Daftar ini adalah **langkah-langkah satu tru
 - layar kiosk menampilkan petunjuk sesuai langkahnya
 - ada hal yang **hanya boleh** terjadi di langkah tertentu
 
-| Urutan | Status | Artinya | Contoh tampilan kiosk |
-|---|---|---|---|
-| 1 | `IDLE` | Timbangan kosong, menunggu truk | "Silakan masuk" |
-| 2 | `ENTRY_ALLOWED` | Lampu hijau, truk boleh naik; timbangan dikunci untuk 1 truk | "Naik ke timbangan" |
-| 3 | `POSITION_WAIT` | Truk sedang naik, posisinya belum pas | "Maju sedikit / berhenti" |
-| 4 | `POSITIONED` | Truk sudah pas di atas timbangan; supir turun ke kiosk | "Turun, tap kartu" |
-| 5 | `TAP1_VERIFIED` | **Tap pertama**: kartu dan tahap valid, data truk tampil, pelat dicek OCR; berat **belum** direkam | "Cek data Anda" |
-| 6 | `READY_TO_CAPTURE` | Berat stabil dan aturan AI/OCR terpenuhi; menunggu tap kedua | "Tap lagi untuk rekam berat" |
-| 7 | `CAPTURED` | **Tap kedua**: berat dibaca dari indikator | "Merekam berat..." |
-| 8 | `COMMITTED` | Berat dan buktinya **sudah tersimpan** di database | "Berat tersimpan" |
-| 9 | `EXIT_AUTHORIZED` | Lampu/palang keluar dibuka; supir kembali ke truk | "Kembali ke truk, silakan keluar" |
-| 10 | `PLATFORM_CLEAR` | Truk sudah turun, timbangan kembali nol | — |
-| 11 | `RELEASED` | Selesai, kembali ke `IDLE` untuk truk berikutnya | — |
-| — | `FAULT` | Ada gangguan perangkat (sensor, kamera, indikator) di langkah mana pun | "Hubungi petugas" |
+| Urutan | Status             | Artinya                                                                                            | Contoh tampilan kiosk             |
+| ------ | ------------------ | -------------------------------------------------------------------------------------------------- | --------------------------------- |
+| 1      | `IDLE`             | Timbangan kosong, menunggu truk                                                                    | "Silakan masuk"                   |
+| 2      | `ENTRY_ALLOWED`    | Lampu hijau, truk boleh naik; timbangan dikunci untuk 1 truk                                       | "Naik ke timbangan"               |
+| 3      | `POSITION_WAIT`    | Truk sedang naik, posisinya belum pas                                                              | "Maju sedikit / berhenti"         |
+| 4      | `POSITIONED`       | Truk sudah pas di atas timbangan; supir turun ke kiosk                                             | "Turun, tap kartu"                |
+| 5      | `TAP1_VERIFIED`    | **Tap pertama**: kartu dan tahap valid, data truk tampil, pelat dicek OCR; berat **belum** direkam | "Cek data Anda"                   |
+| 6      | `READY_TO_CAPTURE` | Berat stabil dan aturan AI/OCR terpenuhi; menunggu tap kedua                                       | "Tap lagi untuk rekam berat"      |
+| 7      | `CAPTURED`         | **Tap kedua**: berat dibaca dari indikator                                                         | "Merekam berat..."                |
+| 8      | `COMMITTED`        | Berat dan buktinya **sudah tersimpan** di database                                                 | "Berat tersimpan"                 |
+| 9      | `EXIT_AUTHORIZED`  | Lampu/palang keluar dibuka; supir kembali ke truk                                                  | "Kembali ke truk, silakan keluar" |
+| 10     | `PLATFORM_CLEAR`   | Truk sudah turun, timbangan kembali nol                                                            | —                                 |
+| 11     | `RELEASED`         | Selesai, kembali ke `IDLE` untuk truk berikutnya                                                   | —                                 |
+| —      | `FAULT`            | Ada gangguan perangkat (sensor, kamera, indikator) di langkah mana pun                             | "Hubungi petugas"                 |
 
 Aturan yang dijaga oleh langkah-langkah ini:
 
@@ -65,19 +69,19 @@ File: `src/sync/envelope.ts`. Semua data yang dikirim antara HO (AWS) dan pabrik
 - **bagian luar amplop** berisi info standar yang sama untuk semua jenis pesan
 - **isi amplop (`payload`)** berbeda per jenis pesan; misalnya untuk "pre-registration di-approve" isinya nomor dokumen, jenis transaksi dan seterusnya
 
-| Kolom | Artinya | Dipakai penerima untuk |
-|---|---|---|
-| `eventId` | Nomor unik pesan; pengiriman ulang memakai nomor yang sama | **Tidak menyimpan dobel** bila pesan yang sama datang dua kali |
-| `schemaVersion` | Versi format formulir | Tetap bisa membaca pesan dari pengirim versi lama saat masa update |
-| `eventType` | Jenis pesan, misalnya `prereg.approved` | Menentukan cara memproses isinya |
-| `aggregateId` | Data mana yang dimaksud, misalnya nomor pre-registration | Mencari data yang sama di database penerima |
-| `aggregateVersion` | Versi data tersebut di pengirim | **Data lama yang datang belakangan tidak menimpa** data yang lebih baru |
-| `siteId` | Pabrik pemilik data | Data Karawang tidak masuk ke pabrik lain |
-| `source` / `target` | Pengirim dan penerima (`ho` atau kode pabrik) | Menolak pesan yang bukan untuknya |
-| `occurredAt` | Kapan kejadiannya di pengirim | Jejak dan audit |
-| `recordedAt` | Kapan pengirim menyimpan pesan itu | Jejak dan audit |
-| `correlationId` | (opsional) Nomor untuk menghubungkan pesan yang saling terkait | Menelusuri masalah |
-| `payload` | Isi pesan, berbeda per `eventType` | Data yang sebenarnya |
+| Kolom               | Artinya                                                        | Dipakai penerima untuk                                                  |
+| ------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `eventId`           | Nomor unik pesan; pengiriman ulang memakai nomor yang sama     | **Tidak menyimpan dobel** bila pesan yang sama datang dua kali          |
+| `schemaVersion`     | Versi format formulir                                          | Tetap bisa membaca pesan dari pengirim versi lama saat masa update      |
+| `eventType`         | Jenis pesan, misalnya `prereg.approved`                        | Menentukan cara memproses isinya                                        |
+| `aggregateId`       | Data mana yang dimaksud, misalnya nomor pre-registration       | Mencari data yang sama di database penerima                             |
+| `aggregateVersion`  | Versi data tersebut di pengirim                                | **Data lama yang datang belakangan tidak menimpa** data yang lebih baru |
+| `siteId`            | Pabrik pemilik data                                            | Data Karawang tidak masuk ke pabrik lain                                |
+| `source` / `target` | Pengirim dan penerima (`ho` atau kode pabrik)                  | Menolak pesan yang bukan untuknya                                       |
+| `occurredAt`        | Kapan kejadiannya di pengirim                                  | Jejak dan audit                                                         |
+| `recordedAt`        | Kapan pengirim menyimpan pesan itu                             | Jejak dan audit                                                         |
+| `correlationId`     | (opsional) Nomor untuk menghubungkan pesan yang saling terkait | Menelusuri masalah                                                      |
+| `payload`           | Isi pesan, berbeda per `eventType`                             | Data yang sebenarnya                                                    |
 
 Sumber: PRD v0.4, bagian "Envelope event usulan".
 

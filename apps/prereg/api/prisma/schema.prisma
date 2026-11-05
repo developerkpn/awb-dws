@@ -16,14 +16,14 @@ datasource db {
 // =============================================================================
 
 model User {
-  id           String    @id @default(uuid())
+  id           String    @id @default(uuid(7)) @db.Uuid
   name         String    @map("name")
   username     String    @unique @map("username")
   email        String?   @map("email")
   phone        String?   @map("phone")
   passwordHash String    @map("password_hash")
   accountType  String    @default("PARTNER") @map("account_type") // PARTNER | INTERNAL
-  roleId       String    @map("role_id")
+  roleId       String    @map("role_id") @db.Uuid
   isActive     Boolean   @default(true) @map("is_active")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
@@ -32,12 +32,19 @@ model User {
   partners     UserPartner[]
   plants       UserPlant[]
   otps         UserOtp[]
+  sessions     AuthSession[]
+  submittedRequests DriverRequest[] @relation("SubmittedRequests")
+  decidedRequests DriverRequest[] @relation("DecidedRequests")
+  decisions DriverRequestDecision[] @relation("DecisionUser")
+  documents Document[] @relation("UserDocuments")
 
+  @@index([accountType, createdAt, id])
+  @@index([roleId, isActive])
   @@map("mst_user")
 }
 
 model Role {
-  id          String   @id @default(uuid())
+  id          String   @id @default(uuid(7)) @db.Uuid
   code        String   @unique @map("code") // CUSTOMER, VENDOR, LOGISTIC, COMMERCIAL, ADMIN, MANAGER, KRANIWB
   name        String   @map("name")
   description String?  @map("description")
@@ -52,7 +59,7 @@ model Role {
 }
 
 model Permission {
-  id          String   @id @default(uuid())
+  id          String   @id @default(uuid(7)) @db.Uuid
   code        String   @unique @map("code") // e.g. "users:read", "users:write", "prereg:create"
   name        String   @map("name")
   module      String   @map("module") // e.g. "admin", "prereg", "reports"
@@ -65,9 +72,9 @@ model Permission {
 }
 
 model RolePermission {
-  id           String   @id @default(uuid())
-  roleId       String   @map("role_id")
-  permissionId String   @map("permission_id")
+  id           String   @id @default(uuid(7)) @db.Uuid
+  roleId       String   @map("role_id") @db.Uuid
+  permissionId String   @map("permission_id") @db.Uuid
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -75,11 +82,12 @@ model RolePermission {
   permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, permissionId])
+  @@index([permissionId])
   @@map("mst_role_permission")
 }
 
 model Partner {
-  id          String   @id @default(uuid())
+  id          String   @id @default(uuid(7)) @db.Uuid
   sapCode     String   @unique @map("sap_code") // KUNNR or LIFNR (e.g. CU00001000, AT11000001, CI00001000)
   name        String   @map("name")
   partnerType String   @map("partner_type") // CUSTOMER | VENDOR | INTERCO
@@ -91,13 +99,14 @@ model Partner {
 
   users       UserPartner[]
 
+  @@index([partnerType, sapCode])
   @@map("mst_partner")
 }
 
 model UserPartner {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  partnerId String   @map("partner_id")
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  partnerId String   @unique @map("partner_id") @db.Uuid
   isPrimary Boolean  @default(false) @map("is_primary")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -106,11 +115,12 @@ model UserPartner {
   partner   Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   @@unique([userId, partnerId])
+  @@index([partnerId, userId])
   @@map("mst_user_partner")
 }
 
 model Plant {
-  id          String   @id @default(uuid())
+  id          String   @id @default(uuid(7)) @db.Uuid
   code        String   @unique @map("code") // e.g. "PRISCOLIN_KARAWANG", "DUMAI", "MEDAN"
   name        String   @map("name")
   city        String?  @map("city")
@@ -124,8 +134,8 @@ model Plant {
 }
 
 model UserPlant {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
   plantId   String   @map("plant_id")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -134,12 +144,13 @@ model UserPlant {
   plant     Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
 
   @@unique([userId, plantId])
+  @@index([plantId, userId])
   @@map("mst_user_plant")
 }
 
 model UserOtp {
-  id        String   @id @default(uuid())
-  userId    String?  @map("user_id")
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
   email     String   @map("email")
   otpCode   String   @map("otp_code")
   purpose   String   @default("FORGOT_PASSWORD") @map("purpose")
@@ -151,5 +162,202 @@ model UserOtp {
   user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([email, otpCode])
+  @@index([userId])
   @@map("sys_otp")
+}
+
+model AuthSession {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  tokenHash String   @unique @map("token_hash")
+  userId    String   @map("user_id") @db.Uuid
+  expiresAt DateTime @map("expires_at")
+  lastSeenAt DateTime @default(now()) @map("last_seen_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([lastSeenAt])
+  @@map("auth_session")
+}
+
+model AuthRateLimit {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  key       String   @unique
+  attempts  Int      @default(1)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([expiresAt])
+  @@map("auth_rate_limit")
+}
+
+model AccountAudit {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  actorId   String?  @map("actor_id") @db.Uuid
+  subjectId String   @map("subject_id") @db.Uuid
+  action    String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([subjectId, createdAt])
+  @@map("account_audit")
+}
+
+model City {
+  id             String             @id @default(uuid(7)) @db.Uuid
+  name           String          @unique
+  province       String?
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  transporters   Transporter[]
+  drivers        Driver[]
+  driverRequests DriverRequest[]
+
+  @@map("mst_city")
+}
+
+model Transporter {
+  id             String             @id @default(uuid(7)) @db.Uuid
+  code           String          @unique
+  name           String
+  address        String?
+  phone          String?
+  contactPerson  String?         @map("contact_person")
+  cityId         String?            @map("city_id") @db.Uuid
+  isActive       Boolean         @default(true) @map("is_active")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  city           City?           @relation(fields: [cityId], references: [id])
+  vehicles       Vehicle[]
+  driverRequests DriverRequest[]
+
+  @@index([cityId])
+  @@map("mst_transporter")
+}
+
+model Driver {
+  id              String             @id @default(uuid(7)) @db.Uuid
+  licenseNumber   String          @unique @map("license_number")
+  name            String
+  address         String
+  birthPlace      String          @map("birth_place")
+  birthDate       DateTime        @map("birth_date")
+  phone           String
+  cityId          String?            @map("city_id") @db.Uuid
+  licensePhotoUrl String?         @map("license_photo_url")
+  driverPhotoUrl  String?         @map("driver_photo_url")
+  isActive        Boolean         @default(true) @map("is_active")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  city            City?           @relation(fields: [cityId], references: [id])
+  requests        DriverRequest[]
+
+  @@index([cityId])
+  @@map("mst_driver")
+}
+
+model Vehicle {
+  id            String             @id @default(uuid(7)) @db.Uuid
+  plateNumber   String          @unique @map("plate_number")
+  transporterId String?            @map("transporter_id") @db.Uuid
+  stnkPhotoUrl  String?         @map("stnk_photo_url")
+  isActive      Boolean         @default(true) @map("is_active")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  transporter   Transporter?    @relation(fields: [transporterId], references: [id])
+  requests      DriverRequest[]
+
+  @@index([transporterId])
+  @@map("mst_vehicle")
+}
+
+model DriverRequest {
+  id                    String                     @id @default(uuid(7)) @db.Uuid
+  status                String                  @default("SUBMITTED")
+  submittedBy           String                     @map("submitted_by") @db.Uuid
+
+  driverId              String?                    @map("driver_id") @db.Uuid
+  driverLicenseNumber   String                  @map("driver_license_number")
+  driverName            String                  @map("driver_name")
+  driverAddress         String                  @map("driver_address")
+  driverBirthPlace      String                  @map("driver_birth_place")
+  driverBirthDate       DateTime                @map("driver_birth_date")
+  driverPhone           String                  @map("driver_phone")
+  driverCityId          String?                    @map("driver_city_id") @db.Uuid
+  driverLicensePhotoUrl String?                 @map("driver_license_photo_url")
+  driverPhotoUrl        String?                 @map("driver_photo_url")
+
+  vehicleId             String?                    @map("vehicle_id") @db.Uuid
+  vehiclePlateNumber    String                  @map("vehicle_plate_number")
+  transporterId         String?                    @map("transporter_id") @db.Uuid
+  vehicleStnkPhotoUrl   String?                 @map("vehicle_stnk_photo_url")
+
+  decidedBy             String?                    @map("decided_by") @db.Uuid
+  decidedAt             DateTime?               @map("decided_at")
+  decision              String?
+  rejectionReason       String?                 @map("rejection_reason")
+  sentToPlantAt         DateTime?               @map("sent_to_plant_at")
+
+  createdAt             DateTime                @default(now()) @map("created_at")
+  updatedAt             DateTime                @updatedAt @map("updated_at")
+
+  submitter             User                    @relation("SubmittedRequests", fields: [submittedBy], references: [id])
+  decider               User?                   @relation("DecidedRequests", fields: [decidedBy], references: [id])
+  driver                Driver?                 @relation(fields: [driverId], references: [id])
+  vehicle               Vehicle?                @relation(fields: [vehicleId], references: [id])
+  city                  City?                   @relation(fields: [driverCityId], references: [id])
+  transporter           Transporter?            @relation(fields: [transporterId], references: [id])
+  decisions             DriverRequestDecision[]
+
+  @@index([status, createdAt, id])
+  @@index([submittedBy, createdAt, id])
+  @@index([createdAt, id])
+  @@index([driverId])
+  @@index([vehicleId])
+  @@index([driverCityId])
+  @@index([transporterId])
+  @@index([decidedBy])
+  @@map("awb_driver_request")
+}
+
+model DriverRequestDecision {
+  id              String           @id @default(uuid(7)) @db.Uuid
+  requestId       String           @map("request_id") @db.Uuid
+  decision        String
+  rejectionReason String?       @map("rejection_reason")
+  decidedBy       String           @map("decided_by") @db.Uuid
+  decidedAt       DateTime      @default(now()) @map("decided_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  request         DriverRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  decider         User          @relation("DecisionUser", fields: [decidedBy], references: [id])
+
+  @@index([requestId, decidedAt, id])
+  @@index([decidedBy])
+  @@map("awb_driver_request_decision")
+}
+
+model Document {
+  id         String      @id @default(uuid(7)) @db.Uuid
+  fileKey    String   @unique @map("file_key")
+  fileName   String   @map("file_name")
+  mimeType   String   @map("mime_type")
+  fileSize   Int      @map("file_size")
+  category   String   @map("category")
+  uploadedBy String      @map("uploaded_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  uploader   User     @relation("UserDocuments", fields: [uploadedBy], references: [id])
+
+  @@index([uploadedBy, createdAt, id])
+  @@map("awb_document")
 }

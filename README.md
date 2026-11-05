@@ -7,7 +7,7 @@ Two living documents, both in Indonesian:
 - **[BLUEPRINT.md](BLUEPRINT.md)**, for management, in plain language: progress per area, important business decisions, open questions and change history. `npm run blueprint:pdf` writes it as `docs/documents/Blueprint-AWB-DWS-v<date>.pdf` (first time: `npm run docs:setup`).
 - **[TECHNICAL.md](TECHNICAL.md)**, for developers: every app, module, endpoint, model, migration, contract, screen and device, plus technical decisions and history. Update it in the same change; `npm run check` fails if the code has something it doesn't list.
 
-History is never overwritten in either document. History rows are append-only and record *before → after → why*; a changed decision gets a new row and the old one is marked "digantikan oleh K-xx". `npm run check` fails if an old history row is edited, a decision is deleted or overwritten, or a document changes without a new history row (compared with the last commit, or with `BLUEPRINT_BASE`, e.g. `origin/main`, in CI).
+History is never overwritten in either document. History rows are append-only and record _before → after → why_; a changed decision gets a new row and the old one is marked "digantikan oleh K-xx". `npm run check` fails if an old history row is edited, a decision is deleted or overwritten, or a document changes without a new history row (compared with the last commit, or with `BLUEPRINT_BASE`, e.g. `origin/main`, in CI).
 
 ## Layout
 
@@ -48,11 +48,11 @@ apps/site/api/src/
 
 Apps never import each other (rule 1), so anything two apps need goes in `packages/`:
 
-| Package | Holds | Used by |
-|---|---|---|
-| `@awb/contracts` | The **shape** of data that travels between apps: zod schemas, no logic | all apps |
-| `@awb/server-core` | Shared **behaviour** for the Express APIs: errors, `success()`, env loading | `prereg/api`, `site/api` |
-| `@awb/ui` | Shared **React components** | `prereg/web`, `site/web`, `site/kiosk` |
+| Package            | Holds                                                                       | Used by                                |
+| ------------------ | --------------------------------------------------------------------------- | -------------------------------------- |
+| `@awb/contracts`   | The **shape** of data that travels between apps: zod schemas, no logic      | all apps                               |
+| `@awb/server-core` | Shared **behaviour** for the Express APIs: errors, `success()`, env loading | `prereg/api`, `site/api`               |
+| `@awb/ui`          | Shared **React components**                                                 | `prereg/web`, `site/web`, `site/kiosk` |
 
 ### `@awb/contracts`
 
@@ -70,12 +70,12 @@ const event = preregApprovedEvent.parse(req.body)   // malformed data is rejecte
 
 Change a contract and every app that uses it fails `npm run typecheck` until it is updated, so a sender and receiver can't ship out of step.
 
-| File | Boundary it crosses |
-|---|---|
-| `src/sync/envelope.ts` | prereg ↔ site sync: the wrapper every sync event uses (`eventId`, `aggregateVersion`, `siteId`, ...) |
-| `src/sync/prereg-approved.ts` | prereg → site: an approved Customer Pre-Registration |
-| `src/realtime/lane-event.ts` | `site/api` → kiosk screen: what a weighbridge lane should show (`TAP1_VERIFIED`, `COMMITTED`, ...) |
-| `src/common/transaction.ts` | Values every app shares: `BEL/JUL/LSK/LSM` and the four registration origins (also stands in for enums, which SQL Server lacks) |
+| File                          | Boundary it crosses                                                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `src/sync/envelope.ts`        | prereg ↔ site sync: the wrapper every sync event uses (`eventId`, `aggregateVersion`, `siteId`, ...)                            |
+| `src/sync/prereg-approved.ts` | prereg → site: an approved Customer Pre-Registration                                                                            |
+| `src/realtime/lane-event.ts`  | `site/api` → kiosk screen: what a weighbridge lane should show (`TAP1_VERIFIED`, `COMMITTED`, ...)                              |
+| `src/common/transaction.ts`   | Values every app shares: `BEL/JUL/LSK/LSM` and the four registration origins (also stands in for enums, which SQL Server lacks) |
 
 **What goes in:** anything sent over HTTP, a sync event or a socket from one app to another. **What stays out:** anything used inside a single app, such as a route's request schema (`journey.schema.ts`) or a database model; those live in the app.
 
@@ -85,10 +85,10 @@ A full explanation in Indonesian, covering the weighbridge steps (`wbSessionPhas
 
 ## Databases
 
-| App | Database | Runs on | Prisma adapter |
-|---|---|---|---|
-| `prereg/api` | PostgreSQL | AWS | `@prisma/adapter-pg` |
-| `site/api` | SQL Server | on-prem, one per plant | `@prisma/adapter-mssql` |
+| App          | Database   | Runs on                | Prisma adapter          |
+| ------------ | ---------- | ---------------------- | ----------------------- |
+| `prereg/api` | PostgreSQL | AWS                    | `@prisma/adapter-pg`    |
+| `site/api`   | SQL Server | on-prem, one per plant | `@prisma/adapter-mssql` |
 
 Each API has its own Prisma setup: one `prisma/schema.prisma` (all models of that app in one file), `prisma/migrations/`, `prisma.config.ts`, and the single client in `src/config/prisma.ts`. Only `*.repository.ts` files use the client (enforced by the boundary check). The generated client lives in `src/generated/` and is not committed; Turborepo regenerates it before dev, typecheck, test and build.
 
@@ -99,6 +99,12 @@ Table names start with `mst_` for master data and `awb_` for transactions; colum
 Local development databases run in Docker (`infra/dev/compose.yaml`): Postgres on host port **5450** (5432–5445 are taken by other local project databases) and SQL Server on 1433. Tests use separate `*_test` databases from `.env.test` and refuse to run against anything else.
 
 ## Commands
+
+The integrated preregistration release uses native UUIDv7 IDs, bcrypt, server-side
+sessions, persisted account/role management and private streamed uploads. OTP and
+email delivery are deferred; credentials are logged only in development. Production
+provisioning/reset remains unavailable until delivery is implemented. Deployment,
+existing-data migration and capacity guidance: [prereg operations](infra/prereg/README.md).
 
 ```
 npm install
@@ -111,6 +117,10 @@ npm run dev:prereg            prereg api + web
 npm run dev -w @awb/site-api  one app only
 npm run check                 typecheck + boundary rules + blueprint coverage + tests (needs db:up)
 npm run build
+npm run lint                  ESLint, including React hook checks
+npm run format                format the workspace with Prettier
+npm run format:check           check formatting without rewriting
+npm run test:e2e               browser checks on local test databases
 npm run db:down               stop the local databases (data is kept in Docker volumes)
 
 npm run db:migrate -w @awb/site-api -- --name <change>   create a migration after editing a schema
@@ -129,6 +139,18 @@ Enforced by `npm run check:boundaries` (dependency-cruiser, `.dependency-cruiser
 4. `site/api/src/devices` never imports a domain; domains use devices.
 5. Only `*.repository.ts` files use the Prisma client. Services and routes may import Prisma types, not the client.
 
+## Frontend convention
+
+Frontend applications use `pages/<domain>/<action>/index.tsx`, page-local
+`_components`, domain `hooks` and `types`, separate `layout`, shared `components`,
+configured clients in `lib`, helpers in `utils`, and constants in `constant`.
+Use `@/` imports, typed TanStack Query hooks, React Hook Form with Zod 4, and
+React Router layouts for authentication and permissions. Shared API types remain
+in `@awb/contracts`; shared UI primitives remain in `@awb/ui`.
+
+The full folder tree, naming/export rules, type patterns, cache invalidation and
+formatting requirements are in [frontend conventions](docs/design/frontend.md).
+
 ## Backend module convention
 
 One folder per module, one file per layer.
@@ -143,6 +165,11 @@ One folder per module, one file per layer.
 `site/api` keeps modules under `domains/<domain>/<module>/`; `prereg/api` uses `modules/<module>/`. Express 5 forwards rejected promises to the error handler, so route handlers don't need try/catch.
 
 ## Comments
+
+Use Zod 4 top-level format validators (`z.uuid()`, `z.email()`, `z.url()`,
+`z.iso.datetime()`) and `z.int()` for integer schemas. Keep string length/trim
+checks on `z.string()`. ESLint rejects deprecated chained format validators;
+Prettier supplies consistent spacing and line breaks.
 
 - Write a comment only when the code can't explain itself: a non-obvious reason, a workaround or a business rule.
 - **At most 2 lines per comment**, and keep them few. Don't restate what the code already says.

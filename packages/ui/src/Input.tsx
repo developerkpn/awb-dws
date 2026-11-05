@@ -1,4 +1,4 @@
-import { useState, type InputHTMLAttributes, type ReactNode } from 'react'
+import { useId, useState, type InputHTMLAttributes, type ReactNode } from 'react'
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: ReactNode
@@ -20,14 +20,11 @@ export function Input({
   ...props
 }: InputProps) {
   const [isFocused, setIsFocused] = useState(false)
+  const generatedId = useId()
 
-  const inputId = id || (typeof label === 'string' ? `input-${label.toLowerCase().replace(/[^a-z0-9]/g, '-')}` : undefined)
+  const inputId = id || generatedId
 
-  const borderColor = error
-    ? '#ef4444'
-    : isFocused
-      ? '#8b2424'
-      : '#cbd5e1'
+  const borderColor = error ? '#ef4444' : isFocused ? '#8b2424' : '#cbd5e1'
 
   const focusRing = error
     ? '0 0 0 3px rgba(239, 68, 68, 0.12)'
@@ -36,7 +33,15 @@ export function Input({
       : 'none'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', width: '100%', marginBottom: '13px' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '5px',
+        width: '100%',
+        marginBottom: '13px',
+      }}
+    >
       {(label || rightLabelAction) && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           {label && (
@@ -51,7 +56,12 @@ export function Input({
             >
               {label}
               {props.required && (
-                <span style={{ color: '#dc2626', marginLeft: '4px', fontWeight: 700 }}>*</span>
+                <span
+                  aria-hidden="true"
+                  style={{ color: '#dc2626', marginLeft: '4px', fontWeight: 700 }}
+                >
+                  *
+                </span>
               )}
             </label>
           )}
@@ -62,6 +72,8 @@ export function Input({
       <input
         {...props}
         id={inputId}
+        aria-invalid={error ? true : props['aria-invalid']}
+        aria-describedby={error || helperText ? `${inputId}-message` : props['aria-describedby']}
         disabled={disabled}
         onFocus={(e) => {
           setIsFocused(true)
@@ -90,11 +102,14 @@ export function Input({
       />
 
       {error ? (
-        <span style={{ fontSize: '12px', color: '#dc2626', fontWeight: 500 }}>
+        <span
+          id={`${inputId}-message`}
+          style={{ fontSize: '12px', color: '#dc2626', fontWeight: 500 }}
+        >
           {error}
         </span>
       ) : helperText ? (
-        <span style={{ fontSize: '12px', color: '#64748b' }}>
+        <span id={`${inputId}-message`} style={{ fontSize: '12px', color: '#64748b' }}>
           {helperText}
         </span>
       ) : null}

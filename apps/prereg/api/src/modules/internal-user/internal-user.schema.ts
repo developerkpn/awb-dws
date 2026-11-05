@@ -1,46 +1,61 @@
 import { z } from 'zod'
 
-export const INTERNAL_ROLES = [
-  'ADMIN',
-  'MANAGER',
-  'LOGISTIC',
-  'COMMERCIAL',
-  'KRANIWB',
-] as const
-
-export const userIdParam = z.object({
-  id: z.string().uuid(),
+export const INTERNAL_ROLES = ['ADMIN', 'MANAGER', 'LOGISTIC', 'COMMERCIAL', 'KRANIWB'] as const
+export const userIdParam = z.object({ id: z.uuid() })
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .nullish()
+    .transform((value) => value || null)
+export const accountSchema = z
+  .object({
+    name: z.string().trim().min(1).max(150),
+    username: z
+      .string()
+      .trim()
+      .min(3)
+      .max(100)
+      .regex(/^[a-zA-Z0-9_.@-]+$/, 'Use letters, numbers, dots, underscores, @ or hyphens'),
+    email: z
+      .union([z.email().max(254), z.literal(''), z.null()])
+      .optional()
+      .transform((value) => value?.toLowerCase() || null),
+    phone: optionalText(40),
+    accountType: z.enum(['INTERNAL', 'PARTNER']),
+    role: z.enum([...INTERNAL_ROLES, 'CUSTOMER', 'VENDOR', 'INTERCO']),
+    plantIds: z.array(z.uuid()).max(100).default([]),
+    partnerIds: z.array(z.uuid()).max(100).default([]),
+  })
+  .superRefine((value, ctx) => {
+    const partnerRole = ['CUSTOMER', 'VENDOR', 'INTERCO'].includes(value.role)
+    if ((value.accountType === 'PARTNER') !== partnerRole)
+      ctx.addIssue({ code: 'custom', path: ['role'], message: 'Role does not match account type' })
+    if (value.accountType === 'PARTNER' && !value.partnerIds.length)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['partnerIds'],
+        message: 'Select at least one SAP partner',
+      })
+    if (value.accountType === 'INTERNAL' && value.partnerIds.length)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['partnerIds'],
+        message: 'Internal accounts cannot link SAP partners',
+      })
+    for (const field of ['plantIds', 'partnerIds'] as const) {
+      if (new Set(value[field]).size !== value[field].length)
+        ctx.addIssue({ code: 'custom', path: [field], message: 'Duplicate selection' })
+    }
+  })
+export type AccountInput = z.infer<typeof accountSchema>
+export const updateStatusSchema = z.object({ isActive: z.boolean() })
+export const listUsersSchema = z.object({
+  q: z.string().trim().max(100).default(''),
+  accountType: z.enum(['INTERNAL', 'PARTNER']).optional(),
+  role: z.string().max(50).optional(),
+  plantId: z.uuid().optional(),
+  page: z.coerce.number().int().min(1).max(1000).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
 })
-export type UserIdParam = z.infer<typeof userIdParam>
-
-export const createInternalUserSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  username: z.string().min(3, 'Username must be at least 3 characters'),
-  email: z.string().email('Valid email is required'),
-  phone: z.string().optional(),
-  role: z.enum(INTERNAL_ROLES, {
-    message: `Role must be one of: ${INTERNAL_ROLES.join(', ')}`,
-  }),
-  plantIds: z.array(z.string().uuid()).optional().default([]),
-})
-export type CreateInternalUserInput = z.infer<typeof createInternalUserSchema>
-
-export const updateInternalUserSchema = z.object({
-  name: z.string().min(1).optional(),
-  email: z.string().email().optional(),
-  phone: z.string().optional(),
-  role: z.enum(INTERNAL_ROLES).optional(),
-  plantIds: z.array(z.string().uuid()).optional(),
-})
-export type UpdateInternalUserInput = z.infer<typeof updateInternalUserSchema>
-
-export const updateStatusSchema = z.object({
-  isActive: z.boolean(),
-})
-export type UpdateStatusInput = z.infer<typeof updateStatusSchema>
-
-export const loginSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
-  password: z.string().min(1, 'Password is required'),
-})
-export type LoginInput = z.infer<typeof loginSchema>

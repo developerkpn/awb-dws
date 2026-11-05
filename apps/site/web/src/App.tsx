@@ -1,8 +1,8 @@
 import { AppShell } from '@awb/ui'
-import { AdminPage } from './features/admin/AdminPage'
-import { DashboardPage } from './features/dashboard/DashboardPage'
-import { TcsPage } from './features/tcs/TcsPage'
-import { WeighbridgePage } from './features/weighbridge/WeighbridgePage'
+import AdminPage from '@/pages/admin'
+import DashboardPage from '@/pages/dashboard'
+import TcsPage from '@/pages/tcs/listTcs'
+import WeighbridgePage from '@/pages/weighbridge/listWeighbridge'
 
 export default function App() {
   return (

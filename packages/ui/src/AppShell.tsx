@@ -13,7 +13,12 @@ export function AppShell({ title, pages }: { title: string; pages: ShellPage[] }
         <strong>{title}</strong>
         <nav style={{ display: 'flex', gap: 8 }}>
           {pages.map((p) => (
-            <button key={p.key} type="button" onClick={() => setActive(p.key)} disabled={p.key === active}>
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => setActive(p.key)}
+              disabled={p.key === active}
+            >
               {p.label}
             </button>
           ))}

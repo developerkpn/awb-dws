@@ -5,7 +5,10 @@ import { parseControllerData, type ControllerEvent } from './controller.protocol
 const connections = new Map<string, ControllerConnection>()
 
 /** Opens one connection per configured controller and forwards parsed events. Returns a stop function. */
-export function startControllers(configs: ControllerConfig[], onEvent: (event: ControllerEvent) => void): () => void {
+export function startControllers(
+  configs: ControllerConfig[],
+  onEvent: (event: ControllerEvent) => void,
+): () => void {
   for (const config of configs) {
     const connection = new ControllerConnection(config)
     connection.on('data', (data) => parseControllerData(config.id, data).forEach(onEvent))

@@ -1,73 +1,61 @@
-import { Router, type Request, type Response, type NextFunction } from 'express'
-import { CustomError, success } from '@awb/server-core'
+import { Router } from 'express'
+import { z } from 'zod'
+import { success } from '@awb/server-core'
+import { currentUser, requireAdmin, requirePermission } from '../../middlewares/auth'
 import service from './internal-user.service'
 import {
-  createInternalUserSchema,
-  loginSchema,
-  updateInternalUserSchema,
+  accountSchema,
+  listUsersSchema,
   updateStatusSchema,
   userIdParam,
 } from './internal-user.schema'
 
-export function requireAdmin(req: Request, _res: Response, next: NextFunction) {
-  // Support role in header (x-user-role) or custom auth context
-  const role = req.headers['x-user-role'] || (req as any).user?.role
-  if (role !== 'ADMIN') {
-    throw new CustomError('Access denied: ADMIN role required', 403)
-  }
-  next()
-}
-
 const router = Router()
-
-// Public Auth: Login with active/inactive check
-router.post('/login', async (req, res) => {
-  const input = loginSchema.parse(req.body)
-  const result = await service.login(input)
-  res.json(success(result))
+router.use(requireAdmin, requirePermission('admin:users:read'))
+router.get('/', async (req, res) =>
+  res.json(success(await service.list(listUsersSchema.parse(req.query)))),
+)
+router.get('/options', async (req, res) => {
+  const { q } = z.object({ q: z.string().trim().max(100).default('') }).parse(req.query)
+  res.json(success(await service.options(q)))
 })
-
-// ADMIN Only: List all internal staff accounts
-router.get('/', requireAdmin, async (_req, res) => {
-  const users = await service.listInternalUsers()
-  res.json(success(users))
+router.get('/:id', async (req, res) =>
+  res.json(success(await service.getById(userIdParam.parse(req.params).id))),
+)
+router.post('/', requirePermission('admin:users:create'), async (req, res) => {
+  res
+    .status(201)
+    .json(success(await service.create(accountSchema.parse(req.body), currentUser(req).id)))
 })
-
-// ADMIN Only: Get single internal user detail
-router.get('/:id', requireAdmin, async (req, res) => {
-  const { id } = userIdParam.parse(req.params)
-  const user = await service.getById(id)
-  res.json(success(user))
+router.put('/:id', requirePermission('admin:users:update'), async (req, res) => {
+  res.json(
+    success(
+      await service.update(
+        userIdParam.parse(req.params).id,
+        accountSchema.parse(req.body),
+        currentUser(req).id,
+      ),
+    ),
+  )
 })
-
-// ADMIN Only: Create new internal user
-router.post('/', requireAdmin, async (req, res) => {
-  const input = createInternalUserSchema.parse(req.body)
-  const result = await service.createInternalUser(input)
-  res.status(201).json(success(result))
+router.patch('/:id/status', requirePermission('admin:users:update'), async (req, res) => {
+  res.json(
+    success(
+      await service.setStatus(
+        userIdParam.parse(req.params).id,
+        updateStatusSchema.parse(req.body).isActive,
+        currentUser(req).id,
+      ),
+    ),
+  )
 })
-
-// ADMIN Only: Update internal user data
-router.put('/:id', requireAdmin, async (req, res) => {
-  const { id } = userIdParam.parse(req.params)
-  const input = updateInternalUserSchema.parse(req.body)
-  const updated = await service.updateInternalUser(id, input)
-  res.json(success(updated))
-})
-
-// ADMIN Only: Toggle active / inactive status
-router.patch('/:id/status', requireAdmin, async (req, res) => {
-  const { id } = userIdParam.parse(req.params)
-  const { isActive } = updateStatusSchema.parse(req.body)
-  const updated = await service.setStatus(id, isActive)
-  res.json(success(updated))
-})
-
-// ADMIN Only: Reset password
-router.post('/:id/reset-password', requireAdmin, async (req, res) => {
-  const { id } = userIdParam.parse(req.params)
-  const result = await service.resetPassword(id)
-  res.json(success(result))
-})
-
+router.post(
+  '/:id/reset-password',
+  requirePermission('admin:users:reset-password'),
+  async (req, res) => {
+    res.json(
+      success(await service.resetPassword(userIdParam.parse(req.params).id, currentUser(req).id)),
+    )
+  },
+)
 export default router

@@ -3,7 +3,8 @@ module.exports = {
   forbidden: [
     {
       name: 'no-cross-app-imports',
-      comment: 'An app never imports another app. Share code through packages/ (contracts, server-core, ui).',
+      comment:
+        'An app never imports another app. Share code through packages/ (contracts, server-core, ui).',
       severity: 'error',
       from: { path: '^apps/([^/]+/[^/]+)/' },
       to: { path: '^apps/', pathNot: '^apps/$1/' },
@@ -17,7 +18,7 @@ module.exports = {
     },
     {
       name: 'domain-public-api-only',
-      comment: 'A site/api domain may use another domain only through that domain\'s index.ts.',
+      comment: "A site/api domain may use another domain only through that domain's index.ts.",
       severity: 'error',
       from: { path: '^apps/site/api/src/domains/([^/]+)/' },
       to: {
@@ -27,20 +28,29 @@ module.exports = {
     },
     {
       name: 'devices-do-not-import-domains',
-      comment: 'Controller I/O stays below business logic: domains use devices/, never the reverse.',
+      comment:
+        'Controller I/O stays below business logic: domains use devices/, never the reverse.',
       severity: 'error',
       from: { path: '^apps/site/api/src/devices/' },
       to: { path: '^apps/site/api/src/domains/' },
     },
     {
       name: 'database-only-in-repositories',
-      comment: 'Only *.repository.ts files use the Prisma client; services and routes go through repositories. Type-only imports are allowed.',
+      comment:
+        'Only *.repository.ts files use the Prisma client; services and routes go through repositories. Type-only imports are allowed.',
       severity: 'error',
       from: {
         path: '^apps/[^/]+/api/src/',
-        pathNot: ['\\.repository\\.ts$', '^apps/[^/]+/api/src/(config|generated)/', '^apps/[^/]+/api/src/index\\.ts$'],
+        pathNot: [
+          '\\.repository\\.ts$',
+          '^apps/[^/]+/api/src/(config|generated)/',
+          '^apps/[^/]+/api/src/index\\.ts$',
+        ],
       },
-      to: { path: '^apps/[^/]+/api/src/(config/prisma\\.ts$|generated/)', dependencyTypesNot: ['type-only'] },
+      to: {
+        path: '^apps/[^/]+/api/src/(config/prisma\\.ts$|generated/)',
+        dependencyTypesNot: ['type-only'],
+      },
     },
     {
       name: 'no-circular',

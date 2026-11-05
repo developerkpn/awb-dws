@@ -17,8 +17,13 @@
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "check:boundaries": "depcruise apps packages --config .dependency-cruiser.cjs",
-    "check": "npm run typecheck && npm run check:boundaries && npm run check:blueprint && npm run test",
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "lint": "eslint apps packages scripts eslint.config.mjs .dependency-cruiser.cjs --max-warnings=0",
+    "lint:fix": "npm run lint -- --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run check:boundaries && npm run check:blueprint && npm run test",
+    "test:e2e": "npm run test:e2e -w @awb/prereg-web",
     "db:up": "docker compose -f infra/dev/compose.yaml up -d --wait",
     "db:down": "docker compose -f infra/dev/compose.yaml down",
     "db:generate": "turbo run db:generate",
@@ -28,9 +33,16 @@
     "blueprint:pdf": "docs/.venv/bin/python docs/project-files/source/build_blueprint.py"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.6",
     "dependency-cruiser": "^18.7.1",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.14.0",
+    "prettier": "^3.9.10",
     "turbo": "^2.11.10",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1"
   }
 }

@@ -28,7 +28,8 @@ export function AuthLayout({
         width: '100vw',
         display: 'flex',
         backgroundColor: '#f8fafc',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        fontFamily:
+          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
         color: '#0f172a',
         overflow: 'hidden',
       }}
@@ -70,7 +71,8 @@ export function AuthLayout({
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(135deg, rgba(9, 13, 22, 0.75) 0%, rgba(9, 13, 22, 0.5) 45%, rgba(9, 13, 22, 0.88) 100%)',
+            background:
+              'linear-gradient(135deg, rgba(9, 13, 22, 0.75) 0%, rgba(9, 13, 22, 0.5) 45%, rgba(9, 13, 22, 0.88) 100%)',
             zIndex: 0,
           }}
         />
@@ -84,7 +86,8 @@ export function AuthLayout({
             width: '600px',
             height: '600px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(139, 36, 36, 0.28) 0%, rgba(139, 36, 36, 0) 70%)',
+            background:
+              'radial-gradient(circle, rgba(139, 36, 36, 0.28) 0%, rgba(139, 36, 36, 0) 70%)',
             pointerEvents: 'none',
             zIndex: 0,
           }}
@@ -97,13 +100,12 @@ export function AuthLayout({
             width: '500px',
             height: '500px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0) 70%)',
+            background:
+              'radial-gradient(circle, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0) 70%)',
             pointerEvents: 'none',
             zIndex: 0,
           }}
         />
-
-
 
         {/* Top Header on Hero */}
         <div style={{ position: 'relative', zIndex: 1 }}>
@@ -171,7 +173,9 @@ export function AuthLayout({
               }}
             >
               <div style={{ fontSize: '16px', fontWeight: 700, color: '#ffffff' }}>2-Tap RFID</div>
-              <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>Automated Weighing</div>
+              <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
+                Automated Weighing
+              </div>
             </div>
 
             <div
@@ -184,7 +188,9 @@ export function AuthLayout({
               }}
             >
               <div style={{ fontSize: '16px', fontWeight: 700, color: '#ffffff' }}>AI & OCR</div>
-              <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>License Plate Verification</div>
+              <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
+                License Plate Verification
+              </div>
             </div>
           </div>
         </div>

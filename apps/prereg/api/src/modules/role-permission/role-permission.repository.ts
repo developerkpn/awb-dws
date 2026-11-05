@@ -1,4 +1,5 @@
 import { prisma } from '../../config/prisma'
+import { permissionCatalogue } from './permissions'
 
 export default {
   /**
@@ -6,6 +7,7 @@ export default {
    */
   async findAllPermissions() {
     return prisma.permission.findMany({
+      where: { code: { in: permissionCatalogue.map((p) => p[0]) } },
       orderBy: [{ module: 'asc' }, { code: 'asc' }],
     })
   },
@@ -73,8 +75,9 @@ export default {
   /**
    * Update role permissions atomically
    */
-  async updateRolePermissions(roleId: string, permissionIds: string[]) {
+  async updateRolePermissions(roleId: string, permissionIds: string[], actorId: string) {
     return prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtext(${roleId}))`
       // 1. Remove existing permissions for this role
       await tx.rolePermission.deleteMany({
         where: { roleId },
@@ -90,7 +93,10 @@ export default {
         })
       }
 
-      // 3. Return updated role
+      await tx.accountAudit.create({
+        data: { actorId, subjectId: roleId, action: 'role.permissions_updated' },
+      })
+      // Each authenticated request reloads permissions, so revocations take effect immediately.
       return tx.role.findUnique({
         where: { id: roleId },
         include: {

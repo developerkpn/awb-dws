@@ -1,188 +1,196 @@
+import { randomUUID } from 'node:crypto'
 import request from 'supertest'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import app from '../src/app'
+import { env } from '../src/config/env'
 import { prisma } from '../src/config/prisma'
-import { emailOutbox } from '../src/services/mailer'
+import { verifyPassword } from '../src/lib/password'
+import { createTestUser, sessionFor, origin, login, cookieFrom } from './helpers'
 
-describe('AWB-7: Internal Users and Roles API', () => {
-  beforeAll(async () => {
-    const roles = [
-      { code: 'ADMIN', name: 'Admin' },
-      { code: 'MANAGER', name: 'Manager' },
-      { code: 'LOGISTIC', name: 'Logistic' },
-      { code: 'COMMERCIAL', name: 'Commercial' },
-      { code: 'KRANIWB', name: 'Krani WB' },
-    ]
-    for (const r of roles) {
-      await prisma.role.upsert({
-        where: { code: r.code },
-        update: {},
-        create: r,
-      })
+const newAccount = () => ({
+  name: 'New internal account',
+  username: `new_${randomUUID()}`,
+  email: '',
+  phone: '',
+  accountType: 'INTERNAL',
+  role: 'LOGISTIC',
+  plantIds: [],
+  partnerIds: [],
+})
+
+describe('Account administration', () => {
+  it('requires a real administrator session, regardless of supplied role header', async () => {
+    const { cookie } = await sessionFor('CUSTOMER')
+    const response = await request(app)
+      .get('/api/users')
+      .set('Cookie', cookie)
+      .set('x-user-role', 'ADMIN')
+    expect(response.status).toBe(403)
+  })
+
+  it('creates and resets accounts with bcrypt; credentials appear only in the development console', async () => {
+    const { cookie } = await sessionFor()
+    await createTestUser('LOGISTIC')
+    const log = vi.spyOn(console, 'info').mockImplementation(() => {})
+    const original = env.NODE_ENV
+    env.NODE_ENV = 'development'
+
+    try {
+      const data = newAccount()
+      const response = await request(app)
+        .post('/api/users')
+        .set('Origin', origin)
+        .set('Cookie', cookie)
+        .send(data)
+      expect(response.status).toBe(201)
+      expect(response.body.data).not.toHaveProperty('temporaryPassword')
+      const firstPassword = (log.mock.calls.at(-1)![1] as { password: string }).password
+      const user = await prisma.user.findUniqueOrThrow({ where: { username: data.username } })
+      expect(await verifyPassword(firstPassword, user.passwordHash)).toBe(true)
+      const oldCookie = cookieFrom(await login(data.username, firstPassword))
+
+      const reset = await request(app)
+        .post(`/api/users/${user.id}/reset-password`)
+        .set('Origin', origin)
+        .set('Cookie', cookie)
+      expect(reset.status).toBe(200)
+      const nextPassword = (log.mock.calls.at(-1)![1] as { password: string }).password
+      expect(nextPassword).not.toBe(firstPassword)
+      expect((await login(data.username, firstPassword)).status).toBe(401)
+      expect((await login(data.username, nextPassword)).status).toBe(200)
+      expect((await request(app).get('/api/auth/me').set('Cookie', oldCookie)).status).toBe(401)
+      expect(
+        await prisma.accountAudit.count({ where: { subjectId: user.id } }),
+      ).toBeGreaterThanOrEqual(2)
+    } finally {
+      env.NODE_ENV = original
+      log.mockRestore()
     }
   })
-  it('protects internal user management endpoints from non-ADMIN users', async () => {
-    // Attempting to create user without ADMIN header
-    const res = await request(app)
-      .post('/api/internal-users')
-      .send({
-        name: 'Intruder',
-        username: 'intruder',
-        email: 'intruder@test.com',
-        role: 'LOGISTIC',
-      })
-    expect(res.status).toBe(403)
-    expect(res.body.error).toMatch(/ADMIN role required/i)
+
+  it('blocks production provisioning and reset before modifying data or logging secrets', async () => {
+    const { cookie } = await sessionFor()
+    const target = await createTestUser('LOGISTIC')
+    const log = vi.spyOn(console, 'info').mockImplementation(() => {})
+    const original = env.NODE_ENV
+    env.NODE_ENV = 'production'
+
+    try {
+      const data = newAccount()
+      expect(
+        (
+          await request(app)
+            .post('/api/users')
+            .set('Origin', origin)
+            .set('Cookie', cookie)
+            .send(data)
+        ).status,
+      ).toBe(503)
+      expect(
+        (
+          await request(app)
+            .post(`/api/users/${target.id}/reset-password`)
+            .set('Origin', origin)
+            .set('Cookie', cookie)
+        ).status,
+      ).toBe(503)
+      expect(await prisma.user.findUnique({ where: { username: data.username } })).toBeNull()
+      expect((await prisma.user.findUniqueOrThrow({ where: { id: target.id } })).passwordHash).toBe(
+        target.passwordHash,
+      )
+      expect(log).not.toHaveBeenCalled()
+    } finally {
+      env.NODE_ENV = original
+      log.mockRestore()
+    }
   })
 
-  it('allows ADMIN to create an internal user with system-generated password and email delivery', async () => {
-    const timestamp = Date.now()
-    const testUsername = `user_${timestamp}`
-    const testEmail = `user_${timestamp}@kpncorp.com`
+  it('persists edits and deactivation and revokes affected sessions', async () => {
+    const admin = await sessionFor()
+    const target = await sessionFor('LOGISTIC')
+    const data = { ...newAccount(), username: target.user.username, name: 'Updated account' }
+    const update = await request(app)
+      .put(`/api/users/${target.user.id}`)
+      .set('Origin', origin)
+      .set('Cookie', admin.cookie)
+      .send(data)
 
-    // Seed a plant to test plant access
-    const plant = await prisma.plant.upsert({
-      where: { code: 'PRISCOLIN_KARAWANG' },
-      update: {},
-      create: { code: 'PRISCOLIN_KARAWANG', name: 'Priscolin Karawang', city: 'Karawang' },
+    expect(update.status).toBe(200)
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: target.user.id } })).name).toBe(
+      'Updated account',
+    )
+    expect((await request(app).get('/api/auth/me').set('Cookie', target.cookie)).status).toBe(401)
+
+    expect(
+      (
+        await request(app)
+          .patch(`/api/users/${target.user.id}/status`)
+          .set('Origin', origin)
+          .set('Cookie', admin.cookie)
+          .send({ isActive: false })
+      ).status,
+    ).toBe(200)
+    expect((await login(target.user.username)).status).toBe(401)
+  })
+
+  it('rejects duplicates atomically and validates account and role combinations', async () => {
+    const { cookie } = await sessionFor()
+    const target = await createTestUser('LOGISTIC')
+    const data = { ...newAccount(), username: target.username.toUpperCase() }
+
+    expect(
+      (await request(app).post('/api/users').set('Origin', origin).set('Cookie', cookie).send(data))
+        .status,
+    ).toBe(409)
+    expect(
+      (
+        await request(app)
+          .post('/api/users')
+          .set('Origin', origin)
+          .set('Cookie', cookie)
+          .send({ ...data, accountType: 'PARTNER' })
+      ).status,
+    ).toBe(422)
+  })
+
+  it('bounds list sizes and filters without returning password hashes', async () => {
+    const { user, cookie } = await sessionFor()
+    const result = await request(app)
+      .get(`/api/users?q=${user.username}&limit=1`)
+      .set('Cookie', cookie)
+
+    expect(result.body.data.total).toBe(1)
+    expect(result.body.data.items).toHaveLength(1)
+    expect(result.body.data.items[0]).not.toHaveProperty('passwordHash')
+    expect((await request(app).get('/api/users?limit=100000').set('Cookie', cookie)).status).toBe(
+      422,
+    )
+  })
+
+  it('keeps at least one active administrator', async () => {
+    const { user, cookie } = await sessionFor()
+    const others = await prisma.user.findMany({
+      where: { role: { code: 'ADMIN' }, isActive: true, id: { not: user.id } },
+      select: { id: true },
+    })
+    await prisma.user.updateMany({
+      where: { id: { in: others.map((item) => item.id) } },
+      data: { isActive: false },
     })
 
-    const initialEmailCount = emailOutbox.length
-
-    // ADMIN creates account
-    const createRes = await request(app)
-      .post('/api/internal-users')
-      .set('x-user-role', 'ADMIN')
-      .send({
-        name: 'Siti Rahma Test',
-        username: testUsername,
-        email: testEmail,
-        phone: '+62812345678',
-        role: 'LOGISTIC',
-        plantIds: [plant.id],
+    try {
+      const result = await request(app)
+        .patch(`/api/users/${user.id}/status`)
+        .set('Origin', origin)
+        .set('Cookie', cookie)
+        .send({ isActive: false })
+      expect(result.status).toBe(409)
+      expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).isActive).toBe(true)
+    } finally {
+      await prisma.user.updateMany({
+        where: { id: { in: others.map((item) => item.id) } },
+        data: { isActive: true },
       })
-
-    expect(createRes.status).toBe(201)
-    expect(createRes.body.success).toBe(true)
-    const { user, temporaryPassword } = createRes.body.data
-
-    expect(user.id).toBeDefined()
-    expect(user.username).toBe(testUsername)
-    expect(user.role).toBe('LOGISTIC')
-    expect(user.isActive).toBe(true)
-    expect(user.plantAccess).toHaveLength(1)
-    expect(user.plantAccess[0].code).toBe('PRISCOLIN_KARAWANG')
-
-    // Password was created by system (not client) and returned
-    expect(temporaryPassword).toBeDefined()
-    expect(temporaryPassword.length).toBeGreaterThanOrEqual(10)
-
-    // Password was dispatched to email
-    expect(emailOutbox.length).toBe(initialEmailCount + 1)
-    const sentEmail = emailOutbox[emailOutbox.length - 1]!
-    expect(sentEmail.to).toBe(testEmail)
-    expect(sentEmail.content).toContain(temporaryPassword)
-
-    // Verify user can log in with system-generated password
-    const loginRes = await request(app)
-      .post('/api/auth/login')
-      .send({
-        username: testUsername,
-        password: temporaryPassword,
-      })
-    expect(loginRes.status).toBe(200)
-    expect(loginRes.body.success).toBe(true)
-    expect(loginRes.body.data.user.username).toBe(testUsername)
-
-    // ADMIN updates user details
-    const updateRes = await request(app)
-      .put(`/api/internal-users/${user.id}`)
-      .set('x-user-role', 'ADMIN')
-      .send({
-        name: 'Siti Rahma Senior Logistic',
-        role: 'COMMERCIAL',
-      })
-    expect(updateRes.status).toBe(200)
-    expect(updateRes.body.data.name).toBe('Siti Rahma Senior Logistic')
-    expect(updateRes.body.data.role).toBe('COMMERCIAL')
-
-    // ADMIN deactivates user (Checklist: Akun nonaktif tidak bisa login)
-    const deactivateRes = await request(app)
-      .patch(`/api/internal-users/${user.id}/status`)
-      .set('x-user-role', 'ADMIN')
-      .send({ isActive: false })
-    expect(deactivateRes.status).toBe(200)
-    expect(deactivateRes.body.data.isActive).toBe(false)
-
-    // Deactivated user tries to log in -> MUST FAIL
-    const blockedLoginRes = await request(app)
-      .post('/api/auth/login')
-      .send({
-        username: testUsername,
-        password: temporaryPassword,
-      })
-    expect(blockedLoginRes.status).toBe(403)
-    expect(blockedLoginRes.body.error).toMatch(/inactive/i)
-
-    // Re-activate user
-    await request(app)
-      .patch(`/api/internal-users/${user.id}/status`)
-      .set('x-user-role', 'ADMIN')
-      .send({ isActive: true })
-
-    // ADMIN resets password
-    const resetRes = await request(app)
-      .post(`/api/internal-users/${user.id}/reset-password`)
-      .set('x-user-role', 'ADMIN')
-    expect(resetRes.status).toBe(200)
-    const { temporaryPassword: newPassword } = resetRes.body.data
-    expect(newPassword).toBeDefined()
-    expect(newPassword).not.toBe(temporaryPassword)
-
-    // Old password should now fail
-    const oldLoginFail = await request(app)
-      .post('/api/auth/login')
-      .send({
-        username: testUsername,
-        password: temporaryPassword,
-      })
-    expect(oldLoginFail.status).toBe(401)
-
-    // New password should succeed
-    const newLoginSuccess = await request(app)
-      .post('/api/auth/login')
-      .send({
-        username: testUsername,
-        password: newPassword,
-      })
-    expect(newLoginSuccess.status).toBe(200)
-    expect(newLoginSuccess.body.success).toBe(true)
-  })
-
-  it('rejects duplicate username or email', async () => {
-    const timestamp = Date.now()
-    const username = `dup_${timestamp}`
-    const email = `dup_${timestamp}@kpncorp.com`
-
-    await request(app)
-      .post('/api/internal-users')
-      .set('x-user-role', 'ADMIN')
-      .send({
-        name: 'User 1',
-        username,
-        email,
-        role: 'KRANIWB',
-      })
-
-    const duplicateRes = await request(app)
-      .post('/api/internal-users')
-      .set('x-user-role', 'ADMIN')
-      .send({
-        name: 'User 2',
-        username,
-        email: `other_${timestamp}@kpncorp.com`,
-        role: 'KRANIWB',
-      })
-    expect(duplicateRes.status).toBe(409)
+    }
   })
 })
