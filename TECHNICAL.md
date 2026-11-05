@@ -106,6 +106,7 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 | R-030 | 2026-11-04 | Frontend | Belum ada antarmuka pengelolaan pengguna (admin) di prereg/web | Halaman admin user management untuk akun mitra dan internal (AWB-8) dengan filter peran/pabrik/pencarian, form tambah akun (CUSTOMER, VENDOR, internal), ubah/nonaktifkan status, reset password, dan komponen Table terstruktur di packages/ui | Kebutuhan antarmuka AWB-8 |
 | R-031 | 2026-11-05 | Database | Schema database prereg masih kosong (tanpa model dan tabel akun/peran/mitra) | Skema tabel Prisma untuk akun, peran, hak akses, mitra SAP (customer, vendor, interco), relasi multi-kode mitra, pembatasan pabrik, dan OTP (AWB-2); migrasi awal PostgreSQL lokal dan seeder data peran serta 16.000+ data mitra dari referensi | Kebutuhan database AWB-2 |
 | R-032 | 2026-11-05 | Backend | Belum ada API pengelolaan akun internal dan autentikasi peran | Endpoint CRUD akun internal (ADMIN only), password generator & mailer service, verifikasi peran, penugasan akses pabrik, dan blokir login akun nonaktif (AWB-7) | Kebutuhan API AWB-7 |
+| R-033 | 2026-11-05 | Fullstack | Belum ada pengaturan hak akses dinamis dan proteksi izin halaman/menu | Modul role-permission dan middleware requirePermission di prereg/api, penolakan akses tidak berhak (403), serta antarmuka dinamis menu role & halaman matriks izin peran di prereg/web (AWB-9) | Kebutuhan antarmuka & keamanan AWB-9 |
 
 ## A. Aplikasi
 
@@ -140,6 +141,7 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 |---|---|---|---|
 | `prereg/api/modules/pre-registration` | Membaca Customer Pre-Registration berdasarkan id (contoh pola modul; data sementara di memori) | FR-001 | kerangka |
 | `prereg/api/modules/internal-user` | Pengelolaan akun staf internal (ADMIN only), pembuatan password sistem, reset password, pembatasan akses pabrik, dan autentikasi peran | FR-040, FR-041 | selesai |
+| `prereg/api/modules/role-permission` | Pengelolaan hak akses izin peran dan menu, penolakan akses terlarang (HTTP 403), dan matriks perizinan peran | FR-042 | selesai |
 
 ## C. Endpoint API
 
@@ -157,6 +159,12 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 | prereg/api | PUT | `/api/internal-users/:id` | internal-user | — | selesai (khusus ADMIN) |
 | prereg/api | PATCH | `/api/internal-users/:id/status` | internal-user | — | selesai (khusus ADMIN) |
 | prereg/api | POST | `/api/internal-users/:id/reset-password` | internal-user | — | selesai (khusus ADMIN) |
+| prereg/api | GET | `/api/access/permissions` | role-permission | — | selesai |
+| prereg/api | GET | `/api/access/roles` | role-permission | — | selesai (khusus ADMIN) |
+| prereg/api | GET | `/api/access/roles/:id/permissions` | role-permission | — | selesai (khusus ADMIN) |
+| prereg/api | PUT | `/api/access/roles/:id/permissions` | role-permission | — | selesai (khusus ADMIN) |
+| prereg/api | GET | `/api/access/check-access` | role-permission | — | selesai |
+| prereg/api | GET | `/api/access/protected/*` | role-permission | — | selesai (verifikasi RBAC) |
 | prereg/api | — | `/api/internal/*` | `src/routes/internal.ts` | contract sinkronisasi | direncanakan (route antar layanan untuk pabrik; perlu autentikasi layanan) |
 
 ## D. Model data dan migrasi
