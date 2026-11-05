@@ -9,4 +9,194 @@ datasource db {
   provider = "postgresql"
 }
 
-// Models go below. Table names follow "Aturan penamaan tabel" in TECHNICAL.md (mst_ / awb_ / sys_).
+model User {
+  id                Int           @id @default(autoincrement())
+  name              String
+  email             String        @unique
+  phone             String
+  role              String
+  passwordHash      String        @map("password_hash")
+  isActive          Boolean       @default(true) @map("is_active")
+  createdBy         Int?          @map("created_by")
+  otpCode           String?       @map("otp_code")
+  otpExpiresAt      DateTime?     @map("otp_expires_at")
+  passwordUpdatedAt DateTime      @default(now()) @map("password_updated_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  partners          UserPartner[]
+  submittedRequests DriverRequest[]         @relation("SubmittedRequests")
+  decidedRequests   DriverRequest[]         @relation("DecidedRequests")
+  decisions         DriverRequestDecision[] @relation("DecisionUser")
+  documents         Document[]              @relation("UserDocuments")
+
+  @@map("mst_user")
+}
+
+model Partner {
+  id          Int           @id @default(autoincrement())
+  code        String        @unique
+  name        String
+  role        String
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  userPartner UserPartner?
+
+  @@map("mst_partner")
+}
+
+model UserPartner {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  partnerId Int      @unique @map("partner_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@map("mst_user_partner")
+}
+
+model City {
+  id             Int             @id @default(autoincrement())
+  name           String          @unique
+  province       String?
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  transporters   Transporter[]
+  drivers        Driver[]
+  driverRequests DriverRequest[]
+
+  @@map("mst_city")
+}
+
+model Transporter {
+  id             Int             @id @default(autoincrement())
+  code           String          @unique
+  name           String
+  address        String?
+  phone          String?
+  contactPerson  String?         @map("contact_person")
+  cityId         Int?            @map("city_id")
+  isActive       Boolean         @default(true) @map("is_active")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  city           City?           @relation(fields: [cityId], references: [id])
+  vehicles       Vehicle[]
+  driverRequests DriverRequest[]
+
+  @@map("mst_transporter")
+}
+
+model Driver {
+  id              Int             @id @default(autoincrement())
+  licenseNumber   String          @unique @map("license_number")
+  name            String
+  address         String
+  birthPlace      String          @map("birth_place")
+  birthDate       DateTime        @map("birth_date")
+  phone           String
+  cityId          Int?            @map("city_id")
+  licensePhotoUrl String?         @map("license_photo_url")
+  driverPhotoUrl  String?         @map("driver_photo_url")
+  isActive        Boolean         @default(true) @map("is_active")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  city            City?           @relation(fields: [cityId], references: [id])
+  requests        DriverRequest[]
+
+  @@map("mst_driver")
+}
+
+model Vehicle {
+  id            Int             @id @default(autoincrement())
+  plateNumber   String          @unique @map("plate_number")
+  transporterId Int?            @map("transporter_id")
+  stnkPhotoUrl  String?         @map("stnk_photo_url")
+  isActive      Boolean         @default(true) @map("is_active")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  transporter   Transporter?    @relation(fields: [transporterId], references: [id])
+  requests      DriverRequest[]
+
+  @@map("mst_vehicle")
+}
+
+model DriverRequest {
+  id                    Int                     @id @default(autoincrement())
+  status                String                  @default("SUBMITTED")
+  submittedBy           Int                     @map("submitted_by")
+
+  driverId              Int?                    @map("driver_id")
+  driverLicenseNumber   String                  @map("driver_license_number")
+  driverName            String                  @map("driver_name")
+  driverAddress         String                  @map("driver_address")
+  driverBirthPlace      String                  @map("driver_birth_place")
+  driverBirthDate       DateTime                @map("driver_birth_date")
+  driverPhone           String                  @map("driver_phone")
+  driverCityId          Int?                    @map("driver_city_id")
+  driverLicensePhotoUrl String?                 @map("driver_license_photo_url")
+  driverPhotoUrl        String?                 @map("driver_photo_url")
+
+  vehicleId             Int?                    @map("vehicle_id")
+  vehiclePlateNumber    String                  @map("vehicle_plate_number")
+  transporterId         Int?                    @map("transporter_id")
+  vehicleStnkPhotoUrl   String?                 @map("vehicle_stnk_photo_url")
+
+  decidedBy             Int?                    @map("decided_by")
+  decidedAt             DateTime?               @map("decided_at")
+  decision              String?
+  rejectionReason       String?                 @map("rejection_reason")
+  sentToPlantAt         DateTime?               @map("sent_to_plant_at")
+
+  createdAt             DateTime                @default(now()) @map("created_at")
+  updatedAt             DateTime                @updatedAt @map("updated_at")
+
+  submitter             User                    @relation("SubmittedRequests", fields: [submittedBy], references: [id])
+  decider               User?                   @relation("DecidedRequests", fields: [decidedBy], references: [id])
+  driver                Driver?                 @relation(fields: [driverId], references: [id])
+  vehicle               Vehicle?                @relation(fields: [vehicleId], references: [id])
+  city                  City?                   @relation(fields: [driverCityId], references: [id])
+  transporter           Transporter?            @relation(fields: [transporterId], references: [id])
+  decisions             DriverRequestDecision[]
+
+  @@map("awb_driver_request")
+}
+
+model DriverRequestDecision {
+  id              Int           @id @default(autoincrement())
+  requestId       Int           @map("request_id")
+  decision        String
+  rejectionReason String?       @map("rejection_reason")
+  decidedBy       Int           @map("decided_by")
+  decidedAt       DateTime      @default(now()) @map("decided_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  request         DriverRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  decider         User          @relation("DecisionUser", fields: [decidedBy], references: [id])
+
+  @@map("awb_driver_request_decision")
+}
+
+model Document {
+  id         Int      @id @default(autoincrement())
+  fileKey    String   @unique @map("file_key")
+  fileName   String   @map("file_name")
+  mimeType   String   @map("mime_type")
+  fileSize   Int      @map("file_size")
+  category   String   @map("category")
+  uploadedBy Int      @map("uploaded_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  uploader   User     @relation("UserDocuments", fields: [uploadedBy], references: [id])
+
+  @@map("awb_document")
+}

@@ -23,6 +23,7 @@
     "db:down": "docker compose -f infra/dev/compose.yaml down",
     "db:generate": "turbo run db:generate",
     "db:deploy": "turbo run db:deploy",
+    "db:seed": "turbo run db:seed",
     "check:blueprint": "node scripts/check-blueprint.mjs",
     "docs:setup": "python3 -m venv docs/.venv && docs/.venv/bin/python -m pip install -q -r docs/project-files/source/requirements-docs.txt",
     "blueprint:pdf": "docs/.venv/bin/python docs/project-files/source/build_blueprint.py"

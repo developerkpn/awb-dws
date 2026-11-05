@@ -102,6 +102,11 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 | R-026 | 2026-11-03 | Database | Belum ada aturan nama kolom | `snake_case` berbahasa Inggris dengan `id`, `<tabel>_id`, `is_`/`has_`, `_at`, `_date`, `_by`; setiap tabel punya `created_at` dan `updated_at` | K-28 |
 | R-027 | 2026-11-03 | Dokumentasi | `docs/design/inventaris-tabel.md`: usulan salin/ubah/tidak dipakai untuk setiap tabel sistem lama | `docs/design/penamaan-tabel.md`: panduan singkat nama tabel dan kolom; struktur tabel lama dilihat langsung oleh tim. Keputusan dari inventaris tetap di K-18 s.d. K-22, hal terbuka tetap di `BLUEPRINT.md` | Permintaan pemilik kebutuhan |
 | R-028 | 2026-11-03 | Pengujian | `tests/global-setup.ts` menjalankan migrasi lewat `npx prisma`; di Windows gagal karena `npx.cmd` tidak bisa dijalankan tanpa shell, dan pesannya tertutup error Vitest `code.charCodeAt is not a function` | Prisma CLI dijalankan langsung dengan Node (`process.execPath`); pesan gagal setup selalu dicetak lebih dulu | `npm run check` gagal di laptop Windows pengembang |
+| R-029 | 2026-11-05 | Pre-Registration | Belum ada fitur pembuatan akun mitra oleh admin | Pembuatan akun mitra (Customer, Vendor, Interco) oleh admin, relasi ke kode SAP (KUNNR, LIFNR, Interco), generate password acak, hashing, pengiriman kredensial & reset via email SMTP | AWB-3 |
+| R-031 | 2026-11-05 | Pre-Registration | Belum ada API login, sesi dan pemeriksaan peran | API autentikasi (/api/auth/login, /api/auth/logout, /api/auth/me), sesi via cookie httpOnly, peran diverifikasi dari database server, rate limiting login, dan middleware requireAuth/requireRole | Login, sesi dan pemeriksaan peran (API) |
+| R-032 | 2026-11-05 | Pre-Registration | Belum ada fitur reset password mandiri dengan OTP | Reset password mandiri via OTP email (/api/auth/forgot-password dan /api/auth/reset-password), auto-generate password baru, dan invalidasi sesi lama | AWB-5 |
+| R-033 | 2026-11-05 | Pre-Registration | Belum ada skema data master supir, kendaraan, transporter, kota dan pengajuan registrasi truk | Tabel master (mst_city, mst_transporter, mst_driver, mst_vehicle), pengajuan (awb_driver_request), jejak keputusan (awb_driver_request_decision), migrasi dan seed kota & transporter | Tabel supir, kendaraan, transporter dan pengajuan |
+| R-034 | 2026-11-05 | Pre-Registration | Belum ada fitur upload dokumen dan foto supir/SIM/STNK | API upload dokumen lokal siap S3 (/api/documents/upload), validasi format/ukuran (maks 5MB), pembatasan akses (/api/documents/:category/:fileName), dan tabel awb_document | AWB-11 |
 
 ## A. Aplikasi
 
@@ -135,6 +140,9 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 | Modul | Fungsi | PRD | Status |
 |---|---|---|---|
 | `prereg/api/modules/pre-registration` | Membaca Customer Pre-Registration berdasarkan id (contoh pola modul; data sementara di memori) | FR-001 | kerangka |
+| `prereg/api/modules/partner-account` | Pembuatan akun mitra (Customer, Vendor, Interco) oleh admin, relasi kode SAP, generate & reset password | FR-001 | selesai |
+| `prereg/api/modules/auth` | Login (username mitra = kode SAP), sesi cookie httpOnly, pemeriksaan peran dari DB, logout dan rate limiting | FR-001 | selesai |
+| `prereg/api/modules/document` | Upload dan akses dokumen (foto SIM, supir, STNK), validasi MIME/ukuran, penyimpanan lokal siap S3 dan kontrol akses peran | FR-001 | selesai |
 
 ## C. Endpoint API
 
@@ -145,6 +153,18 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 | site/api | — | `/api/registration`, `/api/weighbridge`, `/api/tcs`, `/api/sync` | router domain | — | direncanakan (terpasang, belum ada route) |
 | prereg/api | GET | `/health` | `src/app.ts` | — | selesai |
 | prereg/api | GET | `/api/pre-registrations/:id` | pre-registration | — | kerangka |
+| prereg/api | GET | `/api/partners` | partner-account | — | selesai (daftar mitra SAP) |
+| prereg/api | POST | `/api/auth/login` | auth | — | selesai (login mitra/internal, set cookie httpOnly & rate limit) |
+| prereg/api | POST | `/api/auth/logout` | auth | — | selesai (hapus cookie sesi) |
+| prereg/api | GET | `/api/auth/me` | auth | — | selesai (profil pengguna, peran DB & kode mitra) |
+| prereg/api | POST | `/api/auth/forgot-password` | auth | — | selesai (minta reset password & kirim OTP ke email akun) |
+| prereg/api | POST | `/api/auth/reset-password` | auth | — | selesai (validasi OTP, buat password baru acak, email ke user & batalkan sesi lama) |
+| prereg/api | GET | `/api/partner-accounts` | partner-account | — | selesai (khusus ADMIN: daftar akun mitra) |
+| prereg/api | POST | `/api/partner-accounts` | partner-account | — | selesai (khusus ADMIN: buat akun mitra & email) |
+| prereg/api | PATCH | `/api/partner-accounts/:id/status` | partner-account | — | selesai (khusus ADMIN: aktif/nonaktif akun) |
+| prereg/api | POST | `/api/partner-accounts/:id/reset-password` | partner-account | — | selesai (khusus ADMIN: reset password & email) |
+| prereg/api | POST | `/api/documents/upload` | document | — | selesai (upload file foto SIM, supir, STNK, maks 5MB) |
+| prereg/api | GET | `/api/documents/:category/:fileName` | document | — | selesai (akses file terbatas: pemilik pengajuan, Logistik, Admin) |
 | prereg/api | — | `/api/internal/*` | `src/routes/internal.ts` | contract sinkronisasi | direncanakan (route antar layanan untuk pabrik; perlu autentikasi layanan) |
 
 ## D. Model data dan migrasi
@@ -153,11 +173,23 @@ Schema kedua database (`apps/prereg/api/prisma/schema.prisma` dan `apps/site/api
 
 | Model | Aplikasi · database | Tabel | Pemilik | Status |
 |---|---|---|---|---|
-| — | — | — | — | belum ada |
+| `User` | prereg/api · PostgreSQL | `mst_user` | prereg | selesai |
+| `Partner` | prereg/api · PostgreSQL | `mst_partner` | prereg | selesai |
+| `UserPartner` | prereg/api · PostgreSQL | `mst_user_partner` | prereg | selesai |
+| `City` | prereg/api · PostgreSQL | `mst_city` | prereg | selesai |
+| `Transporter` | prereg/api · PostgreSQL | `mst_transporter` | prereg | selesai |
+| `Driver` | prereg/api · PostgreSQL | `mst_driver` | prereg | selesai |
+| `Vehicle` | prereg/api · PostgreSQL | `mst_vehicle` | prereg | selesai |
+| `DriverRequest` | prereg/api · PostgreSQL | `awb_driver_request` | prereg | selesai |
+| `DriverRequestDecision` | prereg/api · PostgreSQL | `awb_driver_request_decision` | prereg | selesai |
+| `Document` | prereg/api · PostgreSQL | `awb_document` | prereg | selesai |
 
 | Migrasi | Aplikasi | Isi |
 |---|---|---|
-| — | — | belum ada |
+| `20261105000000_create_user_and_partner_tables` | prereg/api | Tabel `mst_user`, `mst_partner`, `mst_user_partner` untuk akun mitra dan relasi kode SAP |
+| `20261105010000_add_otp_and_password_updated_at` | prereg/api | Kolom `otp_code`, `otp_expires_at`, `password_updated_at` pada `mst_user` untuk reset password mandiri |
+| `20261105020000_create_driver_vehicle_transporter_tables` | prereg/api | Tabel master `mst_city`, `mst_transporter`, `mst_driver`, `mst_vehicle`, pengajuan `awb_driver_request` dan jejak keputusan `awb_driver_request_decision` |
+| `20261105030000_create_document_table` | prereg/api | Tabel `awb_document` untuk metadata file yang disimpan di disk lokal (siap migrasi ke S3) |
 
 ## E. Contract (format data antar aplikasi)
 
@@ -180,6 +212,7 @@ Skema di `@awb/contracts`; penjelasannya ada di README, bagian "Shared packages"
 | `prereg/web/features/pre-registration` | UI-01 | halaman contoh |
 | `prereg/web/features/approval` | UI-02 | halaman contoh |
 | `prereg/web/features/ho-registration` | UI-18 | halaman contoh |
+| `prereg/web/features/partner-management` | AWB-3 | halaman pembuatan & manajemen akun mitra oleh admin |
 | `site/web/features/weighbridge` | Menu WB.NET (daftar parity O-01) | halaman contoh |
 | `site/web/features/tcs` | UI-10, UI-11 | halaman contoh |
 | `site/web/features/dashboard` | UI-14, UI-15 | halaman contoh |

@@ -15,3 +15,14 @@ __pycache__/
 
 # Python environment for building the PDF documents (npm run docs:setup)
 docs/.venv/
+
+# Uploaded documents storage
+uploads/
+uploads_*/
+**/uploads/
+**/uploads_*/
+
+# Local reference files in root
+/*.pdf
+/*.xlsx
+/penamaan-tabel.md

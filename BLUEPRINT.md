@@ -41,7 +41,7 @@ Kedua sisi saling bertukar data secara otomatis.
 | Fondasi proyek | Selesai | Struktur proyek, aturan kerja tim, pengujian otomatis dan dokumen ini sudah siap. |
 | Database | Persiapan | Database untuk HO dan pabrik sudah tersambung, tetapi belum berisi tabel. Tabel disusun tim pengembang dari sistem lama (K-13). |
 | Koneksi ke perangkat timbangan | Dikerjakan | Sistem sudah bisa tersambung ke controller timbangan (2 per jembatan timbang) dan menyambung ulang sendiri bila putus. Pembacaan tap kartu belum dibuat. |
-| Customer Pre-Registration | Persiapan | Belum ada fitur yang bisa dipakai. Akan mendukung penjualan (JUL) dan pembelian (BEL, dengan input PO) (K-15). |
+| Customer Pre-Registration | Dikerjakan | Pembuatan akun mitra (Customer, Vendor, Interco) oleh admin selesai (AWB-3). Akan mendukung penjualan (JUL) dan pembelian (BEL, dengan input PO) (K-15). |
 | Registrasi masuk dan keluar | Belum mulai | Scan QR, registrasi tanpa pre-registration dan pengambilan kartu RFID. |
 | Timbangan (pengganti WB.NET) | Belum mulai | Dua tap kartu, kamera AI/OCR dan perhitungan berat. Menunggu daftar menu WB.NET dan aturan kamera AI/OCR. |
 | TCS (pemeriksaan dan bongkar/muat) | Belum mulai | Alur BEL, JUL, LSK dan LSM. Web TCS digabung ke konsol pabrik; aplikasi Android tetap tampilannya (K-16). |
@@ -90,3 +90,4 @@ Riwayat hanya ditambah, tidak pernah diubah atau dihapus, sehingga kondisi awal 
 | R-012 | 2026-11-02 | Customer Pre-Registration | Hanya transaksi JUL (input DO/Kontrak) | JUL dan BEL; BEL memakai input PO dengan alur yang sama | K-15 |
 | R-013 | 2026-11-02 | TCS | Web Laravel dan aplikasi Android memakai backend dan database VCF | Web digabung ke konsol pabrik; aplikasi Android tetap tampilannya, backend dan database pindah ke layanan pabrik | K-16 |
 | R-018 | 2026-11-02 | Akses SAP | Semua akses SAP memakai satu akun layanan (K-21) | Saat Logistik approve memakai akun SAP petugas; akses SAP lainnya memakai satu akun bersama seperti Warehouse Management | K-21 → K-22 |
+| R-030 | 2026-11-05 | Customer Pre-Registration | Persiapan (belum ada fitur yang bisa dipakai) | Dikerjakan: Pembuatan akun mitra (Customer, Vendor, Interco) oleh admin selesai (AWB-3) | AWB-3 |
