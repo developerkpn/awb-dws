@@ -104,6 +104,7 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 | R-028 | 2026-11-03 | Pengujian | `tests/global-setup.ts` menjalankan migrasi lewat `npx prisma`; di Windows gagal karena `npx.cmd` tidak bisa dijalankan tanpa shell, dan pesannya tertutup error Vitest `code.charCodeAt is not a function` | Prisma CLI dijalankan langsung dengan Node (`process.execPath`); pesan gagal setup selalu dicetak lebih dulu | `npm run check` gagal di laptop Windows pengembang |
 | R-029 | 2026-11-04 | Frontend | Halaman prereg/web berupa kerangka sederhana tanpa autentikasi | Halaman login publik dan alur lupa password dengan verifikasi OTP email (AWB-6); pemisahan logic (pages/auth) dan presentasi (components/auth), routing dengan React.lazy, serta penambahan komponen Button, Input, dan AuthLayout di packages/ui | Kebutuhan antarmuka AWB-6 |
 | R-030 | 2026-11-04 | Frontend | Belum ada antarmuka pengelolaan pengguna (admin) di prereg/web | Halaman admin user management untuk akun mitra dan internal (AWB-8) dengan filter peran/pabrik/pencarian, form tambah akun (CUSTOMER, VENDOR, internal), ubah/nonaktifkan status, reset password, dan komponen Table terstruktur di packages/ui | Kebutuhan antarmuka AWB-8 |
+| R-031 | 2026-11-05 | Database | Schema database prereg masih kosong (tanpa model dan tabel akun/peran/mitra) | Skema tabel Prisma untuk akun, peran, hak akses, mitra SAP (customer, vendor, interco), relasi multi-kode mitra, pembatasan pabrik, dan OTP (AWB-2); migrasi awal PostgreSQL lokal dan seeder data peran serta 16.000+ data mitra dari referensi | Kebutuhan database AWB-2 |
 
 ## A. Aplikasi
 
@@ -155,11 +156,19 @@ Schema kedua database (`apps/prereg/api/prisma/schema.prisma` dan `apps/site/api
 
 | Model | Aplikasi · database | Tabel | Pemilik | Status |
 |---|---|---|---|---|
-| — | — | — | — | belum ada |
+| `User` | `prereg/api` · PostgreSQL | `mst_user` | tim pengembang | migrasi diterapkan |
+| `Role` | `prereg/api` · PostgreSQL | `mst_role` | tim pengembang | migrasi diterapkan |
+| `Permission` | `prereg/api` · PostgreSQL | `mst_permission` | tim pengembang | migrasi diterapkan |
+| `RolePermission` | `prereg/api` · PostgreSQL | `mst_role_permission` | tim pengembang | migrasi diterapkan |
+| `Partner` | `prereg/api` · PostgreSQL | `mst_partner` | tim pengembang | migrasi diterapkan |
+| `UserPartner` | `prereg/api` · PostgreSQL | `mst_user_partner` | tim pengembang | migrasi diterapkan |
+| `Plant` | `prereg/api` · PostgreSQL | `mst_plant` | tim pengembang | migrasi diterapkan |
+| `UserPlant` | `prereg/api` · PostgreSQL | `mst_user_plant` | tim pengembang | migrasi diterapkan |
+| `UserOtp` | `prereg/api` · PostgreSQL | `sys_otp` | tim pengembang | migrasi diterapkan |
 
 | Migrasi | Aplikasi | Isi |
 |---|---|---|
-| — | — | belum ada |
+| `20261105041933_init_auth_tables` | `prereg/api` | Tabel `mst_user`, `mst_role`, `mst_permission`, `mst_role_permission`, `mst_partner`, `mst_user_partner`, `mst_plant`, `mst_user_plant`, `sys_otp` (AWB-2) |
 
 ## E. Contract (format data antar aplikasi)
 

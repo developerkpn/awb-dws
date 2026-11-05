@@ -10,3 +10,146 @@ datasource db {
 }
 
 // Models go below. Table names follow "Aturan penamaan tabel" in TECHNICAL.md (mst_ / awb_ / sys_).
+
+// =============================================================================
+// AWB-2: User Account, Roles, Permissions, SAP Partners, Plants, and OTP
+// =============================================================================
+
+model User {
+  id           String    @id @default(uuid())
+  name         String    @map("name")
+  username     String    @unique @map("username")
+  email        String?   @map("email")
+  phone        String?   @map("phone")
+  passwordHash String    @map("password_hash")
+  accountType  String    @default("PARTNER") @map("account_type") // PARTNER | INTERNAL
+  roleId       String    @map("role_id")
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  role         Role          @relation(fields: [roleId], references: [id])
+  partners     UserPartner[]
+  plants       UserPlant[]
+  otps         UserOtp[]
+
+  @@map("mst_user")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  code        String   @unique @map("code") // CUSTOMER, VENDOR, LOGISTIC, COMMERCIAL, ADMIN, MANAGER, KRANIWB
+  name        String   @map("name")
+  description String?  @map("description")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("mst_role")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  code        String   @unique @map("code") // e.g. "users:read", "users:write", "prereg:create"
+  name        String   @map("name")
+  module      String   @map("module") // e.g. "admin", "prereg", "reports"
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  roles       RolePermission[]
+
+  @@map("mst_permission")
+}
+
+model RolePermission {
+  id           String   @id @default(uuid())
+  roleId       String   @map("role_id")
+  permissionId String   @map("permission_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("mst_role_permission")
+}
+
+model Partner {
+  id          String   @id @default(uuid())
+  sapCode     String   @unique @map("sap_code") // KUNNR or LIFNR (e.g. CU00001000, AT11000001, CI00001000)
+  name        String   @map("name")
+  partnerType String   @map("partner_type") // CUSTOMER | VENDOR | INTERCO
+  city        String?  @map("city")
+  country     String?  @default("ID") @map("country")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users       UserPartner[]
+
+  @@map("mst_partner")
+}
+
+model UserPartner {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  partnerId String   @map("partner_id")
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  partner   Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, partnerId])
+  @@map("mst_user_partner")
+}
+
+model Plant {
+  id          String   @id @default(uuid())
+  code        String   @unique @map("code") // e.g. "PRISCOLIN_KARAWANG", "DUMAI", "MEDAN"
+  name        String   @map("name")
+  city        String?  @map("city")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users       UserPlant[]
+
+  @@map("mst_plant")
+}
+
+model UserPlant {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  plantId   String   @map("plant_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plant     Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, plantId])
+  @@map("mst_user_plant")
+}
+
+model UserOtp {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  email     String   @map("email")
+  otpCode   String   @map("otp_code")
+  purpose   String   @default("FORGOT_PASSWORD") @map("purpose")
+  isUsed    Boolean  @default(false) @map("is_used")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email, otpCode])
+  @@map("sys_otp")
+}
