@@ -105,6 +105,7 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 | R-029 | 2026-11-04 | Frontend | Halaman prereg/web berupa kerangka sederhana tanpa autentikasi | Halaman login publik dan alur lupa password dengan verifikasi OTP email (AWB-6); pemisahan logic (pages/auth) dan presentasi (components/auth), routing dengan React.lazy, serta penambahan komponen Button, Input, dan AuthLayout di packages/ui | Kebutuhan antarmuka AWB-6 |
 | R-030 | 2026-11-04 | Frontend | Belum ada antarmuka pengelolaan pengguna (admin) di prereg/web | Halaman admin user management untuk akun mitra dan internal (AWB-8) dengan filter peran/pabrik/pencarian, form tambah akun (CUSTOMER, VENDOR, internal), ubah/nonaktifkan status, reset password, dan komponen Table terstruktur di packages/ui | Kebutuhan antarmuka AWB-8 |
 | R-031 | 2026-11-05 | Database | Schema database prereg masih kosong (tanpa model dan tabel akun/peran/mitra) | Skema tabel Prisma untuk akun, peran, hak akses, mitra SAP (customer, vendor, interco), relasi multi-kode mitra, pembatasan pabrik, dan OTP (AWB-2); migrasi awal PostgreSQL lokal dan seeder data peran serta 16.000+ data mitra dari referensi | Kebutuhan database AWB-2 |
+| R-032 | 2026-11-05 | Backend | Belum ada API pengelolaan akun internal dan autentikasi peran | Endpoint CRUD akun internal (ADMIN only), password generator & mailer service, verifikasi peran, penugasan akses pabrik, dan blokir login akun nonaktif (AWB-7) | Kebutuhan API AWB-7 |
 
 ## A. Aplikasi
 
@@ -138,6 +139,7 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 | Modul | Fungsi | PRD | Status |
 |---|---|---|---|
 | `prereg/api/modules/pre-registration` | Membaca Customer Pre-Registration berdasarkan id (contoh pola modul; data sementara di memori) | FR-001 | kerangka |
+| `prereg/api/modules/internal-user` | Pengelolaan akun staf internal (ADMIN only), pembuatan password sistem, reset password, pembatasan akses pabrik, dan autentikasi peran | FR-040, FR-041 | selesai |
 
 ## C. Endpoint API
 
@@ -148,6 +150,13 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 | site/api | — | `/api/registration`, `/api/weighbridge`, `/api/tcs`, `/api/sync` | router domain | — | direncanakan (terpasang, belum ada route) |
 | prereg/api | GET | `/health` | `src/app.ts` | — | selesai |
 | prereg/api | GET | `/api/pre-registrations/:id` | pre-registration | — | kerangka |
+| prereg/api | POST | `/api/auth/login` | internal-user | — | selesai (blokir nonaktif) |
+| prereg/api | GET | `/api/internal-users` | internal-user | — | selesai (khusus ADMIN) |
+| prereg/api | GET | `/api/internal-users/:id` | internal-user | — | selesai (khusus ADMIN) |
+| prereg/api | POST | `/api/internal-users` | internal-user | — | selesai (khusus ADMIN) |
+| prereg/api | PUT | `/api/internal-users/:id` | internal-user | — | selesai (khusus ADMIN) |
+| prereg/api | PATCH | `/api/internal-users/:id/status` | internal-user | — | selesai (khusus ADMIN) |
+| prereg/api | POST | `/api/internal-users/:id/reset-password` | internal-user | — | selesai (khusus ADMIN) |
 | prereg/api | — | `/api/internal/*` | `src/routes/internal.ts` | contract sinkronisasi | direncanakan (route antar layanan untuk pabrik; perlu autentikasi layanan) |
 
 ## D. Model data dan migrasi
