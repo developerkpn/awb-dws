@@ -1,10 +1,10 @@
 import { CustomError } from '@awb/server-core'
 import { prisma } from '../../config/prisma'
+import type { AccountSortField, SortDirection } from '@awb/contracts'
 import type { Prisma } from '../../generated/prisma/client'
 
 const include = {
   role: true,
-  partners: { include: { partner: true } },
   plants: { include: { plant: true } },
 } as const
 export type AccountData = {
@@ -14,90 +14,97 @@ export type AccountData = {
   phone: string | null
   accountType: string
   roleId: string
-  partnerIds: string[]
+  city?: string | null
+  country?: string | null
   plantIds: string[]
 }
 
-async function ensureLoginAliases(tx: Prisma.TransactionClient, data: AccountData, id?: string) {
-  const partners = await tx.partner.findMany({
-    where: { id: { in: data.partnerIds } },
-    select: { sapCode: true },
-  })
-  const names = [data.username, ...partners.map((partner) => partner.sapCode)]
+async function ensureUsername(tx: Prisma.TransactionClient, data: AccountData, id?: string) {
   const collision = await tx.user.findFirst({
     where: {
       ...(id ? { id: { not: id } } : {}),
-      OR: names.flatMap((name) => [
-        { username: { equals: name, mode: 'insensitive' as const } },
-        {
-          partners: {
-            some: { partner: { sapCode: { equals: name, mode: 'insensitive' as const } } },
-          },
-        },
-      ]),
+      username: { equals: data.username, mode: 'insensitive' },
     },
     select: { id: true },
   })
-
-  if (collision) throw new CustomError('Username or SAP login code is already in use', 409)
+  if (collision) throw new CustomError('Username is already in use', 409)
 }
 
 export default {
   findRoleByCode: (code: string) => prisma.role.findUnique({ where: { code } }),
   findById: (id: string) => prisma.user.findUnique({ where: { id }, include }),
-  findPartners: (ids: string[]) =>
-    prisma.partner.findMany({ where: { id: { in: ids }, isActive: true } }),
   findPlants: (ids: string[]) =>
     prisma.plant.findMany({ where: { id: { in: ids }, isActive: true } }),
-  async list(where: Prisma.UserWhereInput, page: number, limit: number) {
-    const [items, total] = await prisma.$transaction([
-      prisma.user.findMany({
-        where,
-        include,
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      prisma.user.count({ where }),
-    ])
+  async list(
+    where: Prisma.UserWhereInput,
+    page: number,
+    limit: number,
+    sortBy: AccountSortField,
+    direction: SortDirection,
+  ) {
+    const order: Record<AccountSortField, Prisma.UserOrderByWithRelationInput> = {
+      createdAt: { createdAt: direction },
+      name: { name: direction },
+      username: { username: direction },
+      email: { email: { sort: direction, nulls: 'last' } },
+      accountType: { accountType: direction },
+      role: { role: { name: direction } },
+      sapCode: { username: direction },
+      plantAccess: { plants: { _count: direction } },
+      isActive: { isActive: direction },
+    }
+    const orderBy: Prisma.UserOrderByWithRelationInput[] = [
+      ...(['sapCode', 'plantAccess'].includes(sortBy) ? [{ accountType: 'desc' as const }] : []),
+      order[sortBy],
+      { id: direction },
+    ]
+    const [items, total] = await prisma.$transaction(
+      [
+        prisma.user.findMany({
+          where,
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            email: true,
+            phone: true,
+            accountType: true,
+            isActive: true,
+            role: { select: { code: true, name: true } },
+            _count: { select: { plants: true } },
+            plants: {
+              take: 2,
+              orderBy: [{ plant: { name: 'asc' } }, { id: 'asc' }],
+              select: { plant: { select: { id: true, code: true, name: true } } },
+            },
+          },
+          orderBy,
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+        prisma.user.count({ where }),
+      ],
+      { isolationLevel: 'RepeatableRead' },
+    )
     return { items, total, page, limit }
   },
-  async options(q: string) {
-    const [roles, plants, partners] = await Promise.all([
+  async options() {
+    const [roles, plants] = await Promise.all([
       prisma.role.findMany({ where: { isActive: true }, orderBy: { code: 'asc' } }),
       prisma.plant.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
-      prisma.partner.findMany({
-        where: {
-          isActive: true,
-          users: { none: {} },
-          ...(q
-            ? {
-                OR: [
-                  { sapCode: { contains: q, mode: 'insensitive' as const } },
-                  { name: { contains: q, mode: 'insensitive' as const } },
-                ],
-              }
-            : {}),
-        },
-        orderBy: { sapCode: 'asc' },
-        take: 50,
-      }),
     ])
-    return { roles, plants, partners }
+    return { roles, plants }
   },
   async create(data: AccountData, passwordHash: string, actorId: string) {
     return prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(183706)`
-      await ensureLoginAliases(tx, data)
-      const { plantIds, partnerIds, ...fields } = data
+      await ensureUsername(tx, data)
+      const { plantIds, ...fields } = data
       const user = await tx.user.create({
         data: {
           ...fields,
           passwordHash,
           plants: { create: plantIds.map((plantId) => ({ plantId })) },
-          partners: {
-            create: partnerIds.map((partnerId, i) => ({ partnerId, isPrimary: i === 0 })),
-          },
         },
         include,
       })
@@ -136,16 +143,12 @@ export default {
       if (change.data) {
         if (change.data.accountType !== existing.accountType)
           throw new CustomError('Account type cannot be changed', 422)
-        await ensureLoginAliases(tx, change.data, id)
-        const { partnerIds, plantIds, roleId, ...values } = change.data
+        await ensureUsername(tx, change.data, id)
+        const { plantIds, roleId, ...values } = change.data
         if (values.username !== existing.username)
           throw new CustomError('Username cannot be changed', 422)
         Object.assign(fields, values, { role: { connect: { id: roleId } } })
-        await tx.userPartner.deleteMany({ where: { userId: id } })
         await tx.userPlant.deleteMany({ where: { userId: id } })
-        fields.partners = {
-          create: partnerIds.map((partnerId, i) => ({ partnerId, isPrimary: i === 0 })),
-        }
         fields.plants = { create: plantIds.map((plantId) => ({ plantId })) }
       }
       const user = await tx.user.update({ where: { id }, data: fields, include })

@@ -1,31 +1,8 @@
-import { prisma } from '../src/config/prisma'
+import { prisma } from '../../src/config/prisma'
 
-export async function seedCitiesAndTransporters(): Promise<void> {
-  console.log('[Seed] Seeding sample cities and transporters...')
+export async function seedTransporters(): Promise<void> {
+  console.log('[Seed] Seeding sample transporters...')
 
-  // 1. Seed Cities
-  const cities = [
-    { name: 'Karawang', province: 'Jawa Barat' },
-    { name: 'Jakarta', province: 'DKI Jakarta' },
-    { name: 'Bekasi', province: 'Jawa Barat' },
-    { name: 'Dumai', province: 'Riau' },
-    { name: 'Medan', province: 'Sumatera Utara' },
-    { name: 'Surabaya', province: 'Jawa Timur' },
-    { name: 'Bandar Lampung', province: 'Lampung' },
-    { name: 'Pontianak', province: 'Kalimantan Barat' },
-  ]
-
-  const seededCities = new Map<string, string>()
-  for (const city of cities) {
-    const record = await prisma.city.upsert({
-      where: { name: city.name },
-      update: { province: city.province },
-      create: city,
-    })
-    seededCities.set(record.name, record.id)
-  }
-
-  // 2. Seed Transporters (acuan struktur wb_transporter WB.NET)
   const transporters = [
     {
       code: 'TR-PNR',
@@ -78,7 +55,6 @@ export async function seedCitiesAndTransporters(): Promise<void> {
   ]
 
   for (const t of transporters) {
-    const cityId = seededCities.get(t.cityName)
     await prisma.transporter.upsert({
       where: { code: t.code },
       update: {
@@ -86,7 +62,7 @@ export async function seedCitiesAndTransporters(): Promise<void> {
         address: t.address,
         phone: t.phone,
         contactPerson: t.contactPerson,
-        cityId,
+        city: t.cityName,
         isActive: true,
       },
       create: {
@@ -95,13 +71,11 @@ export async function seedCitiesAndTransporters(): Promise<void> {
         address: t.address,
         phone: t.phone,
         contactPerson: t.contactPerson,
-        cityId,
+        city: t.cityName,
         isActive: true,
       },
     })
   }
 
-  console.log(
-    `[Seed] Successfully seeded ${cities.length} cities and ${transporters.length} transporters.`,
-  )
+  console.log(`[Seed] Successfully seeded ${transporters.length} transporters.`)
 }

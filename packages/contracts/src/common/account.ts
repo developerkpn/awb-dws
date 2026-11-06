@@ -15,27 +15,29 @@ export const accountChoice = z.object({
   name: z.string(),
 })
 
-export const accountPartner = z.object({
-  id: z.uuid(),
-  sapCode: z.string(),
-  name: z.string(),
-  partnerType: z.string(),
-})
-
 export const accountProfile = z.object({
   id: z.uuid(),
   name: z.string(),
   username: z.string(),
   email: z.string().nullable(),
   phone: z.string().nullable(),
+  city: z.string().nullable(),
+  country: z.string().nullable(),
   accountType: z.enum(['INTERNAL', 'PARTNER']),
   role: z.string(),
   isActive: z.boolean(),
   plantAccess: z.array(accountChoice),
-  partners: z.array(accountPartner),
 })
 
 export type SessionUser = z.infer<typeof sessionUser>
 export type AccountProfile = z.infer<typeof accountProfile>
 export type AccountChoice = z.infer<typeof accountChoice>
-export type AccountPartner = z.infer<typeof accountPartner>
+
+export const accountListItem = accountProfile
+  .omit({ plantAccess: true, city: true, country: true })
+  .extend({
+    roleName: z.string(),
+    plantCount: z.number().int().nonnegative(),
+    plantPreview: z.array(accountChoice).max(2),
+  })
+export type AccountListItem = z.infer<typeof accountListItem>

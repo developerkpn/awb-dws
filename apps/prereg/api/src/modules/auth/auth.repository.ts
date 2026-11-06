@@ -9,12 +9,7 @@ export default {
   findUser(username: string) {
     return prisma.user.findFirst({
       where: {
-        OR: [
-          { username: { equals: username, mode: 'insensitive' } },
-          {
-            partners: { some: { partner: { sapCode: { equals: username, mode: 'insensitive' } } } },
-          },
-        ],
+        username: { equals: username, mode: 'insensitive' },
       },
       include: userInclude,
     })

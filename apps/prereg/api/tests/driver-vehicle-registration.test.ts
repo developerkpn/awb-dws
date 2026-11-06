@@ -3,14 +3,13 @@ import { describe, expect, it } from 'vitest'
 import request from 'supertest'
 import app from '../src/app'
 import { prisma } from '../src/config/prisma'
-import { seedCitiesAndTransporters } from '../prisma/seed-master'
+import { seedTransporters } from '../prisma/seed/transporters'
 import { createTestUser, sessionFor, grant } from './helpers'
 
 describe('UUID driver and vehicle data', () => {
   it('keeps master seeds repeatable and relates requests and decisions through UUIDs', async () => {
-    await seedCitiesAndTransporters()
-    await seedCitiesAndTransporters()
-    const city = await prisma.city.findUniqueOrThrow({ where: { name: 'Karawang' } })
+    await seedTransporters()
+    await seedTransporters()
     const transporter = await prisma.transporter.findUniqueOrThrow({ where: { code: 'TR-PNR' } })
     const submitter = await createTestUser('VENDOR')
     const decider = await createTestUser('LOGISTIC')
@@ -24,7 +23,7 @@ describe('UUID driver and vehicle data', () => {
         birthPlace: 'Karawang',
         birthDate: new Date('1990-01-01'),
         phone: '0800000000',
-        cityId: city.id,
+        city: 'Karawang',
       },
     })
     const vehicle = await prisma.vehicle.create({
@@ -41,7 +40,7 @@ describe('UUID driver and vehicle data', () => {
         driverBirthPlace: driver.birthPlace,
         driverBirthDate: driver.birthDate,
         driverPhone: driver.phone,
-        driverCityId: city.id,
+        driverCity: driver.city,
         vehiclePlateNumber: vehicle.plateNumber,
         transporterId: transporter.id,
         decisions: { create: { decision: 'APPROVED', decidedBy: decider.id } },

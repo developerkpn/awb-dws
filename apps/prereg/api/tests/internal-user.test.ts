@@ -15,7 +15,6 @@ const newAccount = () => ({
   accountType: 'INTERNAL',
   role: 'LOGISTIC',
   plantIds: [],
-  partnerIds: [],
 })
 
 describe('Account administration', () => {

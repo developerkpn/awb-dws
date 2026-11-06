@@ -1,4 +1,15 @@
 import { z } from 'zod'
+import { paginationQuery, permissionSortingQuery, roleSortingQuery } from '@awb/contracts'
+
+export const accessListQuery = paginationQuery.extend({
+  q: z.string().trim().max(100).default(''),
+  module: z.string().trim().max(50).optional(),
+})
+export type AccessListQuery = z.infer<typeof accessListQuery>
+export const permissionListQuery = accessListQuery.extend(permissionSortingQuery.shape)
+export const roleListQuery = accessListQuery.extend(roleSortingQuery.shape)
+export type PermissionListQuery = z.infer<typeof permissionListQuery>
+export type RoleListQuery = z.infer<typeof roleListQuery>
 
 export const roleIdParam = z.object({
   id: z.uuid(),

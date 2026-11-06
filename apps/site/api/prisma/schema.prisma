@@ -10,4 +10,4 @@ datasource db {
   provider = "sqlserver"
 }
 
-// Models go below. Table names follow "Aturan penamaan tabel" in TECHNICAL.md (mst_ / awb_ / sys_).
+// Add plant models following docs/design/penamaan-tabel.md.

@@ -1,5 +1,4 @@
 import { Router } from 'express'
-import { z } from 'zod'
 import { success } from '@awb/server-core'
 import { currentUser, requireAdmin, requirePermission } from '../../middlewares/auth'
 import service from './internal-user.service'
@@ -15,10 +14,7 @@ router.use(requireAdmin, requirePermission('admin:users:read'))
 router.get('/', async (req, res) =>
   res.json(success(await service.list(listUsersSchema.parse(req.query)))),
 )
-router.get('/options', async (req, res) => {
-  const { q } = z.object({ q: z.string().trim().max(100).default('') }).parse(req.query)
-  res.json(success(await service.options(q)))
-})
+router.get('/options', async (_req, res) => res.json(success(await service.options())))
 router.get('/:id', async (req, res) =>
   res.json(success(await service.getById(userIdParam.parse(req.params).id))),
 )

@@ -13,8 +13,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts",
-    "db:bootstrap-admin": "tsx prisma/bootstrap-admin.ts",
+    "db:seed": "prisma db seed",
     "test:browser-server": "tsx tests/browser-server.ts",
     "db:studio": "prisma studio"
   },
@@ -39,7 +38,6 @@
     "supertest": "^7.3.1",
     "tsup": "^9.0.0",
     "tsx": "^4.23.15",
-    "vitest": "^5.0.5",
-    "xlsx": "^0.18.5"
+    "vitest": "^5.0.5"
   }
 }

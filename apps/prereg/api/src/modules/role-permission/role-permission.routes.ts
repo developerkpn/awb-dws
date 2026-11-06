@@ -2,13 +2,20 @@ import { Router } from 'express'
 import { success } from '@awb/server-core'
 import { currentUser, requireAdmin, requirePermission } from '../../middlewares/auth'
 import service from './role-permission.service'
-import { roleIdParam, updateRolePermissionsSchema } from './role-permission.schema'
+import {
+  roleIdParam,
+  updateRolePermissionsSchema,
+  permissionListQuery,
+  roleListQuery,
+} from './role-permission.schema'
 
 const router = Router()
 router.use(requireAdmin, requirePermission('admin:roles:read'))
-router.get('/permissions', async (_req, res) => res.json(success(await service.listPermissions())))
-router.get('/roles', async (_req, res) =>
-  res.json(success(await service.listRolesWithPermissions())),
+router.get('/permissions', async (req, res) =>
+  res.json(success(await service.listPermissions(permissionListQuery.parse(req.query)))),
+)
+router.get('/roles', async (req, res) =>
+  res.json(success(await service.listRolesWithPermissions(roleListQuery.parse(req.query)))),
 )
 router.get('/roles/:id/permissions', async (req, res) =>
   res.json(success(await service.getRolePermissions(roleIdParam.parse(req.params).id))),

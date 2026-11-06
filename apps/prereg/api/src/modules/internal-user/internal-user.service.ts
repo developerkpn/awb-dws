@@ -1,44 +1,32 @@
 import { CustomError, NotFoundError } from '@awb/server-core'
-import { accountProfile } from '@awb/contracts'
+import { accountListItem, accountProfile } from '@awb/contracts'
 import { hashPassword, generatePassword } from '../../lib/password'
 import { deliverCredentials, requireCredentialDelivery } from '../../services/mailer'
 import repository from './internal-user.repository'
+import { accountFiltersWhere } from './internal-user.filters'
 import type { AccountInput, listUsersSchema } from './internal-user.schema'
 import type { Prisma } from '../../generated/prisma/client'
 import type { z } from 'zod'
 
 type User = NonNullable<Awaited<ReturnType<typeof repository.findById>>>
 export function formatUserResponse(user: User) {
-  const { passwordHash: _password, roleId: _roleId, role, plants, partners, ...data } = user
+  const { passwordHash: _password, roleId: _roleId, role, plants, ...data } = user
   return accountProfile.parse({
     ...data,
     role: role.code,
     roleName: role.name,
     plantAccess: plants.map((p) => ({ id: p.plant.id, code: p.plant.code, name: p.plant.name })),
-    partners: partners.map((p) => ({
-      id: p.partner.id,
-      sapCode: p.partner.sapCode,
-      name: p.partner.name,
-      partnerType: p.partner.partnerType,
-    })),
   })
 }
 
 async function resolveAccount(input: AccountInput) {
-  const [role, plants, partners] = await Promise.all([
+  const [role, plants] = await Promise.all([
     repository.findRoleByCode(input.role),
     repository.findPlants(input.plantIds),
-    repository.findPartners(input.partnerIds),
   ])
   if (!role?.isActive) throw new CustomError('Role is unavailable', 422)
   if (plants.length !== input.plantIds.length)
     throw new CustomError('One or more plants are unavailable', 422)
-  if (
-    partners.length !== input.partnerIds.length ||
-    partners.some((p) => p.partnerType !== input.role)
-  ) {
-    throw new CustomError('Select active SAP partners matching the account role', 422)
-  }
   const { role: _code, ...data } = input
   return { ...data, roleId: role.id }
 }
@@ -56,6 +44,13 @@ async function write<T>(action: () => Promise<T>): Promise<T> {
 export default {
   async list(query: z.infer<typeof listUsersSchema>) {
     const where: Prisma.UserWhereInput = {
+      AND: [
+        accountFiltersWhere(query.filters),
+        ...(query.roles.length ? [{ role: { code: { in: query.roles } } }] : []),
+        ...(query.plantIds.length
+          ? [{ plants: { some: { plantId: { in: query.plantIds } } } }]
+          : []),
+      ],
       accountType: query.accountType,
       role: query.role ? { code: query.role } : undefined,
       ...(query.plantId ? { plants: { some: { plantId: query.plantId } } } : {}),
@@ -65,19 +60,31 @@ export default {
               { name: { contains: query.q, mode: 'insensitive' } },
               { username: { contains: query.q, mode: 'insensitive' } },
               { email: { contains: query.q, mode: 'insensitive' } },
-              {
-                partners: {
-                  some: { partner: { sapCode: { contains: query.q, mode: 'insensitive' } } },
-                },
-              },
             ],
           }
         : {}),
     }
-    const result = await repository.list(where, query.page, query.limit)
-    return { ...result, items: result.items.map(formatUserResponse) }
+    const result = await repository.list(
+      where,
+      query.page,
+      query.limit,
+      query.sortBy,
+      query.sortDirection,
+    )
+    return {
+      ...result,
+      items: result.items.map(({ role, plants, _count, ...user }) =>
+        accountListItem.parse({
+          ...user,
+          role: role.code,
+          roleName: role.name,
+          plantCount: _count.plants,
+          plantPreview: plants.map((link) => link.plant),
+        }),
+      ),
+    }
   },
-  options: (q: string) => repository.options(q),
+  options: () => repository.options(),
   async getById(id: string) {
     const user = await repository.findById(id)
     if (!user) throw new NotFoundError('User not found')
@@ -96,6 +103,8 @@ export default {
     }
   },
   async update(id: string, input: AccountInput, actorId: string) {
+    const existing = await repository.findById(id)
+    if (!existing) throw new NotFoundError('User not found')
     const data = await resolveAccount(input)
     return formatUserResponse(await write(() => repository.change(id, actorId, { data })))
   },

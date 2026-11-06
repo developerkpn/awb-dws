@@ -1,6 +1,7 @@
 import { CustomError, NotFoundError } from '@awb/server-core'
 import repository from './role-permission.repository'
 import { permissionCodes as supportedCodes } from './permissions'
+import type { PermissionListQuery, RoleListQuery } from './role-permission.schema'
 
 type Role = NonNullable<Awaited<ReturnType<typeof repository.findRoleById>>>
 
@@ -25,22 +26,15 @@ export default {
   /**
    * List all available permissions in the system
    */
-  async listPermissions() {
-    const permissions = await repository.findAllPermissions()
-    return permissions.map((p) => ({
-      id: p.id,
-      code: p.code,
-      name: p.name,
-      module: p.module,
-    }))
+  async listPermissions(query: PermissionListQuery) {
+    return repository.findAllPermissions(query)
   },
 
   /**
    * List all roles with their assigned permissions
    */
-  async listRolesWithPermissions() {
-    const roles = await repository.findAllRolesWithPermissions()
-    return roles.map(formatRolePermissions)
+  async listRolesWithPermissions(query: RoleListQuery) {
+    return repository.findAllRolesWithPermissions(query)
   },
 
   /**

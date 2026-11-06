@@ -48,7 +48,7 @@ const partnerRole = await prisma.role.upsert({
   update: { isActive: true },
 })
 
-await prisma.user.upsert({
+const browserCustomer = await prisma.user.upsert({
   where: { username: 'browser_test_customer' },
   create: {
     ...data,
@@ -60,8 +60,36 @@ await prisma.user.upsert({
   update: { ...data, accountType: 'PARTNER', roleId: partnerRole.id },
 })
 
-const server = app.listen(3001, '127.0.0.1')
+await prisma.plant.upsert({
+  where: { code: 'E2E-PLANT' },
+  create: { code: 'E2E-PLANT', name: 'Browser test plant' },
+  update: { isActive: true },
+})
+await prisma.plant.upsert({
+  where: { code: 'E2E-SECONDARY-PLANT' },
+  create: { code: 'E2E-SECONDARY-PLANT', name: 'Browser secondary plant' },
+  update: { isActive: true },
+})
 
+const accessPlants = []
+for (let index = 0; index < 25; index += 1) {
+  accessPlants.push(
+    await prisma.plant.upsert({
+      where: { code: `E2E-ACCESS-${String(index).padStart(2, '0')}` },
+      create: {
+        code: `E2E-ACCESS-${String(index).padStart(2, '0')}`,
+        name: `Browser access plant ${String(index).padStart(2, '0')}`,
+      },
+      update: { isActive: true },
+    }),
+  )
+}
+await prisma.userPlant.createMany({
+  data: accessPlants.map((plant) => ({ userId: browserCustomer.id, plantId: plant.id })),
+  skipDuplicates: true,
+})
+
+const server = app.listen(3001, '127.0.0.1')
 const stop = () => {
   server.close(() => void prisma.$disconnect().finally(() => process.exit(0)))
 }

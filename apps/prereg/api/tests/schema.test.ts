@@ -33,64 +33,30 @@ describe('AWB-2 Schema & Database Models', () => {
     expect(rolePerm.id).toBeDefined()
   })
 
-  it('supports linking one user account to multiple SAP partner codes', async () => {
+  it('stores staff and SAP partner logins in the same user table', async () => {
     const role = await prisma.role.upsert({
       where: { code: 'CUSTOMER' },
       update: {},
       create: { code: 'CUSTOMER', name: 'Customer' },
     })
-
-    const partner1 = await prisma.partner.create({
+    const account = await prisma.user.create({
       data: {
-        sapCode: `TEST_SAP_1_${Date.now()}`,
-        name: 'Test Partner Branch 1',
-        partnerType: 'CUSTOMER',
-        city: 'Jakarta',
-      },
-    })
-
-    const partner2 = await prisma.partner.create({
-      data: {
-        sapCode: `TEST_SAP_2_${Date.now()}`,
-        name: 'Test Partner Branch 2',
-        partnerType: 'CUSTOMER',
-        city: 'Surabaya',
-      },
-    })
-
-    const user = await prisma.user.create({
-      data: {
-        name: 'Test Partner User',
-        username: `partner_usr_${Date.now()}`,
-        email: `partner_${Date.now()}@test.com`,
-        passwordHash: 'dummy_hash',
+        name: 'Partner account',
+        username: `SAP-${Date.now()}`,
+        passwordHash: 'unused-test-hash',
         accountType: 'PARTNER',
         roleId: role.id,
-        isActive: true,
+        city: 'Jakarta',
+        country: 'ID',
       },
     })
-
-    // Link both partner codes
-    await prisma.userPartner.createMany({
-      data: [
-        { userId: user.id, partnerId: partner1.id, isPrimary: true },
-        { userId: user.id, partnerId: partner2.id, isPrimary: false },
-      ],
+    const stored = await prisma.user.findUniqueOrThrow({ where: { id: account.id } })
+    expect(stored).toMatchObject({
+      accountType: 'PARTNER',
+      username: account.username,
+      city: 'Jakarta',
+      country: 'ID',
     })
-
-    const userWithPartners = await prisma.user.findUnique({
-      where: { id: user.id },
-      include: {
-        partners: {
-          include: { partner: true },
-        },
-      },
-    })
-
-    expect(userWithPartners?.partners).toHaveLength(2)
-    const codes = userWithPartners?.partners.map((p) => p.partner.sapCode)
-    expect(codes).toContain(partner1.sapCode)
-    expect(codes).toContain(partner2.sapCode)
   })
 
   it('supports restricting internal staff by plant', async () => {
