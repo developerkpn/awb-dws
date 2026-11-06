@@ -2,7 +2,9 @@
 
 These conventions apply to `prereg/web`, `site/web` and `site/kiosk`. Frontends stay
 separate applications. Shared data contracts belong in `packages/contracts` and UI
-primitives shared by applications belong in `packages/ui`.
+primitives shared by applications belong in `packages/ui`. A frontend may keep small
+visual primitives in `src/ui` while they are only used in that application; move them
+to `packages/ui` when another application needs them.
 
 ## Structure
 
@@ -15,6 +17,11 @@ src/
     SideBar.tsx
     Pagination.tsx
     ErrorState.tsx
+  ui/                             app-specific visual primitives
+    Button.tsx
+    Card.tsx
+    Field.tsx
+    Table.tsx
   layout/
     AuthLayout.tsx                 public authentication pages
     BaseLayout.tsx                 authenticated shell and navigation
@@ -137,6 +144,102 @@ session observer polls, preventing duplicated periodic requests from each layout
 
 Routes and menus use the same permission constants. Hiding a link is not an API
 security control. Display a real access-denied page for unauthorized navigation.
+
+## Visual conventions
+
+Build page content from the shared atomic UI in `packages/ui`; its folder boundaries,
+theme tokens, providers, dialogs and pagination contract are documented in
+`packages/ui/README.md`. Application `ui` files may re-export these controls, but
+must not duplicate their implementation. All three frontends support light, dark,
+and system themes. New page styling uses semantic `--ui-*` tokens.
+
+Tables always use server pagination with a visible footer and 20 rows by default.
+User, role and permission searches/filtering run before pagination in the API.
+Role permission drafts survive catalogue page/search changes. Select-page actions
+affect visible entries only. Use `useConfirm` for destructive actions and unsaved
+form navigation; never use native browser prompts.
+
+Data headers are sortable buttons with direction icons and aria-sort. Actions and
+selection checkboxes remain controls. `useSorting` stores sortBy/sortDirection in
+the URL, preserves search/filters/size, and resets page to 1. APIs validate sort
+fields and direction and order the full filtered dataset before pagination. SAP
+sorting uses the partner username, plant/access sorting uses assignment counts,
+and permission sorting keeps module groups with name/action ordering inside them.
+Permission drafts survive sorting. Account options keep previous results during
+SAP lookup so roles, plant selection and preview labels stay visible while typing.
+Switching account type or partner role resets username value/error/touched state
+without validating the newly empty field. Preserve unrelated profile values and
+errors; required username validation still runs on submission.
+
+Account forms use numbered sections, responsive paired fields, a live account
+summary, and a persistent save/cancel bar. Business partners enter their SAP code
+as the username manually. Account type and role identify the business-partner login
+in mst_user; no separate SAP master, connection picker or lookup is required.
+Account options load once independently of username typing. Plant access uses checkboxes.
+SAP codes in lists use plain text. Preserve entered profile data while switching
+account type. Editing keeps account type and username immutable. Field helpers own
+input-label associations and connect errors with aria attributes.
+
+Keep the split sign-in layout and display the bundled weighbridge image behind the
+left panel. Use a neutral shell with an inset white content surface, restrained
+red accents, subtle borders, and a clear typography hierarchy. Use MUI outlined icons
+through `ui/icons.ts`; do not mix icon families. Keep tables neutral, with emphasis
+on content and row actions rather than large blocks of brand color.
+
+Sidebar branding uses the full logo when expanded and its emblem when collapsed,
+without extra product text. Its toggle belongs in the header beside the breadcrumb.
+Keep the avatar, account name, direct sign-out action and icon-only theme control in
+the sidebar footer. Sign-in also has a theme icon; the navbar does not. Dark surfaces
+use charcoal grays without a blue tint. Search fields use the shared Input leadingIcon slot.
+Collapsed navigation and sign-out retain accessible names and tooltips.
+The sidebar profile uses a neutral circular MUI person icon instead of a dark
+initials tile; its loading placeholder has the same circular shape.
+
+Roles have a searchable overview at `/roles` and a dedicated permissions page at
+`/roles/:id/permissions`. Group permissions by module with explicit checkboxes,
+group selection, selected counts, search, and save/discard actions. ADMIN remains
+read-only with full access. Changes use the existing replacement API and real session.
+
+Account lists use search plus Roles and Plants multi-select dropdowns. Each dropdown
+supports search, checkboxes, selection counts, clearing and Escape/outside dismissal.
+Selections apply immediately: OR within roles/plants, AND across both groups. Empty
+selection means unrestricted. Store repeated roles/plantIds parameters in the URL;
+send repeated keys to the API, reset page to 1 on changes, and preserve sorting and
+page size. The advanced rule builder is removed from the UI; legacy filter parameters
+are not applied invisibly by the page. Legacy API filters remain supported.
+Never filter only the current page. Preserve regular bounded pagination.
+Keep tables horizontally scrollable inside their container.
+
+All frontends use locally bundled Inter Variable through the shared font token.
+Body/control text is 14px and secondary text 12–13px; reserve semibold for headings.
+Avoid 10px labels, decorative monospace and widely tracked uppercase navigation.
+The HTML entry must not override the shared font family. Fonts load from app assets,
+with a system fallback and swap, without third-party runtime requests.
+
+Loading content uses shared Skeleton/PageSkeleton placeholders. Tables keep their
+column layout with skeleton rows; session, route, options and detail loading use a
+page skeleton. Busy buttons retain their size and accessible label under a skeleton.
+Respect reduced motion and expose aria-busy/status without announcing placeholder
+shapes. Avoid spinner-based loading. Role lists and permission editors omit
+decorative icons; retain functional sorting indicators in table headers.
+
+Skeleton layout follows the current route. Account forms keep the identity/contact
+sections and summary sidebar; role permissions keep their search, access checkboxes,
+module table and save bar; sign-in keeps its image/form split. Table skeleton cells
+use the same widths and definitions as loaded cells in `ui/loadingLayouts.tsx`.
+Keep the existing application shell during lazy page loading. Manage permissions
+is an icon-only action with a tooltip and accessible label.
+
+Account tables use User, Role, Contact, Plant access, Status and Actions. Put the SAP
+username under the account name and account type under the friendly role name.
+Contact text stays within two truncated lines. Plant access shows a count and one
+short preview, with the complete searchable list in a scrollable popover. List
+responses contain `plantCount` and at most two `plantPreview` entries; fetch the full
+account only when opening access details. Do not render one badge per assigned plant.
+Show the username itself without an extra SAP prefix. Active/inactive statuses use
+plain text in both account and role lists, with matching text skeletons.
+List page headers omit redundant account totals and role-page introductory copy;
+pagination retains result counts. Skeleton headers omit the same content.
 
 ## Formatting and checks
 

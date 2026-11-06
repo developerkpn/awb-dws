@@ -82,6 +82,7 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 | K-31 | 2026-11-05 | Daftar transaksi memakai cursor; pencarian memakai indeks trigram; upload dialirkan ke disk privat dengan batas ukuran; pool koneksi dibatasi per instance                                                            | Menghindari pemuatan seluruh data/file ke memori dan koneksi database tanpa batas | berlaku              |
 
 | K-32 | 2026-11-05 | Frontend memakai pages per domain/aksi, layout terpisah, domain hooks dan types, React Hook Form, TanStack Query dan alias sumber yang diperiksa | Struktur dan tipe konsisten; halaman tidak mencampur HTTP, state server dan navigasi | berlaku |
+| K-33 | 2026-11-06 | Semua login memakai mst_user dengan account_type; kode SAP dimasukkan sebagai username tanpa master/link mitra. Kota disimpan sebagai teks di record terkait | Model akun dan input manual yang diminta pemilik; menghapus relasi yang tidak diperlukan | berlaku |
 
 ## Riwayat teknis
 
@@ -121,6 +122,28 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 | R-041 | 2026-11-05 | Validasi dan kerapian kode | Validator format berantai yang deprecated dan belum ada pemeriksaan gaya kode                                                                                                                               | Validator top-level Zod 4, tipe respons bersama, ESLint untuk mencegah pola lama, Prettier, perbaikan label input dan pengujian browser                                                                                                           | Permintaan pemilik                                            |
 
 | R-042 | 2026-11-05 | Struktur frontend | Halaman, komponen dan request belum memiliki batas yang seragam | Pages per domain/aksi, hooks dan types terpisah, layout autentikasi/izin, URL filter, query cache dan konvensi di docs/design/frontend.md; alias sumber diperiksa | K-32; permintaan pemilik |
+| R-043 | 2026-11-05 | Tampilan prereg | Tampilan awal memakai CSS komponen tunggal | Prereg memakai token Tailwind, ikon, dan komponen visual lokal bertipe; sesi, hooks, routing dan API tetap sama | Penyempurnaan tampilan dan permintaan pemilik |
+
+| R-044 | 2026-11-05 | Penyempurnaan antarmuka | Gambar login tidak digunakan, logo/sidebar meluber saat ringkas dan kontrol daftar kurang konsisten | Gambar pada panel login yang tetap terpisah, logo ringkas tanpa teks tambahan, tabel kompak, aksi berlabel aksesibel, filter berlabel dan hapus filter; diperiksa melalui browser | Permintaan pemilik |
+
+| R-045 | 2026-11-05 | Akun development | Seed menghasilkan password acak dan mempertahankan password akun lama | Seed khusus development menetapkan password123 untuk admin dan akun contoh mitra, memakai bcrypt dengan salt terpisah dan membatalkan sesi saat reseed | Permintaan pemilik |
+
+| R-046 | 2026-11-05 | Pengalaman administrasi | Matriks izin lebar, filter tetap dan profil di header | Daftar peran dan editor izin per modul, ikon MUI outlined, profil/sign-out di footer sidebar, toggle di header, tema netral dan filter server all/any bertipe dengan maksimal 12 aturan serta indeks pencarian/tanggal tambahan | Permintaan pemilik |
+
+| R-047 | 2026-11-05 | Sistem komponen dan halaman akun | Komponen bersama datar, konfirmasi browser dan daftar izin/peran tanpa pagination server | UI atoms/molecules/organisms/providers/templates, tema light/dark/system di semua frontend, dialog kustom, Table dengan pagination server default 20; pencarian role/izin di API dan pilihan izin lintas halaman dipertahankan; formulir akun ditulis ulang per bagian | Permintaan pemilik |
+| R-048 | 2026-11-06 | Tema dan identitas akun mitra | Kontrol tema di navbar, permukaan gelap kebiruan, pemilihan koneksi SAP dan ikon pencarian menimpa teks | Ikon tema di sign-in/footer sidebar, dark charcoal netral; username mitra memakai kode SAP yang di-resolve API, koneksi lama dipertahankan saat edit; kode SAP tampil sebagai teks dan Input memiliki slot leadingIcon dengan padding bersama | Permintaan pemilik |
+| R-049 | 2026-11-06 | Sorting tabel dan lookup akun | Header tabel statis dan label role/preview hilang sementara saat query SAP berganti | Header data dapat diklik untuk urutan asc/desc dari API sebelum pagination; URL menyimpan sorting, page direset ke 1 dan ID menjadi pembeda stabil. Katalog izin tetap berkelompok, pilihan draft dipertahankan; opsi akun mempertahankan hasil sebelumnya selama lookup SAP. Username SAP tetap read-only saat edit | Permintaan pemilik |
+| R-050 | 2026-11-06 | Validasi awal formulir akun | Pergantian tipe/role memvalidasi username yang baru dikosongkan sehingga error muncul sebelum diisi | Pergantian tipe/role mereset nilai, error dan touched username tanpa validasi; nilai profil lain tetap dipertahankan dan validasi wajib tetap dijalankan saat submit | Laporan pemilik |
+| R-051 | 2026-11-06 | Tipografi dan filter akun | Font HTML berbeda dari komponen, label kecil dan UI builder aturan kompleks | Font Inter Variable lokal dari paket UI, ukuran dan bobot konsisten; builder diganti dropdown Roles/Plants multi-select dengan search/checkbox, pilihan tersimpan di URL dan diterapkan server sebelum sorting/count/pagination; OR dalam kelompok, AND antar kelompok | Permintaan pemilik |
+| R-052 | 2026-11-06 | Loading dan fixture pengujian lokal | Spinner untuk loading, ikon dekoratif pada halaman izin dan delapan role seed dengan dua akun | Skeleton/PageSkeleton bersama untuk halaman, tabel, opsi dan tombol; ikon dekoratif peran/izin dihapus; seed menyisakan ADMIN/LOGISTIC/COMMERCIAL/CUSTOMER/VENDOR dan akun per role dengan bcrypt password123, izin awal serta akses pabrik | Permintaan pemilik |
+| R-053 | 2026-11-06 | Organisasi seed dan komentar schema | Seed datar, bootstrap admin terpisah dan komentar schema tidak sesuai fitur terkini | prisma/seed/index.ts dan master.ts, perintah Prisma terkonfigurasi; bootstrap dihapus, pembuatan admin hanya dalam seed development; komentar Prisma dirapikan tanpa perubahan struktur database | Permintaan pemilik |
+| R-054 | 2026-11-06 | Daftar akun dengan banyak akses pabrik | Kode SAP/tipe akun terpisah dan seluruh pabrik dirender sebagai badge; respons daftar memuat semua relasi | Enam kolom User/Role/Contact/Plant access/Status/Actions; SAP di identitas, tipe di bawah roleName, pabrik berupa hitungan/preview dan popover searchable. API daftar memakai count serta take 2, detail lengkap diambil saat dibuka; sorting role memakai nama dan Contact memakai email | Permintaan pemilik |
+| R-055 | 2026-11-06 | Skeleton mengikuti tampilan dan aksi izin | Skeleton halaman generik dan bentuk sel seragam; aksi izin berupa teks | Skeleton per route dengan layout form/summary, editor izin, auth dan tabel; lebar kolom serta bentuk sel dibagi dengan view nyata, shell tetap terlihat saat lazy loading. Manage permissions menjadi tombol ikon dengan tooltip/label aksesibel | Permintaan pemilik |
+| R-056 | 2026-11-06 | Penyederhanaan label tabel | Prefix SAP sebelum username dan badge status aktif/nonaktif | Username ditampilkan langsung; status akun/peran memakai teks biasa dan skeleton teks. Kolom Actions memiliki judul di atas ikon gear | Permintaan pemilik |
+| R-057 | 2026-11-06 | Header daftar ringkas | Total akun di subtitle serta subtitle/banner penjelasan role | Header daftar menampilkan judul/aksi saja; total akun dan tiga teks pengantar peran dihapus, skeleton mengikuti tinggi/layout baru. Total hasil tetap di pagination dengan placeholder saat loading | Permintaan pemilik |
+| R-058 | 2026-11-06 | Avatar sidebar | Tile gelap berisi inisial pengguna | Ikon profil MUI dalam lingkaran netral, dengan placeholder skeleton lingkaran yang sama | Permintaan pemilik |
+| R-059 | 2026-11-06 | Penghapusan master kota | City/mst_city dan foreign key pada transporter, supir serta pengajuan | Migrasi menyalin nama kota ke city/driver_city lalu menghapus foreign key dan tabel kota; seed transporter memakai teks langsung | K-33; permintaan pemilik |
+| R-060 | 2026-11-06 | Akun mitra langsung di mst_user | Master Partner/UserPartner, lookup SAP, login alias serta seed/import Excel | Partner dan link dihapus; lokasi primer dipindah ke User.city/country, ID/login tetap. Input manual CUSTOMER/VENDOR langsung ke mst_user, login lewat username unik; partnerIds ditolak, opsi hanya role/pabrik, seed Excel/dependensi xlsx dihapus | K-33; permintaan pemilik |
 
 Riwayat dari branch kedua dipetakan R-029 → R-034, R-031 → R-035, R-032 → R-036, R-033 → R-037 dan R-034 → R-038 karena nomornya berbenturan. Isi historis dipertahankan; kondisi terkini dijelaskan di R-039.
 
@@ -173,7 +196,7 @@ Riwayat dari branch kedua dipetakan R-029 → R-034, R-031 → R-035, R-032 → 
 | prereg/api | GET    | `/api/auth/me`                                                                      | auth             | identitas dan izin terkini                                            |
 | prereg/api | POST   | `/api/auth/logout`                                                                  | auth             | membatalkan token di server                                           |
 | prereg/api | GET    | `/api/users`, `/api/users/:id`                                                      | internal-user    | ADMIN; filter dan pagination, maksimum 100 baris                      |
-| prereg/api | GET    | `/api/users/options`                                                                | internal-user    | ADMIN; role, pabrik dan maksimum 50 kode SAP bebas, dengan pencarian  |
+| prereg/api | GET    | `/api/users/options`                                                                | internal-user    | ADMIN; pilihan role dan pabrik                                        |
 | prereg/api | POST   | `/api/users`                                                                        | internal-user    | ADMIN; akun mitra/internal, bcrypt, kredensial di console development |
 | prereg/api | PUT    | `/api/users/:id`                                                                    | internal-user    | ADMIN; simpan data dan batalkan sesi akun                             |
 | prereg/api | PATCH  | `/api/users/:id/status`                                                             | internal-user    | ADMIN; cegah hilangnya admin aktif terakhir                           |
@@ -199,15 +222,12 @@ Schema prereg menyatukan akun dan data master/pengajuan. Schema site masih koson
 | `Role`                  | prereg/api · PostgreSQL | `mst_role`                    | diimplementasikan |
 | `Permission`            | prereg/api · PostgreSQL | `mst_permission`              | diimplementasikan |
 | `RolePermission`        | prereg/api · PostgreSQL | `mst_role_permission`         | diimplementasikan |
-| `Partner`               | prereg/api · PostgreSQL | `mst_partner`                 | diimplementasikan |
-| `UserPartner`           | prereg/api · PostgreSQL | `mst_user_partner`            | diimplementasikan |
 | `Plant`                 | prereg/api · PostgreSQL | `mst_plant`                   | diimplementasikan |
 | `UserPlant`             | prereg/api · PostgreSQL | `mst_user_plant`              | diimplementasikan |
 | `UserOtp`               | prereg/api · PostgreSQL | `sys_otp`                     | diimplementasikan |
 | `AuthSession`           | prereg/api · PostgreSQL | `auth_session`                | diimplementasikan |
 | `AuthRateLimit`         | prereg/api · PostgreSQL | `auth_rate_limit`             | diimplementasikan |
 | `AccountAudit`          | prereg/api · PostgreSQL | `account_audit`               | diimplementasikan |
-| `City`                  | prereg/api · PostgreSQL | `mst_city`                    | diimplementasikan |
 | `Transporter`           | prereg/api · PostgreSQL | `mst_transporter`             | diimplementasikan |
 | `Driver`                | prereg/api · PostgreSQL | `mst_driver`                  | diimplementasikan |
 | `Vehicle`               | prereg/api · PostgreSQL | `mst_vehicle`                 | diimplementasikan |
@@ -225,26 +245,45 @@ Schema prereg menyatukan akun dan data master/pengajuan. Schema site masih koson
 | `20261105090000_relation_indexes`     | prereg/api   | Indeks foreign key, sesi idle dan kode SAP tanpa membedakan kapital                                                                                        |
 | `20261105100000_request_cursor_index` | prereg/api   | Indeks urutan tanggal/UUID untuk daftar transaksi dengan cursor                                                                                            |
 
+| `20261105110000_account_filter_indexes` | prereg/api | Indeks urutan akun, updated_at, trigram phone dan nama pabrik untuk filter server |
+| `20261106110000_simplify_account_masters` | prereg/api | Backfill nama kota/lokasi akun; hapus City, Partner dan UserPartner; login langsung mst_user |
+
 ## E. Contract (format data antar aplikasi)
 
 Skema di `@awb/contracts`; format sesi/akun dipakai API dan frontend.
 
-| Skema                   | File                      | Dari → ke               | Status                     |
-| ----------------------- | ------------------------- | ----------------------- | -------------------------- |
-| `transactionType`       | `common/transaction.ts`   | semua aplikasi          | terdefinisi                |
-| `registrationOrigin`    | `common/transaction.ts`   | semua aplikasi          | terdefinisi                |
-| `syncEnvelope`          | `sync/envelope.ts`        | prereg ↔ site           | terdefinisi, belum dikirim |
-| `preregApprovedPayload` | `sync/prereg-approved.ts` | prereg → site           | terdefinisi, belum dikirim |
-| `preregApprovedEvent`   | `sync/prereg-approved.ts` | prereg → site           | terdefinisi, belum dikirim |
-| `wbSessionPhase`        | `realtime/lane-event.ts`  | site/api → site/kiosk   | terdefinisi                |
-| `laneScreenEvent`       | `realtime/lane-event.ts`  | site/api → site/kiosk   | terdefinisi, belum dikirim |
-| `sessionUser`           | `common/account.ts`       | prereg/api → prereg/web | dipakai                    |
-| `accountChoice`         | `common/account.ts`       | prereg/api → prereg/web | dipakai                    |
-| `accountPartner`        | `common/account.ts`       | prereg/api → prereg/web | dipakai                    |
-| `accountProfile`        | `common/account.ts`       | prereg/api → prereg/web | dipakai                    |
+| Skema                   | File                      | Dari → ke               | Status                                                            |
+| ----------------------- | ------------------------- | ----------------------- | ----------------------------------------------------------------- |
+| `transactionType`       | `common/transaction.ts`   | semua aplikasi          | terdefinisi                                                       |
+| `registrationOrigin`    | `common/transaction.ts`   | semua aplikasi          | terdefinisi                                                       |
+| `syncEnvelope`          | `sync/envelope.ts`        | prereg ↔ site           | terdefinisi, belum dikirim                                        |
+| `preregApprovedPayload` | `sync/prereg-approved.ts` | prereg → site           | terdefinisi, belum dikirim                                        |
+| `preregApprovedEvent`   | `sync/prereg-approved.ts` | prereg → site           | terdefinisi, belum dikirim                                        |
+| `wbSessionPhase`        | `realtime/lane-event.ts`  | site/api → site/kiosk   | terdefinisi                                                       |
+| `laneScreenEvent`       | `realtime/lane-event.ts`  | site/api → site/kiosk   | terdefinisi, belum dikirim                                        |
+| `sessionUser`           | `common/account.ts`       | prereg/api → prereg/web | dipakai                                                           |
+| `accountChoice`         | `common/account.ts`       | prereg/api → prereg/web | dipakai                                                           |
+| `accountProfile`        | `common/account.ts`       | prereg/api → prereg/web | dipakai                                                           |
+| `accountListItem`       | `common/account.ts`       | prereg/api → prereg/web | Daftar ringkas, roleName/plantCount dan maksimal dua plantPreview |
 
 | `PERMISSION` | `common/permission.ts` | API dan frontend | konstanta izin bersama |
 | `permissionCatalogue` | `common/permission.ts` | API, seed dan frontend | katalog izin bersama |
+
+| `accountFilterFields` | `common/account-filter.ts` | API dan frontend | Daftar field, jenis dan operator yang diizinkan |
+| `accountFilterRule` | `common/account-filter.ts` | API dan frontend | Validasi field/operator/nilai |
+| `accountFilterSet` | `common/account-filter.ts` | API dan frontend | Match all/any, maksimum 12 aturan |
+| `accountSelectionFilters` | `common/account-selection.ts` | API dan frontend | Multi-role dan multi-plant; maksimum 100 pilihan per kelompok |
+
+| `DEFAULT_PAGE_SIZE` | `common/pagination.ts` | API dan UI | Default 20 |
+| `paginationQuery` | `common/pagination.ts` | API | Batas page/limit bersama |
+
+| `sortDirection` | `common/sorting.ts` | API dan UI | Validasi asc/desc |
+| `accountSortFields` | `common/sorting.ts` | API dan frontend | Allowlist kolom akun |
+| `roleSortFields` | `common/sorting.ts` | API dan frontend | Allowlist kolom peran |
+| `permissionSortFields` | `common/sorting.ts` | API dan frontend | Allowlist kolom izin |
+| `accountSortingQuery` | `common/sorting.ts` | API | Default createdAt desc |
+| `roleSortingQuery` | `common/sorting.ts` | API | Default code asc |
+| `permissionSortingQuery` | `common/sorting.ts` | API | Default module asc |
 
 ## F. Fitur frontend
 
@@ -271,6 +310,16 @@ Skema di `@awb/contracts`; format sesi/akun dipakai API dan frontend.
 
 Konvensi folder, nama file, tipe, hooks, forms, session dan routing ada di `docs/design/frontend.md`. Halaman memakai hooks domain; akses HTTP, query cache dan tipe API tidak ditulis ulang di tiap halaman.
 
+| `prereg/web/pages/role/listRole` | Daftar peran, pencarian dan tautan pengelolaan izin | tersambung API |
+
+Route `/roles` menampilkan daftar peran, `/roles/:id/permissions` menampilkan editor per modul, `/roles/permissions` mengarahkan ke daftar untuk kompatibilitas. GET `/api/users` menerima `filters` berupa JSON contract `accountFilterSet`; filter diterapkan sebelum count/pagination dan digabung dengan pencarian/filter lama. Field password dan SQL bebas tidak dapat dipilih. Tanggal memakai hari UTC; pencarian contains memperlakukan persen/underscore sebagai karakter literal.
+
+Form akun mitra memakai kode SAP sebagai username yang dimasukkan manual tanpa lookup/master mitra. Akun INTERNAL/PARTNER berada di mst_user; POST `/api/users` menerima role sesuai tipe, plantIds, profil dan city/country opsional. Username/tipe tetap immutable saat edit. DTO tidak lagi memuat partners dan partnerIds ditolak. GET `/api/users/options` hanya memuat roles/plants dan tidak diulang saat mengetik username. Login hanya melalui username case-insensitive, bukan alias SAP. Lokasi akun lama dipindah dari master primer saat migrasi; master tanpa login disimpan dalam backup lokal privat sebelum dihapus.
+
+GET `/api/users`, `/api/access/roles` dan `/api/access/permissions` menerima sortBy/sortDirection dari allowlist contract. Sorting berlaku sebelum skip/take, dengan ID sebagai tie-breaker dan count/items dalam snapshot RepeatableRead. Akun mendukung nama, username, tipe, role, kode SAP (username mitra), jumlah akses pabrik, status dan tanggal pembuatan. Sorting SAP/pabrik mendahulukan mitra; peran mendukung nama/kode/deskripsi/jumlah izin/status. Izin tetap diurutkan per modul; nama/kode/action dapat diurutkan di dalam modul. Action memakai SQL berparameter dengan arah SQL tetap, bukan interpolasi teks client. ServerSorting/sortKey di Table dan useSorting menyimpan arah di URL, mempertahankan filter/ukuran halaman dan mereset page ke 1. Lookup SAP menggunakan placeholderData hasil sebelumnya agar role dan preview tidak berkedip. Username SAP tetap tidak dapat diubah saat edit.
+
+Daftar akun memakai dropdown MultiSelect Roles dan Plants dari packages/ui, menggantikan builder Advanced. GET `/api/users` menerima repeated query keys roles/plantIds (string tunggal juga diterima), masing-masing maksimum 100, role dibatasi panjangnya dan plant memakai UUID; duplikat dinormalisasi. Query memakai IN/relasi some sebelum sort/count/pagination. Beberapa pilihan dalam satu kelompok memakai OR, antarkelompok memakai AND. URL menyimpan pilihan, search dan sorting; pergantian filter mereset page 1. Parameter legacy tidak diterapkan tersembunyi oleh halaman, tetapi API lama tetap didukung. Tipografi memakai --ui-font-sans dengan Inter Variable self-hosted dari @fontsource-variable/inter; fallback sistem dan font-display swap, tanpa font CDN. Ukuran body/control 14px, metadata 12–13px, label navigasi tidak lagi uppercase berjeda lebar. Lisensi font disertakan di packages/ui/LICENSE-Inter.txt.
+
 ## G. Perangkat dan integrasi
 
 | Item                                              | Fungsi                                                                                                                                                                                                                     | Status                                                                                                             |
@@ -291,6 +340,10 @@ Konvensi folder, nama file, tipe, hooks, forms, session dan routing ada di `docs
 
 ## Operasional, keamanan dan kapasitas
 
-Panduan menjalankan, migrasi, bootstrap, rollback, volume privat dan pengujian beban ada di `infra/prereg/README.md`. ESLint dan Prettier dijalankan melalui `npm run check`; `npm run test:e2e` memeriksa sesi dan persistensi lewat browser lokal. Tidak ada pengiriman password pada respons API. Log kredensial hanya aktif pada NODE_ENV=development. Test tidak mencetak kredensial; production menolak provisioning/reset sampai delivery tersedia.
+Komponen bersama mengikuti `packages/ui/README.md`: atoms, molecules, organisms, providers, templates dan token tema. Semua frontend memakai ThemeProvider/ConfirmProvider. Endpoint GET `/api/access/roles` dan `/api/access/permissions` sekarang mengembalikan `{ items, total, page, limit }`, menerima q/page/limit (default 20, maksimum 100; page maksimum 1000). Pencarian dan count dilakukan di server dalam snapshot transaksi; daftar peran hanya memuat jumlah izin. GET `/api/access/roles/:id/permissions` tetap memberi himpunan izin lengkap untuk menjaga pilihan lintas halaman. Pengguna juga default 20. Konfirmasi reset/status/discard memakai dialog bersama, bukan dialog browser.
+
+Panduan menjalankan, migrasi, seed development, rollback, volume privat dan pengujian beban ada di `infra/prereg/README.md`. ESLint dan Prettier dijalankan melalui `npm run check`; `npm run test:e2e` memeriksa sesi dan persistensi lewat browser lokal. Tidak ada pengiriman password pada respons API. Log kredensial hanya aktif pada NODE_ENV=development. Test tidak mencetak kredensial; production menolak provisioning/reset sampai delivery tersedia.
+
+Loading memakai Skeleton/PageSkeleton dari packages/ui: placeholder per sel tabel, halaman/session/detail/options dan tombol, dengan aria-busy/status dan reduced-motion. Ikon dekoratif halaman peran/izin dihapus. Seed dipisah ke apps/prereg/api/prisma/seed/index.ts , accounts.ts dan transporters.ts, terdaftar di prisma.config.ts dan dijalankan lewat prisma db seed. Seluruh entry seed menolak NODE_ENV selain development sebelum perubahan data; bootstrap admin terpisah dihapus. Role seed hanya ADMIN/LOGISTIC/COMMERCIAL/CUSTOMER/VENDOR, dengan akun admin/logistic/commercial/CU00001000/AT11000001, password123 bcrypt dengan salt per akun dan pembatalan sesi saat reseed. Role pensiun hanya dihapus bila tanpa pengguna. Komentar kedua schema Prisma mengikuti kondisi terkini.
 
 Indeks ekspresi lower-case dan GIN trigram dikelola oleh SQL migrasi. Jangan menghapusnya ketika meninjau migrasi hasil Prisma. UUIDv7 dibuat Prisma, disimpan native UUID; data UUID lama tetap sah. Daftar transaksi memakai cursor, daftar admin memakai offset terbatas 1.000 halaman; gunakan filter untuk pencarian lebih dalam. Ukuran pool dikalikan jumlah instance harus berada dalam anggaran koneksi database. Klaim kapasitas memerlukan uji beban di staging dengan ukuran data dan pola penggunaan yang disepakati.

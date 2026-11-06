@@ -19,9 +19,22 @@ npm run db:seed -w @awb/prereg-api
 npm run dev:prereg
 ```
 
-The seed prints a randomly generated initial administrator password only when it
-creates that account. Re-running the seed does not reset existing account passwords.
-Do not forward console output containing development credentials. Existing legacy
+Seed files live in `apps/prereg/api/prisma/seed/`: `index.ts` is the development-only
+entry point; roles, permissions, plants, accounts and transporters each have
+their own module. Prisma config owns the
+seed command. Only development seeding creates an administrator; no standalone
+administrator bootstrap command is provided.
+
+The development seed keeps ADMIN, LOGISTIC, COMMERCIAL, CUSTOMER and VENDOR. It
+removes unused MANAGER/KRANIWB/INTERCO roles, stopping if one still has accounts.
+Test logins are `admin`, `logistic`, `commercial`, `CU00001000` (customer), and
+`AT11000001` (vendor), all with `password123`. Logistics gets operational approval;
+commercial and partners get preregistration/document access. Partner fixtures have
+two plants and internal test staff have all four seeded plants.
+Every run restores those passwords using bcrypt
+with a separate salt per account and revokes their existing sessions. It leaves
+passwords for accounts created outside the seed unchanged. The seed refuses to run
+outside development. Existing legacy
 SHA-256 accounts require an explicit temporary `ALLOW_LEGACY_PASSWORDS=true` setting;
 a successful login replaces the old hash with bcrypt. Disable that flag after the
 transition. Scrypt hashes from the unmerged integer-schema branch are not accepted.
@@ -72,16 +85,13 @@ against the converted schema.
   Sessions are shared in PostgreSQL, expire in the server and can be revoked.
   Expired-session/throttle cleanup runs in batches of at most 1,000 rows per table
   each minute, using row locks that allow multiple instances to cooperate.
-- Login counters are shared in PostgreSQL, including all SAP aliases for one account.
+- Login counters are shared in PostgreSQL; username lookup is case-insensitive.
   Add edge request limits for internet traffic as part of ingress configuration.
-- Use the deployment secret mechanism for database/bootstrap credentials. Never
+- Use the deployment secret mechanism for database credentials. Never
   commit production environment files or log passwords, session tokens or uploads.
 
-For an empty database, `npm run db:bootstrap-admin -w @awb/prereg-api` uses
-`BOOTSTRAP_ADMIN_USERNAME` and `BOOTSTRAP_ADMIN_PASSWORD` supplied through the secret
-mechanism. It creates only the first active administrator, stores bcrypt and never
-prints the password. Remove those bootstrap variables from the runtime afterwards.
-The development seed refuses to run outside development.
+The development seed refuses to run outside development, including administrator
+creation. It is not a production account-provisioning path.
 
 ## Storage and capacity
 
@@ -101,7 +111,7 @@ never delete files solely because their age exceeds an arbitrary threshold.
 Transactional request lists use `(created_at, id)` cursors and `limit + 1` queries,
 with no full-table count. Status and owner filters have matching composite indexes.
 Account lists are administrative, bounded to 100 records and 1,000 offset pages;
-use filters beyond that range. SAP choices are capped at 50 per search. Trigram
+use filters beyond that range. Account options contain roles and plants only. Trigram
 indexes support contains searches. Native UUIDv7 IDs improve insert locality while
 existing UUIDv4 identifiers remain valid.
 
@@ -109,6 +119,14 @@ Before a capacity claim, load-test realistic row counts, concurrent users, reque
 mix and upload sizes in staging. Inspect `EXPLAIN (ANALYZE, BUFFERS)` for list/search
 queries, and monitor p95 latency, pool wait, locks, disk I/O and bcrypt CPU. Indexes
 and bounded requests are foundations, not a measured throughput guarantee.
+
+Account advanced filters accept up to 12 allowlisted field/operator/value rules,
+combined with all/any logic and applied before pagination/count. Text searches are
+case-insensitive with literal wildcard escaping. Negative email/phone comparisons
+include missing values; date comparisons use UTC calendar days. Phone/plant-name
+trigram indexes and account date indexes supplement existing search/relation indexes.
+Large negative/empty/OR searches may still scan many rows; inspect their plans with
+representative data before making a capacity claim.
 
 ## Checks
 
