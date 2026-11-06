@@ -28,17 +28,16 @@ docs/            BRD/PRD and the source that builds them
 infra/           deployment (ECS for prereg, on-prem compose for site)
 ```
 
-`site/api` is one backend for the whole plant. WB.NET and TCS are domains inside it because they share one plant database and one truck journey, and steps such as "save weight + advance stage + queue sync" must commit together:
+`site/api` is one backend for the whole plant. WB.NET and TCS share one plant database and truck journey; steps such as "save weight + advance stage + queue sync" must commit together. Both APIs use the same module structure:
 
 ```
 apps/site/api/src/
-  domains/
-    journey/        journey, card binding, audit
-    registration/   Reg IN/OUT, prereg cache, QR fallback, registration without prereg
-    weighbridge/    WB.NET replacement: tap 1/2, weighing, OCR, AI checks, tolerance, ticket
-    tcs/            flow, stages, station submissions, QC decisions
-    sync/           outbox/inbox with HO, reconciliation, prereg client
-    erp/            SAP posting
+  modules/
+    journey/        journey.routes.ts, journey.service.ts, journey.repository.ts, journey.schema.ts
+    registration/   registration.routes.ts (workflow pending)
+    weighbridge/    weighbridge.routes.ts (workflow pending)
+    tcs/            tcs.routes.ts (workflow pending)
+    sync/           sync.routes.ts, sync.service.ts, sync.repository.ts, sync.schema.ts, sync.worker.ts
   devices/          TCP sockets to the weighbridge controllers (2 per weighbridge): RFID taps, sensors/radar, commands
   realtime/         lane state pushed to the kiosk screens (to add)
   config/ routes/ middlewares/ helpers/ lib/ constants/ types/ jobs/
@@ -134,9 +133,9 @@ npm run blueprint:pdf         BLUEPRINT.md → docs/documents/Blueprint-AWB-DWS-
 Enforced by `npm run check:boundaries` (dependency-cruiser, `.dependency-cruiser.cjs`):
 
 1. An app never imports another app. Shared code goes in `packages/`.
-2. In `site/api`, files inside one domain import each other freely. Another domain is used only through its `index.ts`.
+2. Both APIs use `src/modules/<feature>/<feature>.*.ts` with explicit imports. Module `index.ts` files and `src/domains` are rejected by the architecture check.
 3. `site` and `prereg` talk over HTTP and sync events defined in `@awb/contracts`, never through code imports. The plant must keep working when the link to HO is down, so routine data (approved pre-registrations, HO-staff registrations) arrives by sync into the plant database.
-4. `site/api/src/devices` never imports a domain; domains use devices.
+4. `site/api/src/devices` never imports a business module; modules use devices.
 5. Only `*.repository.ts` files use the Prisma client. Services and routes may import Prisma types, not the client.
 
 ## Frontend convention
@@ -162,7 +161,7 @@ One folder per module, one file per layer.
 <module>/<module>.schema.ts       zod schemas + inferred types
 ```
 
-`site/api` keeps modules under `domains/<domain>/<module>/`; `prereg/api` uses `modules/<module>/`. Express 5 forwards rejected promises to the error handler, so route handlers don't need try/catch.
+Both `site/api` and `prereg/api` keep features under `modules/<module>/`, without module barrels or repeated nested feature directories. Add repositories and schemas when the feature needs them; route-only placeholders do not need empty companion files. Workers stay with the feature they process. Hardware I/O remains in `devices/`. Express 5 forwards rejected promises to the error handler, so route handlers don't need try/catch.
 
 ## Comments
 

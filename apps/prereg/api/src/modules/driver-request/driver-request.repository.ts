@@ -1,24 +1,59 @@
 import { prisma } from '../../config/prisma'
-import type { DriverVehicleApprovedEvent } from '@awb/contracts'
+import { CustomError } from '@awb/server-core'
+import type {
+  DriverVehicleApprovedEvent,
+  DriverRequestSortField,
+  SortDirection,
+} from '@awb/contracts'
 import type { Prisma } from '../../generated/prisma/client'
 
+async function writeRequest<T>(operation: () => Promise<T>) {
+  try {
+    return await operation()
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
+      throw new CustomError(
+        'A pending or approved request already exists for this license number or plate number',
+        409,
+      )
+    }
+    throw error
+  }
+}
+
 export default {
-  list(where: Prisma.DriverRequestWhereInput, limit: number) {
-    return prisma.driverRequest.findMany({
-      where,
-      take: limit + 1,
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      select: {
-        id: true,
-        status: true,
-        driverName: true,
-        driverLicenseNumber: true,
-        vehiclePlateNumber: true,
-        submittedBy: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    })
+  async list(
+    where: Prisma.DriverRequestWhereInput,
+    query: {
+      page: number
+      limit: number
+      sortBy: DriverRequestSortField
+      sortDirection: SortDirection
+    },
+  ) {
+    const [rows, total] = await prisma.$transaction(
+      [
+        prisma.driverRequest.findMany({
+          where,
+          skip: (query.page - 1) * query.limit,
+          take: query.limit + 1,
+          orderBy: [{ [query.sortBy]: query.sortDirection }, { id: query.sortDirection }],
+          select: {
+            id: true,
+            status: true,
+            driverName: true,
+            driverLicenseNumber: true,
+            vehiclePlateNumber: true,
+            submittedBy: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+        prisma.driverRequest.count({ where }),
+      ],
+      { isolationLevel: 'RepeatableRead' },
+    )
+    return { rows, total }
   },
 
   findById(id: string) {
@@ -42,10 +77,10 @@ export default {
 
   // Returns all SUBMITTED or APPROVED requests that have the same license or plate,
   // excluding the given request id (used when checking conflicts on resubmit).
-  findConflicts(licenseNumber: string, plateNumber: string, excludeId?: string) {
+  async findConflicts(licenseNumber: string, plateNumber: string, excludeId?: string) {
     return prisma.driverRequest.findMany({
       where: {
-        status: { in: ['SUBMITTED', 'APPROVED'] },
+        status: { in: ['SUBMITTED', 'APPROVED', 'SENT_TO_PLANT'] },
         ...(excludeId ? { id: { not: excludeId } } : {}),
         OR: [
           { driverLicenseNumber: { equals: licenseNumber, mode: 'insensitive' } },
@@ -68,17 +103,38 @@ export default {
     })
   },
 
+  findDocuments(ids: string[]) {
+    return prisma.document.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, uploadedBy: true, category: true },
+    })
+  },
+
+  findSite(code: string) {
+    return prisma.plant.findUnique({ where: { code, isActive: true }, select: { code: true } })
+  },
+
   create(
     data: Omit<
       Prisma.DriverRequestUncheckedCreateInput,
       'id' | 'status' | 'createdAt' | 'updatedAt'
     >,
   ) {
-    return prisma.driverRequest.create({ data })
+    return writeRequest(() => prisma.driverRequest.create({ data }))
   },
 
-  update(id: string, data: Prisma.DriverRequestUncheckedUpdateInput) {
-    return prisma.driverRequest.update({ where: { id }, data })
+  update(id: string, submittedBy: string, data: Prisma.DriverRequestUncheckedUpdateManyInput) {
+    return writeRequest(() =>
+      prisma.$transaction(async (tx) => {
+        const result = await tx.driverRequest.updateMany({
+          where: { id, submittedBy, status: 'REJECTED' },
+          data,
+        })
+        if (result.count !== 1)
+          throw new CustomError('Only rejected requests can be resubmitted', 422)
+        return tx.driverRequest.findUniqueOrThrow({ where: { id } })
+      }),
+    )
   },
 
   async approveAndEnqueue(
@@ -88,10 +144,12 @@ export default {
     event: DriverVehicleApprovedEvent,
   ) {
     return prisma.$transaction(async (tx) => {
+      // Per-site ordering prevents a later committed sequence hiding an earlier event.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${siteId}), 14)`
       const now = new Date()
 
-      const request = await tx.driverRequest.update({
-        where: { id: requestId },
+      const changed = await tx.driverRequest.updateMany({
+        where: { id: requestId, status: 'SUBMITTED' },
         data: {
           status: 'APPROVED',
           decision: 'APPROVED',
@@ -100,6 +158,8 @@ export default {
           siteId,
         },
       })
+      if (changed.count !== 1) throw new CustomError('Driver request is already processed', 400)
+      const request = await tx.driverRequest.findUniqueOrThrow({ where: { id: requestId } })
 
       const decision = await tx.driverRequestDecision.create({
         data: {

@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router'
-import { PageSkeleton } from '@awb/ui'
+import { RequestFormSkeleton } from '@/components/DriverRequestSkeleton'
 import { useDriverRequest, useResubmitDriverRequest } from '@/hooks/driverRequest'
 import ErrorState from '@/components/ErrorState'
 import RequestForm from '../_components/RequestForm'
@@ -13,7 +13,7 @@ export default function EditRequest() {
   const resubmit = useResubmitDriverRequest()
 
   if (isLoading) {
-    return <PageSkeleton />
+    return <RequestFormSkeleton />
   }
 
   if (error || !request) {

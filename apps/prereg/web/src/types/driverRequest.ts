@@ -1,3 +1,5 @@
+import type { DriverRequestSortField, SortDirection } from '@awb/contracts'
+
 export interface TransporterOption {
   id: string
   code: string
@@ -70,7 +72,10 @@ export interface DriverRequestFormData {
 }
 
 export interface ListDriverRequestsQuery {
+  page?: number
   limit?: number
+  sortBy?: DriverRequestSortField
+  sortDirection?: SortDirection
   status?: 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'SENT_TO_PLANT'
   cursorId?: string
   cursorAt?: string
@@ -78,6 +83,9 @@ export interface ListDriverRequestsQuery {
 
 export interface DriverRequestsResponse {
   items: DriverRequestItem[]
+  total: number
+  page: number
+  limit: number
   nextCursor: {
     cursorId: string
     cursorAt: string

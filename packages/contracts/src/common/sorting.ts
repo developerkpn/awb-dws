@@ -22,6 +22,14 @@ export const roleSortFields = [
   'isActive',
 ] as const
 export const permissionSortFields = ['module', 'name', 'code', 'action'] as const
+export const driverRequestSortFields = [
+  'driverName',
+  'driverLicenseNumber',
+  'vehiclePlateNumber',
+  'createdAt',
+  'status',
+] as const
+export type DriverRequestSortField = (typeof driverRequestSortFields)[number]
 
 export const accountSortingQuery = z.object({
   sortBy: z.enum(accountSortFields).default('createdAt'),

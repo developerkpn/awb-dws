@@ -8,24 +8,92 @@ import { createTestUser, sessionFor, grant, origin } from './helpers'
 import { driverVehicleApprovedEvent } from '@awb/contracts'
 
 describe('Internal sync and approval outbox (AWB-14)', () => {
+  it('binds service credentials to one plant and requires a scope for development credentials', async () => {
+    const original = env.INTERNAL_SERVICE_KEYS
+    const key = 'review-site-a-service-key-1234567890'
+    try {
+      env.INTERNAL_SERVICE_KEYS = { SITE_A: key }
+      expect(
+        (await request(app).get('/api/internal/sync/outbox').set('x-service-key', key)).status,
+      ).toBe(200)
+      expect(
+        (
+          await request(app)
+            .get('/api/internal/sync/outbox?siteId=SITE_B')
+            .set('x-service-key', key)
+        ).status,
+      ).toBe(403)
+      expect(
+        (
+          await request(app)
+            .post('/api/internal/sync/ack')
+            .set('x-service-key', key)
+            .send({ siteId: 'SITE_B', upTo: 1 })
+        ).status,
+      ).toBe(403)
+      expect(
+        (
+          await request(app)
+            .get('/api/internal/sync/outbox')
+            .set('x-service-key', env.INTERNAL_SERVICE_KEY)
+        ).status,
+      ).toBe(422)
+    } finally {
+      env.INTERNAL_SERVICE_KEYS = original
+    }
+  })
+
+  it('records exactly one approval and one outbox event for concurrent approvals', async () => {
+    const user = await sessionFor('ADMIN')
+    const run = randomUUID()
+    await prisma.plant.upsert({
+      where: { code: 'PRISCOLIN_KARAWANG' },
+      create: { code: 'PRISCOLIN_KARAWANG', name: 'Fixture plant' },
+      update: {},
+    })
+    const record = await prisma.driverRequest.create({
+      data: {
+        submittedBy: user.user.id,
+        driverLicenseNumber: run,
+        driverName: 'Review fixture',
+        driverAddress: 'Fixture address',
+        driverBirthPlace: 'Fixture city',
+        driverBirthDate: new Date('1990-01-01'),
+        driverPhone: '0000000000',
+        vehiclePlateNumber: run,
+      },
+    })
+    const responses = await Promise.all(
+      [0, 1].map(() =>
+        request(app)
+          .post('/api/driver-requests/' + record.id + '/approve')
+          .set('Origin', origin)
+          .set('Cookie', user.cookie)
+          .send({ siteId: 'PRISCOLIN_KARAWANG' }),
+      ),
+    )
+    expect(responses.map((r) => r.status).sort()).toEqual([200, 400])
+    expect(await prisma.syncOutbox.count({ where: { aggregateId: record.id } })).toBe(1)
+    expect(await prisma.driverRequestDecision.count({ where: { requestId: record.id } })).toBe(1)
+  })
   it('protects /api/internal with service authentication rather than user login', async () => {
     const unauth = await request(app).get('/api/internal/sync/outbox')
     expect(unauth.status).toBe(401)
     expect(unauth.body.error).toContain('Unauthorized internal service request')
 
     const wrongKey = await request(app)
-      .get('/api/internal/sync/outbox')
+      .get('/api/internal/sync/outbox?siteId=PRISCOLIN_KARAWANG')
       .set('x-service-key', 'wrong-key-value-12345')
     expect(wrongKey.status).toBe(401)
 
     const withHeader = await request(app)
-      .get('/api/internal/sync/outbox')
+      .get('/api/internal/sync/outbox?siteId=PRISCOLIN_KARAWANG')
       .set('x-service-key', env.INTERNAL_SERVICE_KEY)
     expect(withHeader.status).toBe(200)
     expect(Array.isArray(withHeader.body.data.messages)).toBe(true)
 
     const withBearer = await request(app)
-      .get('/api/internal/sync/outbox')
+      .get('/api/internal/sync/outbox?siteId=PRISCOLIN_KARAWANG')
       .set('Authorization', `Bearer ${env.INTERNAL_SERVICE_KEY}`)
     expect(withBearer.status).toBe(200)
     expect(Array.isArray(withBearer.body.data.messages)).toBe(true)

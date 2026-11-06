@@ -29,6 +29,7 @@ export default {
         where: { eventId: event.eventId },
       })
       if (existing) {
+        if (existing.sequenceNumber !== sequenceNumber) throw new Error('Event sequence mismatch')
         return { applied: false }
       }
 

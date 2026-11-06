@@ -4,7 +4,11 @@ import { CustomError, NotFoundError } from '@awb/server-core'
 import type { SessionUser, DriverVehicleApprovedEvent } from '@awb/contracts'
 import { notifyLogisticsSubmission } from '../../services/mailer'
 import repository from './driver-request.repository'
-import type { listDriverRequests, driverRequestBody, approveDriverRequestSchema } from './driver-request.schema'
+import type {
+  listDriverRequests,
+  driverRequestBody,
+  approveDriverRequestSchema,
+} from './driver-request.schema'
 
 type ListQuery = z.infer<typeof listDriverRequests>
 type RequestBody = z.infer<typeof driverRequestBody>
@@ -22,7 +26,10 @@ async function checkConflicts(licenseNumber: string, plateNumber: string, exclud
     (r) => r.driverLicenseNumber.toLowerCase() === licenseNumber.toLowerCase(),
   )
   if (licenseConflict)
-    throw new CustomError('A pending or approved request already exists for this license number', 409)
+    throw new CustomError(
+      'A pending or approved request already exists for this license number',
+      409,
+    )
 
   const plateConflict = conflicts.find(
     (r) => r.vehiclePlateNumber.toLowerCase() === plateNumber.toLowerCase(),
@@ -38,10 +45,33 @@ async function resolveTransporter(transporterId?: string) {
   return transporterId
 }
 
+async function validateDocuments(body: RequestBody, user: SessionUser) {
+  const references = [
+    { url: body.driverLicensePhotoUrl, category: 'sim' },
+    { url: body.driverPhotoUrl, category: 'driver' },
+    { url: body.vehicleStnkPhotoUrl, category: 'stnk' },
+  ].filter((entry): entry is { url: string; category: string } => Boolean(entry.url))
+  const documents = await repository.findDocuments(
+    references.map((entry) => entry.url.split('/').at(-1)!),
+  )
+  for (const entry of references) {
+    if (
+      !documents.some(
+        (doc) =>
+          doc.id === entry.url.split('/').at(-1) &&
+          doc.uploadedBy === user.id &&
+          doc.category === entry.category,
+      )
+    ) {
+      throw new CustomError('Use your own uploaded document with the matching category', 422)
+    }
+  }
+}
+
 export default {
   async list(query: ListQuery, user: SessionUser) {
     const reviewer = isReviewer(user)
-    const rows = await repository.list(
+    const { rows, total } = await repository.list(
       {
         ...(!reviewer ? { submittedBy: user.id } : {}),
         ...(query.status ? { status: query.status } : {}),
@@ -54,13 +84,16 @@ export default {
             }
           : {}),
       },
-      query.limit,
+      query,
     )
     const items = rows.slice(0, query.limit)
     const last = items.at(-1)
 
     return {
       items,
+      total,
+      page: query.page,
+      limit: query.limit,
       nextCursor:
         rows.length > query.limit && last
           ? { cursorAt: last.createdAt.toISOString(), cursorId: last.id }
@@ -80,6 +113,7 @@ export default {
   async create(body: RequestBody, user: SessionUser) {
     await checkConflicts(body.driverLicenseNumber, body.vehiclePlateNumber)
     await resolveTransporter(body.transporterId)
+    await validateDocuments(body, user)
 
     const request = await repository.create({
       submittedBy: user.id,
@@ -110,8 +144,9 @@ export default {
 
     await checkConflicts(body.driverLicenseNumber, body.vehiclePlateNumber, id)
     await resolveTransporter(body.transporterId)
+    await validateDocuments(body, user)
 
-    const updated = await repository.update(id, {
+    const updated = await repository.update(id, user.id, {
       status: 'SUBMITTED',
       driverLicenseNumber: body.driverLicenseNumber,
       driverName: body.driverName,
@@ -158,7 +193,10 @@ export default {
       throw new CustomError(`Driver request is already ${request.status.toLowerCase()}`, 400)
     }
 
-    const siteId = input?.siteId || request.siteId || 'PRISCOLIN_KARAWANG'
+    const siteId = input?.siteId || request.siteId
+    if (!siteId || !(await repository.findSite(siteId))) {
+      throw new CustomError('Choose an active destination plant', 422)
+    }
     const now = new Date().toISOString()
 
     const event: DriverVehicleApprovedEvent = {

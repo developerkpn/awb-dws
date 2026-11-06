@@ -4,6 +4,7 @@ import { Table, type TableColumn } from '../organisms/Table'
 
 export type SkeletonView = 'table' | 'form' | 'auth' | 'recovery' | 'cards' | 'message'
 export interface PageSkeletonProps {
+  children?: ReactNode
   message?: string
   view?: SkeletonView
   columns?: TableColumn<never>[]
@@ -170,6 +171,7 @@ function Frame({ children }: { children: ReactNode }) {
   )
 }
 export function PageSkeleton({
+  children,
   message = 'Loading content…',
   view = 'message',
   columns = [],
@@ -187,7 +189,8 @@ export function PageSkeleton({
   logo,
 }: PageSkeletonProps) {
   const content =
-    view === 'auth' ? (
+    children ??
+    (view === 'auth' ? (
       <AuthView heroImage={heroImage} logo={logo} />
     ) : view === 'recovery' ? (
       <div className="ui-loading-recovery">
@@ -263,7 +266,7 @@ export function PageSkeleton({
           </div>
         )}
       </div>
-    )
+    ))
   return (
     <div role="status" aria-label={message} aria-busy="true" data-skeleton-view={view}>
       <span className="ui-sr-only">{message}</span>

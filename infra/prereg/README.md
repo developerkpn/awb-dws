@@ -128,6 +128,45 @@ trigram indexes and account date indexes supplement existing search/relation ind
 Large negative/empty/OR searches may still scan many rows; inspect their plans with
 representative data before making a capacity claim.
 
+## Driver and vehicle requests and plant synchronization
+
+The merged request UI supports submission, private uploads, rejected-request revision
+and server pagination/sorting (20 rows by default). Active SIM and plate reservations
+are enforced by partial unique PostgreSQL indexes, including case-insensitive license
+comparison and plate comparison without whitespace. A migration fails if existing
+active requests conflict; resolve those records explicitly before applying it. The
+indexes must be preserved when reviewing future Prisma schema changes.
+
+Approval requires an explicit active destination plant code, records the decision
+and writes an outbox event in one transaction. A per-site transaction lock orders
+outbox sequence allocation; a conditional state update prevents duplicate approvals.
+The full Logistics rejection/review UI is still unfinished (AWB-13).
+
+The plant initiates synchronization. Its worker polls the HO outbox and commits
+driver/vehicle upserts, the received event and its watermark together in SQL Server.
+Only the successfully processed prefix may be acknowledged. Invalid, unsupported,
+misaddressed or failed events stop progress; acknowledgement failures are retried
+even on empty polls. Worker and manual pulls share a single in-flight cycle, and
+network calls have a bounded timeout. Stalled events require diagnosis/correction;
+they are not silently discarded.
+
+HO production configuration uses `INTERNAL_SERVICE_KEYS`, a JSON object mapping
+each plant code to a different secret with at least 32 characters. Credentials bind
+the request to that site; a client cannot select another site's outbox or acknowledge
+it. The legacy shared development key is never accepted in production. A development
+client using the shared key must supply its site explicitly.
+
+The plant uses its matching `INTERNAL_SERVICE_KEY` and `SITE_ID`. `SYNC_ENABLED=false`
+by default; enable it explicitly after setting the intended HO URL and site identity.
+Production requires HTTPS and a non-development key. `SYNC_REQUEST_TIMEOUT_MS`
+defaults to 10000 and `SYNC_POLL_INTERVAL_MS` to 60000. Local servers bind to loopback.
+No production credentials are seeded or supplied in examples.
+
+This transfer is for approved driver/vehicle master data, independently of JUL SAP
+loading-note creation. Document fields currently contain private references; file
+bytes are not replicated to the plant. This release does not implement the downstream
+JUL plan or call SAP.
+
 ## Checks
 
 ```sh

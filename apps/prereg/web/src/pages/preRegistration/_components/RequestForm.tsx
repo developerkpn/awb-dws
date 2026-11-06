@@ -30,9 +30,18 @@ interface UploadSlotProps {
   category: 'sim' | 'driver' | 'stnk'
   currentUrl?: string
   onChange: (url: string) => void
+  disabled: boolean
+  onPending: (category: string, pending: boolean) => void
 }
 
-function UploadSlot({ label, category, currentUrl, onChange }: UploadSlotProps) {
+function UploadSlot({
+  label,
+  category,
+  currentUrl,
+  onChange,
+  disabled,
+  onPending,
+}: UploadSlotProps) {
   const upload = useUploadDocument()
   const [uploadError, setUploadError] = useState<string | null>(null)
 
@@ -41,11 +50,15 @@ function UploadSlot({ label, category, currentUrl, onChange }: UploadSlotProps) 
     if (!file) return
 
     setUploadError(null)
+    onPending(category, true)
     try {
       const result = await upload.mutateAsync({ file, category })
       onChange(result.url)
     } catch (err) {
       setUploadError(getErrorMessage(err))
+    } finally {
+      onPending(category, false)
+      event.target.value = ''
     }
   }
 
@@ -72,7 +85,7 @@ function UploadSlot({ label, category, currentUrl, onChange }: UploadSlotProps) 
             type="file"
             className="hidden"
             accept="image/jpeg,image/png,application/pdf"
-            disabled={upload.isPending}
+            disabled={disabled || upload.isPending}
             onChange={handleFileChange}
           />
         </label>
@@ -102,6 +115,10 @@ export default function RequestForm({
 }: RequestFormProps) {
   const confirm = useConfirm()
   const transporters = useTransporters()
+  const [pendingUploads, setPendingUploads] = useState<Record<string, boolean>>({})
+  const uploading = Object.values(pendingUploads).some(Boolean)
+  const onPending = (category: string, pending: boolean) =>
+    setPendingUploads((current) => ({ ...current, [category]: pending }))
 
   const defaultBirthDate = request?.driverBirthDate
     ? new Date(request.driverBirthDate).toISOString().split('T')[0]
@@ -143,6 +160,7 @@ export default function RequestForm({
   }
 
   const handleFormSubmit = async (values: DriverRequestFormValues) => {
+    if (uploading || isSubmitting) return
     const payload: DriverRequestFormData = {
       driverLicenseNumber: values.driverLicenseNumber,
       driverName: values.driverName,
@@ -297,6 +315,8 @@ export default function RequestForm({
             <UploadSlot
               label="Driver License (SIM)"
               category="sim"
+              disabled={isSubmitting}
+              onPending={onPending}
               currentUrl={watch('driverLicensePhotoUrl')}
               onChange={(url) => setValue('driverLicensePhotoUrl', url, { shouldDirty: true })}
             />
@@ -304,6 +324,8 @@ export default function RequestForm({
             <UploadSlot
               label="Driver Photo"
               category="driver"
+              disabled={isSubmitting}
+              onPending={onPending}
               currentUrl={watch('driverPhotoUrl')}
               onChange={(url) => setValue('driverPhotoUrl', url, { shouldDirty: true })}
             />
@@ -311,6 +333,8 @@ export default function RequestForm({
             <UploadSlot
               label="Vehicle Registration (STNK)"
               category="stnk"
+              disabled={isSubmitting}
+              onPending={onPending}
               currentUrl={watch('vehicleStnkPhotoUrl')}
               onChange={(url) => setValue('vehicleStnkPhotoUrl', url, { shouldDirty: true })}
             />
@@ -321,7 +345,12 @@ export default function RequestForm({
           <Button variant="secondary" type="button" onClick={cancel} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit" disabled={isSubmitting} className="gap-1.5">
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={isSubmitting || uploading}
+            className="gap-1.5"
+          >
             <Save className="size-4" />
             {isSubmitting ? 'Saving...' : isEdit ? 'Submit Revision' : 'Submit Request'}
           </Button>

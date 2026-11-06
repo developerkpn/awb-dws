@@ -1,9 +1,13 @@
 import { PageSkeleton } from '@awb/ui'
 import { useLocation } from 'react-router'
 import { loadingColumnsFor } from '@/ui/loadingLayouts'
+import { RequestFormSkeleton, RequestListSkeleton } from './DriverRequestSkeleton'
 
 export default function LoadingState({ message, shell }: { message?: string; shell?: boolean }) {
   const { pathname } = useLocation()
+  if (pathname === '/pre-registration/new' || /^\/pre-registration\/[^/]+\/edit$/.test(pathname))
+    return <RequestFormSkeleton shell={shell} />
+  if (pathname === '/pre-registration') return <RequestListSkeleton shell={shell} />
   if (pathname === '/login')
     return (
       <PageSkeleton

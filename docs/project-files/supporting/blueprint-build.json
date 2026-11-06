@@ -1,8 +1,8 @@
 {
   "source": "BLUEPRINT.md",
-  "source_sha256": "665eb93c88ce21ffa2ecf14081a994f51ad713b6abc67f01a2cd6ebe1989c718",
-  "pdf": "docs/documents/Blueprint-AWB-DWS-v2026.11.05.pdf",
+  "source_sha256": "a9621a96219688f2a861d744bccf471f370c3d175e5c101ca3eebe98226ab2d0",
+  "pdf": "docs/documents/Blueprint-AWB-DWS-v2026.11.06.pdf",
   "pages": 7,
-  "version": "2026.11.05",
-  "generated_at": "2026-11-05T23:13:10"
+  "version": "2026.11.06",
+  "generated_at": "2026-11-06T18:46:20"
 }

@@ -2,7 +2,11 @@ import { z } from 'zod'
 import { Router } from 'express'
 import { success } from '@awb/server-core'
 import { currentUser, requirePermission } from '../../middlewares/auth'
-import { listDriverRequests, driverRequestBody, approveDriverRequestSchema } from './driver-request.schema'
+import {
+  listDriverRequests,
+  driverRequestBody,
+  approveDriverRequestSchema,
+} from './driver-request.schema'
 import service from './driver-request.service'
 
 const idParam = z.object({ id: z.uuid() })

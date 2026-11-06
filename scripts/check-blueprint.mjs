@@ -52,20 +52,6 @@ for (const system of dirs(join(ROOT, 'apps'))) {
     const app = join(ROOT, 'apps', system, role)
     add('A. Aplikasi', `${system}/${role}`, app)
 
-    for (const domain of dirs(join(app, 'src/domains'))) {
-      add(
-        'B. Domain dan modul backend',
-        `${system}/${role}/domains/${domain}`,
-        join(app, 'src/domains', domain),
-      )
-      for (const module of dirs(join(app, 'src/domains', domain))) {
-        add(
-          'B. Domain dan modul backend',
-          `${system}/${role}/domains/${domain}/${module}`,
-          join(app, 'src/domains', domain, module),
-        )
-      }
-    }
     for (const module of dirs(join(app, 'src/modules'))) {
       add(
         'B. Domain dan modul backend',

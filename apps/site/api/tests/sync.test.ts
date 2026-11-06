@@ -5,13 +5,13 @@ import type { DriverVehicleApprovedEvent } from '@awb/contracts'
 import app from '../src/app'
 import { env } from '../src/config/env'
 import { prisma } from '../src/config/prisma'
+import syncService from '../src/modules/sync/sync.service'
+import syncRepository from '../src/modules/sync/sync.repository'
 import {
-  syncService,
-  syncRepository,
   startSyncWorker,
   stopSyncWorker,
   isSyncWorkerRunning,
-} from '../src/domains/sync'
+} from '../src/modules/sync/sync.worker'
 
 function createValidApprovedEvent(overrides?: {
   eventId?: string
@@ -23,12 +23,13 @@ function createValidApprovedEvent(overrides?: {
     overrides?.licenseNumber ?? `SIM-${Math.floor(100000 + Math.random() * 900000)}`
   const plateNumber = overrides?.plateNumber ?? `B ${Math.floor(1000 + Math.random() * 9000)} XYZ`
   const now = new Date().toISOString()
+  const requestId = randomUUID()
 
   return {
     eventId,
     schemaVersion: 1,
     eventType: 'driver_vehicle.approved',
-    aggregateId: randomUUID(),
+    aggregateId: requestId,
     aggregateVersion: 1,
     siteId: env.SITE_ID,
     source: 'ho',
@@ -36,7 +37,7 @@ function createValidApprovedEvent(overrides?: {
     occurredAt: now,
     recordedAt: now,
     payload: {
-      requestId: randomUUID(),
+      requestId,
       siteId: env.SITE_ID,
       driver: {
         licenseNumber,
@@ -80,6 +81,12 @@ describe('Sync Domain (AWB-15)', () => {
   })
 
   describe('1. Scheduled Worker', () => {
+    it('protects manual synchronization with service authentication', async () => {
+      expect((await request(app).post('/api/sync/pull')).status).toBe(401)
+      expect((await request(app).post('/api/sync/pull').set('x-service-key', 'wrong')).status).toBe(
+        401,
+      )
+    })
     it('starts, reports running status, and stops cleanly', () => {
       expect(isSyncWorkerRunning()).toBe(false)
       startSyncWorker()
@@ -201,8 +208,10 @@ describe('Sync Domain (AWB-15)', () => {
       )
 
       const result = await syncService.pullAndProcess()
-      expect(result.success).toBe(true)
+      expect(result.success).toBe(false)
       expect(result.processedCount).toBe(0)
+      expect(result.lastSequence).toBe(0)
+      expect(result.blockedSequence).toBe(102)
 
       // Nothing saved
       expect(await syncRepository.countInbox()).toBe(0)

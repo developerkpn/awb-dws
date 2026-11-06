@@ -20,7 +20,7 @@ Mana yang masuk ke mana:
 
 Langkahnya:
 
-1. Isi atau ubah baris di bagian A–H. Tulis identifier sebagai inline code persis seperti yang dicetak `npm run check:blueprint` (pola modul: `<system>/<role>/domains/<domain>/<module>`).
+1. Isi atau ubah baris di bagian A–H. Tulis identifier sebagai inline code persis seperti yang dicetak `npm run check:blueprint` (pola modul: `<system>/<role>/modules/<module>`).
 2. Status teknis: **direncanakan** (sudah disepakati, belum ada kode) · **kerangka** (sudah tersambung, logika masih sementara) · **dikerjakan** · **selesai** · **dihentikan**.
 3. Cantumkan kebutuhan yang dipenuhi (PRD `FR-xxx`, `UI-xx`, keputusan `D-xx` atau hal terbuka `O-xx`) bila ada.
 4. Bila progres sebuah area berubah, perbarui juga bagian 3 di `BLUEPRINT.md` (status: Belum mulai · Persiapan · Dikerjakan · Selesai).
@@ -83,6 +83,8 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 
 | K-32 | 2026-11-05 | Frontend memakai pages per domain/aksi, layout terpisah, domain hooks dan types, React Hook Form, TanStack Query dan alias sumber yang diperiksa | Struktur dan tipe konsisten; halaman tidak mencampur HTTP, state server dan navigasi | berlaku |
 | K-33 | 2026-11-06 | Semua login memakai mst_user dengan account_type; kode SAP dimasukkan sebagai username tanpa master/link mitra. Kota disimpan sebagai teks di record terkait | Model akun dan input manual yang diminta pemilik; menghapus relasi yang tidak diperlukan | berlaku |
+
+| K-34 | 2026-11-06 | Kedua API memakai src/modules/<fitur> dengan file routes, service, repository dan schema eksplisit tanpa index modul; adapter hardware tetap di devices | Struktur backend seragam dan mudah ditelusuri sesuai permintaan pemilik | berlaku |
 
 ## Riwayat teknis
 
@@ -150,8 +152,32 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 | R-064 | 2026-11-06 | Pengajuan supir dan kendaraan (frontend) | Halaman prereg/web masih berupa stub Coming Soon | Daftar pengajuan mitra terhubung API dengan filter status dan status badge; formulir submit pengajuan supir/kendaraan baru dan form revisi penolakan dengan upload dokumen SIM, foto supir, dan STNK | AWB-12 |
 | R-065 | 2026-11-06 | Sinkronisasi pabrik | Pengajuan supir/kendaraan hanya dibaca; belum ada outbox dan endpoint sinkronisasi pabrik | Outbox sinkronisasi atomik pada approval logistik, contract driverVehicleApprovedEvent, endpoint /api/internal/sync (outbox & ack) dengan autentikasi layanan | K-19; AWB-14 |
 | R-066 | 2026-11-06 | Sinkronisasi pabrik | Master supir & kendaraan di pabrik belum ada; sync hanya router kosong | Worker berkala di site-api mengambil pesan outbox HO dengan contract driverVehicleApprovedEvent, simpan ke mst_driver & mst_vehicle SQL Server, catat sequence terakhir di sys_sync_state/inbox dan tangani putus koneksi | AWB-15 |
+| R-067 | 2026-11-06 | Integrasi dan keamanan pengajuan/sync | Branch memiliki pengecekan duplikat tanpa batas database, approval balapan, kunci default produksi dan worker yang melewati pesan gagal | Unique index aktif, status bersyarat, lock per site, validasi dokumen/pabrik, kredensial produksi per site, validasi envelope/target, timeout serta retry ack ditambahkan; regresi concurrency dan kehilangan pesan diuji | Review AWB-12, AWB-14, AWB-15; permintaan pemilik |
+| R-068 | 2026-11-06 | Daftar dan formulir pengajuan | Pagination UI tetap pada 50 baris, aksi halaman kosong dan skeleton generik | Pagination/sorting server default 20 dengan total dan URL, skeleton sesuai tabel/form, validasi referensi upload serta submit menunggu upload selesai; format kode dirapikan | Review AWB-12; permintaan pemilik |
+| R-070 | 2026-11-06 | Struktur backend pabrik | Site memakai domains dengan index publik dan folder journey berulang; prereg memakai modules | Site dipindah ke modules dengan routes/service/repository/schema eksplisit, worker pada modul sync, impor dan aturan arsitektur diperbarui; placeholder ERP kosong dihapus dan status rencana tetap dicatat | K-34; permintaan pemilik |
 
 Riwayat dari branch kedua dipetakan R-029 → R-034, R-031 → R-035, R-032 → R-036, R-033 → R-037 dan R-034 → R-038 karena nomornya berbenturan. Isi historis dipertahankan; kondisi terkini dijelaskan di R-039.
+
+## Integrasi pengajuan dan sinkronisasi setelah review
+
+Branch Vienna dan Indra digabung ke dev dengan riwayat impor dipetakan ke R-063–R-066;
+R-061–R-062 yang sudah ada tetap dipertahankan. GET `/api/driver-requests` menerima
+page/limit (default 20), sorting allowlist dan cursor lama; respons memuat total/page/limit.
+Daftar UI memakai pagination dan sorting server, skeleton kolom/form sesuai tampilan,
+serta menunggu upload selesai sebelum submit.
+
+Migrasi `20261106170000_request_uniqueness` menambah unique index parsial untuk SIM
+dan plat pengajuan aktif. Penulisan bersamaan menghasilkan 409, resubmit memakai
+perubahan status bersyarat, dan referensi dokumen diperiksa pemilik/kategorinya.
+Approval memerlukan pabrik aktif; perubahan status bersyarat dan lock transaksi per
+site mencegah approval ganda serta sequence outbox melewati transaksi yang belum commit.
+
+Autentikasi layanan produksi terikat site melalui INTERNAL_SERVICE_KEYS; kredensial
+development tidak berlaku di produksi. Worker pabrik menolak target/envelope salah,
+berhenti pada pesan gagal, membatasi waktu koneksi dan mengulang ack watermark yang
+sudah tersimpan. SYNC_ENABLED default false. Ini hanya sinkronisasi master supir dan
+kendaraan; UI approval/penolakan lengkap dan implementasi JUL belum selesai. Panduan
+konfigurasi dan batas penyimpanan dokumen ada di infra/prereg/README.md.
 
 ## Rencana implementasi
 
@@ -176,62 +202,60 @@ dengan input PO, tanpa pemeriksaan DP dan tanpa pembuatan loading note otomatis.
 
 ### site/api
 
-| Domain                          | Cakupan                                                                            | PRD                                          | Status                     |
-| ------------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------- | -------------------------- |
-| `site/api/domains/journey`      | Satu catatan per kunjungan truk: tahap saat ini, pengikatan kartu, audit           | FR-008–FR-010, FR-043                        | kerangka                   |
-| `site/api/domains/registration` | Reg IN dan Reg OUT, cache prereg, QR, fallback QR, registrasi tanpa prereg, keluar | FR-001–FR-010, FR-027, FR-029, FR-045–FR-047 | direncanakan (router saja) |
-| `site/api/domains/weighbridge`  | Pengganti WB.NET: tap 1/2, penimbangan, OCR, pemeriksaan AI, toleransi, tiket      | FR-011–FR-019, FR-028, FR-048–FR-050         | direncanakan (router saja) |
-| `site/api/domains/tcs`          | Alur yang dapat dikonfigurasi, tahap, input stasiun, keputusan QC                  | FR-020–FR-026                                | direncanakan (router saja) |
-| `site/api/domains/sync`         | Outbox/inbox dengan HO, rekonsiliasi, klien prereg                                 | FR-031–FR-036, AWB-15                        | selesai                    |
-| `site/api/domains/erp`          | Posting ke SAP (keluar saja)                                                       | FR-037, O-07                                 | direncanakan               |
-
-| Modul                              | Fungsi                                                                       | Status   |
-| ---------------------------------- | ---------------------------------------------------------------------------- | -------- |
-| `site/api/domains/journey/journey` | Membaca journey berdasarkan id (contoh pola modul; data sementara di memori) | kerangka |
+| Modul                           | Cakupan                                                                                                              | PRD                                          | Status                                     |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------ |
+| `site/api/modules/journey`      | Satu catatan kunjungan truk; routes/service/repository/schema, data contoh di memori                                 | FR-008–FR-010, FR-043                        | kerangka                                   |
+| `site/api/modules/registration` | Reg IN/OUT, QR dan registrasi tanpa prereg                                                                           | FR-001–FR-010, FR-027, FR-029, FR-045–FR-047 | router saja                                |
+| `site/api/modules/weighbridge`  | Tap, penimbangan, OCR, AI, toleransi dan tiket                                                                       | FR-011–FR-019, FR-028, FR-048–FR-050         | router saja                                |
+| `site/api/modules/tcs`          | Alur, stasiun, pemeriksaan dan keputusan QC                                                                          | FR-020–FR-026                                | router saja                                |
+| `site/api/modules/sync`         | Pull master supir/kendaraan, validasi contract/target, inbox/watermark/ack, worker dan kontrol manual berautentikasi | AWB-15; sebagian FR-031–FR-036               | selesai lokal untuk master supir/kendaraan |
+| `site/api/modules/erp`          | Posting hasil ke SAP                                                                                                 | FR-037, O-07                                 | direncanakan; belum ada implementasi       |
 
 ### prereg/api
 
-| Modul                                 | Fungsi                                                                                                                                 | PRD            | Status                                                     |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------- | ---------------------------------------------------------- |
-| `prereg/api/modules/pre-registration` | Membaca Customer Pre-Registration berdasarkan id (contoh pola modul; data sementara di memori)                                         | FR-001         | kerangka                                                   |
-| `prereg/api/modules/internal-user`    | Pengelolaan akun staf internal (ADMIN only), pembuatan password sistem, reset password, pembatasan akses pabrik, dan autentikasi peran | FR-040, FR-041 | selesai                                                    |
-| `prereg/api/modules/role-permission`  | Pengelolaan hak akses izin peran dan menu, penolakan akses terlarang (HTTP 403), dan matriks perizinan peran                           | FR-042         | selesai                                                    |
-| `prereg/api/modules/auth`             | Login, logout, profil sesi, throttle bersama dan peningkatan hash lama secara eksplisit                                                | FR-040         | selesai untuk cakupan ini                                  |
-| `prereg/api/modules/document`         | Upload JPEG/PNG/PDF privat (5 MB), validasi signature, unduh berdasarkan UUID dan pemeriksaan pemilik/reviewer                         | AWB-11         | selesai lokal; volume persisten diperlukan pada deployment |
-| `prereg/api/modules/driver-request` | Daftar, detail, submit/resubmit dan approval logistik bersama outbox | AWB-10, AWB-12, AWB-14 | terintegrasi; perbaikan hasil review menyusul |
-| `prereg/api/modules/sync`             | Antrean keluar sinkronisasi (outbox) dan konfirmasi terima dari pabrik dengan autentikasi layanan                                      | K-19, AWB-14   | selesai                                                    |
+| Modul                                 | Fungsi                                                                                                                                 | PRD                    | Status                                                     |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ---------------------------------------------------------- |
+| `prereg/api/modules/pre-registration` | Membaca Customer Pre-Registration berdasarkan id (contoh pola modul; data sementara di memori)                                         | FR-001                 | kerangka                                                   |
+| `prereg/api/modules/internal-user`    | Pengelolaan akun staf internal (ADMIN only), pembuatan password sistem, reset password, pembatasan akses pabrik, dan autentikasi peran | FR-040, FR-041         | selesai                                                    |
+| `prereg/api/modules/role-permission`  | Pengelolaan hak akses izin peran dan menu, penolakan akses terlarang (HTTP 403), dan matriks perizinan peran                           | FR-042                 | selesai                                                    |
+| `prereg/api/modules/auth`             | Login, logout, profil sesi, throttle bersama dan peningkatan hash lama secara eksplisit                                                | FR-040                 | selesai untuk cakupan ini                                  |
+| `prereg/api/modules/document`         | Upload JPEG/PNG/PDF privat (5 MB), validasi signature, unduh berdasarkan UUID dan pemeriksaan pemilik/reviewer                         | AWB-11                 | selesai lokal; volume persisten diperlukan pada deployment |
+| `prereg/api/modules/driver-request`   | Daftar, detail, submit/resubmit dan approval logistik bersama outbox                                                                   | AWB-10, AWB-12, AWB-14 | terintegrasi; perbaikan hasil review menyusul              |
+| `prereg/api/modules/sync`             | Antrean keluar sinkronisasi (outbox) dan konfirmasi terima dari pabrik dengan autentikasi layanan                                      | K-19, AWB-14           | selesai                                                    |
 
 ## C. Endpoint API
 
-| Aplikasi   | Metode | Path                                                                                | Modul            | Status                                                                |
-| ---------- | ------ | ----------------------------------------------------------------------------------- | ---------------- | --------------------------------------------------------------------- |
-| site/api   | GET    | `/health`, `/api/journeys/:id`                                                      | health/journey   | tidak berubah                                                         |
-| site/api   | —      | `/api/registration`, `/api/weighbridge`, `/api/tcs`, `/api/sync`                    | router domain    | kerangka                                                              |
-| prereg/api | GET    | `/health`                                                                           | app              | selesai                                                               |
-| prereg/api | POST   | `/api/auth/login`                                                                   | auth             | bcrypt, cookie sesi; username atau kode SAP yang terhubung            |
-| prereg/api | GET    | `/api/auth/me`                                                                      | auth             | identitas dan izin terkini                                            |
-| prereg/api | POST   | `/api/auth/logout`                                                                  | auth             | membatalkan token di server                                           |
-| prereg/api | GET    | `/api/users`, `/api/users/:id`                                                      | internal-user    | ADMIN; filter dan pagination, maksimum 100 baris                      |
-| prereg/api | GET    | `/api/users/options`                                                                | internal-user    | ADMIN; pilihan role dan pabrik                                        |
-| prereg/api | POST   | `/api/users`                                                                        | internal-user    | ADMIN; akun mitra/internal, bcrypt, kredensial di console development |
-| prereg/api | PUT    | `/api/users/:id`                                                                    | internal-user    | ADMIN; simpan data dan batalkan sesi akun                             |
-| prereg/api | PATCH  | `/api/users/:id/status`                                                             | internal-user    | ADMIN; cegah hilangnya admin aktif terakhir                           |
-| prereg/api | POST   | `/api/users/:id/reset-password`                                                     | internal-user    | ADMIN; batalkan sesi; development saja hingga delivery tersedia       |
-| prereg/api | —      | `/api/internal-users/*`                                                             | internal-user    | alias terautentikasi untuk API akun; tidak lagi memakai header role   |
-| prereg/api | GET    | `/api/access/permissions`, `/api/access/roles`, `/api/access/roles/:id/permissions` | role-permission  | ADMIN; katalog dan matriks database                                   |
-| prereg/api | PUT    | `/api/access/roles/:id/permissions`                                                 | role-permission  | ADMIN; perubahan atomik dan audit; ADMIN tidak dibatasi               |
-| prereg/api | POST   | `/api/documents/upload`                                                             | document         | sesi dan izin upload; kategori sim/driver/stnk; disk streaming        |
-| prereg/api | GET    | `/api/documents/:id`                                                                | document         | UUID; hanya pemilik, ADMIN atau LOGISTIC berizin                      |
-| prereg/api | GET    | `/api/driver-requests`                                                              | driver-request   | sesi dan izin baca; cursorAt/cursorId, status, limit maksimum 100     |
-| prereg/api | GET    | `/api/driver-requests/transporters`                                                 | driver-request   | daftar transporter aktif untuk dropdown form pengajuan                |
-| prereg/api | GET    | `/api/driver-requests/:id`                                                          | driver-request   | detail pengajuan; hanya pemilik, ADMIN atau LOGISTIC berizin          |
-| prereg/api | POST   | `/api/driver-requests`                                                              | driver-request   | submit pengajuan baru; validasi duplikat no. SIM dan plat aktif       |
-| prereg/api | PUT    | `/api/driver-requests/:id`                                                          | driver-request   | resubmit setelah REJECTED; hanya pemilik; validasi duplikat ulang     |
-| prereg/api | POST   | `/api/driver-requests/:id/approve`                                                  | driver-request   | LOGISTIC/ADMIN; approval atomik bersama penulisan event sinkronisasi  |
-| prereg/api | GET    | `/api/internal/sync/outbox`                                                         | sync             | autentikasi layanan; kirim pesan sinkronisasi setelah nomor X         |
-| prereg/api | POST   | `/api/internal/sync/ack`                                                            | sync             | autentikasi layanan; konfirmasi penerimaan sampai nomor Y             |
-| prereg/api | GET    | `/api/pre-registrations/:id`                                                        | pre-registration | dilindungi izin prereg:read; isi masih contoh                         |
-| prereg/api | —      | `/api/internal/*`                                                                   | internal         | belum ada handler sinkronisasi; belum siap dipakai pabrik             |
+| Aplikasi   | Metode | Path                                                                                | Modul            | Status                                                                   |
+| ---------- | ------ | ----------------------------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------ |
+| site/api   | GET    | `/health`, `/api/journeys/:id`                                                      | health/journey   | tidak berubah                                                            |
+| site/api   | —      | `/api/registration`, `/api/weighbridge`, `/api/tcs`                                 | modul            | router kerangka                                                          |
+| site/api   | GET    | `/api/sync/status`                                                                  | sync             | status worker dan watermark lokal                                        |
+| site/api   | POST   | `/api/sync/pull`                                                                    | sync             | kunci layanan pabrik; pull manual memakai siklus yang sama dengan worker |
+| prereg/api | GET    | `/health`                                                                           | app              | selesai                                                                  |
+| prereg/api | POST   | `/api/auth/login`                                                                   | auth             | bcrypt, cookie sesi; username atau kode SAP yang terhubung               |
+| prereg/api | GET    | `/api/auth/me`                                                                      | auth             | identitas dan izin terkini                                               |
+| prereg/api | POST   | `/api/auth/logout`                                                                  | auth             | membatalkan token di server                                              |
+| prereg/api | GET    | `/api/users`, `/api/users/:id`                                                      | internal-user    | ADMIN; filter dan pagination, maksimum 100 baris                         |
+| prereg/api | GET    | `/api/users/options`                                                                | internal-user    | ADMIN; pilihan role dan pabrik                                           |
+| prereg/api | POST   | `/api/users`                                                                        | internal-user    | ADMIN; akun mitra/internal, bcrypt, kredensial di console development    |
+| prereg/api | PUT    | `/api/users/:id`                                                                    | internal-user    | ADMIN; simpan data dan batalkan sesi akun                                |
+| prereg/api | PATCH  | `/api/users/:id/status`                                                             | internal-user    | ADMIN; cegah hilangnya admin aktif terakhir                              |
+| prereg/api | POST   | `/api/users/:id/reset-password`                                                     | internal-user    | ADMIN; batalkan sesi; development saja hingga delivery tersedia          |
+| prereg/api | —      | `/api/internal-users/*`                                                             | internal-user    | alias terautentikasi untuk API akun; tidak lagi memakai header role      |
+| prereg/api | GET    | `/api/access/permissions`, `/api/access/roles`, `/api/access/roles/:id/permissions` | role-permission  | ADMIN; katalog dan matriks database                                      |
+| prereg/api | PUT    | `/api/access/roles/:id/permissions`                                                 | role-permission  | ADMIN; perubahan atomik dan audit; ADMIN tidak dibatasi                  |
+| prereg/api | POST   | `/api/documents/upload`                                                             | document         | sesi dan izin upload; kategori sim/driver/stnk; disk streaming           |
+| prereg/api | GET    | `/api/documents/:id`                                                                | document         | UUID; hanya pemilik, ADMIN atau LOGISTIC berizin                         |
+| prereg/api | GET    | `/api/driver-requests`                                                              | driver-request   | sesi dan izin baca; cursorAt/cursorId, status, limit maksimum 100        |
+| prereg/api | GET    | `/api/driver-requests/transporters`                                                 | driver-request   | daftar transporter aktif untuk dropdown form pengajuan                   |
+| prereg/api | GET    | `/api/driver-requests/:id`                                                          | driver-request   | detail pengajuan; hanya pemilik, ADMIN atau LOGISTIC berizin             |
+| prereg/api | POST   | `/api/driver-requests`                                                              | driver-request   | submit pengajuan baru; validasi duplikat no. SIM dan plat aktif          |
+| prereg/api | PUT    | `/api/driver-requests/:id`                                                          | driver-request   | resubmit setelah REJECTED; hanya pemilik; validasi duplikat ulang        |
+| prereg/api | POST   | `/api/driver-requests/:id/approve`                                                  | driver-request   | LOGISTIC/ADMIN; approval atomik bersama penulisan event sinkronisasi     |
+| prereg/api | GET    | `/api/internal/sync/outbox`                                                         | sync             | autentikasi layanan; kirim pesan sinkronisasi setelah nomor X            |
+| prereg/api | POST   | `/api/internal/sync/ack`                                                            | sync             | autentikasi layanan; konfirmasi penerimaan sampai nomor Y                |
+| prereg/api | GET    | `/api/pre-registrations/:id`                                                        | pre-registration | dilindungi izin prereg:read; isi masih contoh                            |
+| prereg/api | —      | `/api/internal/*`                                                                   | internal         | autentikasi layanan terikat pabrik; outbox dan ack                       |
 
 Route contoh `/api/access/protected/*` dan helper publik `/api/access/check-access` dihapus. OTP dan email tidak diaktifkan; self-service recovery menampilkan status belum tersedia. Endpoint pembuatan/reset akun mengembalikan 503 sebelum mutasi pada production hingga delivery tersedia.
 
@@ -276,6 +300,7 @@ Schema prereg menyatukan akun dan data master/pengajuan. Schema site masih koson
 | `20261105110000_account_filter_indexes` | prereg/api | Indeks urutan akun, updated_at, trigram phone dan nama pabrik untuk filter server |
 | `20261106110000_simplify_account_masters` | prereg/api | Backfill nama kota/lokasi akun; hapus City, Partner dan UserPartner; login langsung mst_user |
 | `20261106160000_sync_outbox` | prereg/api | Kolom site_id pada pengajuan dan tabel sys_sync_outbox untuk antrean sinkronisasi pabrik |
+| `20261106170000_request_uniqueness` | prereg/api | Unique index parsial SIM dan plat pengajuan aktif, tahan penulisan bersamaan |
 | `20261106093604_plant_driver_vehicle_sync` | site/api | Tabel mst_driver, mst_vehicle, sys_sync_inbox dan sys_sync_state di database pabrik (SQL Server) |
 
 ## E. Contract (format data antar aplikasi)
@@ -311,6 +336,7 @@ Skema di `@awb/contracts`; format sesi/akun dipakai API dan frontend.
 
 | `sortDirection` | `common/sorting.ts` | API dan UI | Validasi asc/desc |
 | `accountSortFields` | `common/sorting.ts` | API dan frontend | Allowlist kolom akun |
+| `driverRequestSortFields` | `common/sorting.ts` | API dan frontend | Allowlist urutan pengajuan supir/kendaraan |
 | `roleSortFields` | `common/sorting.ts` | API dan frontend | Allowlist kolom peran |
 | `permissionSortFields` | `common/sorting.ts` | API dan frontend | Allowlist kolom izin |
 | `accountSortingQuery` | `common/sorting.ts` | API | Default createdAt desc |

@@ -17,22 +17,22 @@ module.exports = {
       to: { path: '^apps/' },
     },
     {
-      name: 'domain-public-api-only',
-      comment: "A site/api domain may use another domain only through that domain's index.ts.",
+      name: 'no-api-module-barrels',
+      comment:
+        'API modules use explicit routes, services, schemas and repositories without index.ts barrels.',
       severity: 'error',
-      from: { path: '^apps/site/api/src/domains/([^/]+)/' },
+      from: { path: '^apps/[^/]+/api/src/' },
       to: {
-        path: '^apps/site/api/src/domains/[^/]+/',
-        pathNot: ['^apps/site/api/src/domains/$1/', '^apps/site/api/src/domains/[^/]+/index\\.ts$'],
+        path: '^apps/[^/]+/api/src/modules/.+/index\\.ts$',
       },
     },
     {
-      name: 'devices-do-not-import-domains',
+      name: 'devices-do-not-import-modules',
       comment:
-        'Controller I/O stays below business logic: domains use devices/, never the reverse.',
+        'Controller I/O stays below business logic: modules use devices/, never the reverse.',
       severity: 'error',
       from: { path: '^apps/site/api/src/devices/' },
-      to: { path: '^apps/site/api/src/domains/' },
+      to: { path: '^apps/site/api/src/modules/' },
     },
     {
       name: 'database-only-in-repositories',

@@ -3,9 +3,9 @@ import { env } from './config/env'
 import { controllers } from './config/controllers'
 import { prisma } from './config/prisma'
 import { startControllers } from './devices'
-import { startSyncWorker, stopSyncWorker } from './domains/sync'
+import { startSyncWorker, stopSyncWorker } from './modules/sync/sync.worker'
 
-const server = app.listen(env.PORT, () => {
+const server = app.listen(env.PORT, env.HOST, () => {
   console.log(
     `site-api listening on :${env.PORT} (site ${env.SITE_ID}, ${controllers.length} controllers)`,
   )

@@ -1,9 +1,21 @@
 import { SkeletonCell, type TableColumn } from '@awb/ui'
 
 export const tableLoadingColumns: Record<
-  'accounts' | 'roles' | 'permissions',
+  'accounts' | 'roles' | 'permissions' | 'requests',
   TableColumn<never>[]
 > = {
+  requests: [
+    { key: 'driver', header: 'Driver', skeleton: <SkeletonCell lines={2} width="75%" /> },
+    { key: 'vehicle', header: 'Vehicle', skeleton: <SkeletonCell width="7rem" /> },
+    { key: 'createdAt', header: 'Submitted Date', skeleton: <SkeletonCell width="6rem" /> },
+    { key: 'status', header: 'Status', skeleton: <SkeletonCell kind="badge" width="6rem" /> },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      skeleton: <SkeletonCell kind="actions" count={1} />,
+    },
+  ].map((column) => ({ ...column, render: () => null })) as TableColumn<never>[],
   accounts: [
     { key: 'name', header: 'User', skeleton: <SkeletonCell lines={2} width="9rem" /> },
     { key: 'role', header: 'Role', skeleton: <SkeletonCell lines={2} width="7rem" /> },
@@ -41,6 +53,7 @@ export const loadingCell = (view: keyof typeof tableLoadingColumns, key: string)
   tableLoadingColumns[view].find((column) => column.key === key)?.skeleton
 
 const widths: Record<keyof typeof tableLoadingColumns, Record<string, string>> = {
+  requests: { driver: '30%', vehicle: '20%', createdAt: '20%', status: '18%', actions: '12%' },
   accounts: {
     name: '23%',
     role: '16%',

@@ -81,7 +81,7 @@ describe('UUID driver and vehicle data', () => {
         driverBirthPlace: 'Test city',
         driverBirthDate: new Date('1990-01-01'),
         driverPhone: '0800000000',
-        vehiclePlateNumber: `CURSOR-${index}`,
+        vehiclePlateNumber: `CURSOR-${randomUUID().slice(0, 12)}-${index}`,
         createdAt,
       })),
     })

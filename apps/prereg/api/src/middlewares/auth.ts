@@ -25,7 +25,7 @@ export const sessionCookie = (token: string, expires?: Date) =>
   })
 
 export const sameOrigin: RequestHandler = (req, _res, next) => {
-  if (req.path.startsWith('/internal')) {
+  if (req.path === '/internal' || req.path.startsWith('/internal/')) {
     next()
     return
   }

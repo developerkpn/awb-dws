@@ -2,6 +2,11 @@ import { useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { Plus, Pencil, Truck } from '@/ui/icons'
 import { useDriverRequests } from '@/hooks/driverRequest'
+import { usePagination } from '@/hooks/usePagination'
+import { useSorting } from '@/hooks/useSorting'
+import { driverRequestSortFields } from '@awb/contracts'
+import { SkeletonCell } from '@awb/ui'
+import { tableLayout } from '@/ui/loadingLayouts'
 import { Table, type TableColumn } from '@/ui/Table'
 import { Badge } from '@/ui/Badge'
 import { Button } from '@/ui/Button'
@@ -11,14 +16,28 @@ import ErrorState from '@/components/ErrorState'
 import { EmptyState } from '@/ui/EmptyState'
 import type { DriverRequestItem } from '@/types/driverRequest'
 
-type StatusFilter = 'ALL' | 'SUBMITTED' | 'APPROVED' | 'REJECTED'
+type StatusFilter = 'ALL' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'SENT_TO_PLANT'
 
 export default function PreRegistrationList() {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
+  const pagination = usePagination()
+  const { sortBy, sortDirection, sorting } = useSorting(
+    driverRequestSortFields,
+    'createdAt',
+    'desc',
+  )
 
-  const currentStatus = (searchParams.get('status') as StatusFilter) || 'ALL'
+  const rawStatus = searchParams.get('status')
+  const currentStatus: StatusFilter = [
+    'SUBMITTED',
+    'APPROVED',
+    'REJECTED',
+    'SENT_TO_PLANT',
+  ].includes(rawStatus ?? '')
+    ? (rawStatus as StatusFilter)
+    : 'ALL'
 
   const locationState = location.state as { notice?: string } | null
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(
@@ -27,10 +46,14 @@ export default function PreRegistrationList() {
 
   const requestsQuery = useDriverRequests({
     status: currentStatus === 'ALL' ? undefined : currentStatus,
-    limit: 50,
+    page: pagination.page,
+    limit: pagination.limit,
+    sortBy,
+    sortDirection,
   })
 
   const handleStatusChange = (status: StatusFilter) => {
+    searchParams.set('page', '1')
     if (status === 'ALL') {
       searchParams.delete('status')
     } else {
@@ -43,6 +66,9 @@ export default function PreRegistrationList() {
     {
       key: 'driver',
       header: 'Driver',
+      sortKey: 'driverName',
+      width: '30%',
+      skeleton: <SkeletonCell lines={2} width="75%" />,
       render: (item) => (
         <div>
           <p className="font-medium text-stone-900">{item.driverName}</p>
@@ -53,6 +79,9 @@ export default function PreRegistrationList() {
     {
       key: 'vehicle',
       header: 'Vehicle',
+      sortKey: 'vehiclePlateNumber',
+      width: '20%',
+      skeleton: <SkeletonCell width="7rem" />,
       render: (item) => (
         <div className="flex items-center gap-1.5 font-mono text-sm text-stone-800">
           <Truck className="size-4 text-stone-400" />
@@ -63,6 +92,9 @@ export default function PreRegistrationList() {
     {
       key: 'createdAt',
       header: 'Submitted Date',
+      sortKey: 'createdAt',
+      width: '20%',
+      skeleton: <SkeletonCell width="6rem" />,
       render: (item) => (
         <span className="text-sm text-stone-600">
           {new Date(item.createdAt).toLocaleDateString('en-US', {
@@ -76,6 +108,9 @@ export default function PreRegistrationList() {
     {
       key: 'status',
       header: 'Status',
+      sortKey: 'status',
+      width: '18%',
+      skeleton: <SkeletonCell kind="badge" width="6rem" />,
       render: (item) => {
         switch (item.status) {
           case 'APPROVED':
@@ -93,6 +128,8 @@ export default function PreRegistrationList() {
     {
       key: 'actions',
       header: 'Actions',
+      width: '12%',
+      skeleton: <SkeletonCell kind="actions" count={1} />,
       align: 'right',
       render: (item) => (
         <div className="flex items-center justify-end gap-2">
@@ -146,6 +183,7 @@ export default function PreRegistrationList() {
             { key: 'SUBMITTED', label: 'Pending Review' },
             { key: 'APPROVED', label: 'Approved' },
             { key: 'REJECTED', label: 'Needs Revision' },
+            { key: 'SENT_TO_PLANT', label: 'Sent to Plant' },
           ] as const
         ).map((tab) => {
           const isActive = currentStatus === tab.key
@@ -171,7 +209,7 @@ export default function PreRegistrationList() {
           message="Failed to load requests from server. Please try again."
           onRetry={() => requestsQuery.refetch()}
         />
-      ) : items.length === 0 && !requestsQuery.isLoading ? (
+      ) : items.length === 0 && !requestsQuery.isPending && pagination.page === 1 ? (
         <EmptyState title="No Requests Found" icon={<Truck className="size-10 text-stone-300" />}>
           <p className="mt-1">
             {currentStatus !== 'ALL'
@@ -188,16 +226,15 @@ export default function PreRegistrationList() {
         </EmptyState>
       ) : (
         <Table
-          columns={columns}
+          columns={tableLayout('requests', columns)}
           data={items}
           keyExtractor={(item) => item.id}
-          isLoading={requestsQuery.isLoading}
+          isLoading={requestsQuery.isPending}
+          sorting={{ ...sorting, isLoading: requestsQuery.isFetching }}
           pagination={{
-            page: 1,
-            limit: 50,
-            total: items.length,
-            onPageChange: () => {},
-            onPageSizeChange: () => {},
+            ...pagination,
+            total: requestsQuery.data?.total ?? 0,
+            isLoading: requestsQuery.isFetching,
           }}
         />
       )}
