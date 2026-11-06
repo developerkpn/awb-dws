@@ -11,3 +11,18 @@ export const listDriverRequests = z
     message: 'Supply both cursorId and cursorAt',
     path: ['cursorId'],
   })
+
+export const driverRequestBody = z.object({
+  driverLicenseNumber: z.string().trim().min(1).max(50),
+  driverName: z.string().trim().min(1).max(200),
+  driverAddress: z.string().trim().min(1).max(500),
+  driverBirthPlace: z.string().trim().min(1).max(100),
+  driverBirthDate: z.iso.date(),
+  driverPhone: z.string().trim().min(1).max(30),
+  driverCity: z.string().trim().max(100).optional(),
+  driverLicensePhotoUrl: z.string().trim().max(500).optional(),
+  driverPhotoUrl: z.string().trim().max(500).optional(),
+  vehiclePlateNumber: z.string().trim().min(1).max(20),
+  transporterId: z.uuid().optional(),
+  vehicleStnkPhotoUrl: z.string().trim().max(500).optional(),
+})
