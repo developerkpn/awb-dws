@@ -1,5 +1,7 @@
 import type { UseFormReturn } from 'react-hook-form'
-import { AuthLayout, Button, Input } from '@awb/ui'
+import { Input } from '@/ui/Field'
+import { Button } from '@/ui/Button'
+import { FormError } from '@/ui/Field'
 import type { LoginFormData } from '@/types/auth'
 
 interface LoginFormProps {
@@ -12,49 +14,61 @@ interface LoginFormProps {
 
 export function LoginForm({ form, error, isLoading, onSubmit, onForgotPassword }: LoginFormProps) {
   return (
-    <AuthLayout
-      badge="AWB-DWS LOGISTICS"
-      heroTitle="Automated Weighbridge & Gate Access Control"
-      heroDescription="Manage supplier arrivals, digital pre-registration queues, and weighbridge ticketing."
-      logo={<img src="/kpn-corp.png" alt="KPN" style={{ height: '34px', objectFit: 'contain' }} />}
-      title="Sign in"
-    >
-      <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
-        {error && (
-          <p className="awb-error" role="alert">
-            {error}
-          </p>
-        )}
+    <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="space-y-4">
+      <FormError message={error} />
+
+      <Input
+        aria-label="Username"
+        placeholder="Username"
+        autoComplete="username"
+        required
+        {...form.register('username')}
+        disabled={isLoading}
+      />
+      {form.formState.errors.username && (
+        <p className="text-xs text-brand-700">{form.formState.errors.username.message}</p>
+      )}
+
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label htmlFor="password" className="block text-sm font-medium text-stone-700">
+            Password
+          </label>
+          <button
+            type="button"
+            onClick={onForgotPassword}
+            className="text-xs font-medium text-brand-700 hover:text-brand-800"
+          >
+            Forgot password?
+          </button>
+        </div>
         <Input
-          label="Username"
-          autoComplete="username"
-          required
-          {...form.register('username')}
-          error={form.formState.errors.username?.message}
-          disabled={isLoading}
-        />
-        <Input
-          label="Password"
+          id="password"
           type="password"
+          placeholder="••••••••"
           autoComplete="current-password"
           required
           {...form.register('password')}
-          error={form.formState.errors.password?.message}
           disabled={isLoading}
-          rightLabelAction={
-            <button className="awb-text-button" type="button" onClick={onForgotPassword}>
-              Forgot password?
-            </button>
-          }
         />
-        <label className="awb-remember">
-          <input type="checkbox" {...form.register('rememberMe')} disabled={isLoading} />
-          Remember me on this device
-        </label>
-        <Button type="submit" fullWidth isLoading={isLoading}>
-          Sign In
-        </Button>
-      </form>
-    </AuthLayout>
+        {form.formState.errors.password && (
+          <p className="text-xs text-brand-700">{form.formState.errors.password.message}</p>
+        )}
+      </div>
+
+      <label className="flex items-center gap-2.5 text-sm text-stone-600">
+        <input
+          type="checkbox"
+          {...form.register('rememberMe')}
+          disabled={isLoading}
+          className="size-4 rounded border-stone-300 accent-brand-600"
+        />
+        Remember me on this device
+      </label>
+
+      <Button type="submit" isLoading={isLoading} className="w-full">
+        Sign in
+      </Button>
+    </form>
   )
 }

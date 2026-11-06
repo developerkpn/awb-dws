@@ -1,30 +1,50 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { authKeys } from '@/hooks/auth'
+import type { PermissionSortField, RoleSortField } from '@awb/contracts'
 import { fetchApi } from '@/utils/api'
-import type { Permission, RolePermissions, UpdatePermissionsInput } from '@/types/permission'
+import type {
+  Permission,
+  RoleSummary,
+  RolePermissions,
+  UpdatePermissionsInput,
+  AccessListFilters,
+} from '@/types/permission'
+import type { PaginatedResponse } from '@/types/api'
 
 export const permissionKeys = {
-  catalogue: ['permissions', 'catalogue'] as const,
-  roles: ['permissions', 'roles'] as const,
+  all: ['permissions'] as const,
+  catalogue: (filters: AccessListFilters) => ['permissions', 'catalogue', filters] as const,
+  roles: (filters: AccessListFilters) => ['permissions', 'roles', filters] as const,
+  role: (id: string) => ['permissions', 'role', id] as const,
 }
 
-export function usePermissions() {
+export function usePermissions(filters: AccessListFilters<PermissionSortField>) {
   return useQuery({
-    queryKey: permissionKeys.catalogue,
-    queryFn: ({ signal }) => fetchApi<Permission[]>('/access/permissions', { signal }),
+    queryKey: permissionKeys.catalogue(filters),
+    queryFn: ({ signal }) =>
+      fetchApi<PaginatedResponse<Permission>>('/access/permissions', { params: filters, signal }),
   })
 }
 
-export function useRolePermissions() {
+export function useRolePermissions(filters: AccessListFilters<RoleSortField>) {
   return useQuery({
-    queryKey: permissionKeys.roles,
-    queryFn: ({ signal }) => fetchApi<RolePermissions[]>('/access/roles', { signal }),
+    queryKey: permissionKeys.roles(filters),
+    queryFn: ({ signal }) =>
+      fetchApi<PaginatedResponse<RoleSummary>>('/access/roles', { params: filters, signal }),
+  })
+}
+
+export function useRole(id: string) {
+  return useQuery({
+    queryKey: permissionKeys.role(id),
+    queryFn: ({ signal }) =>
+      fetchApi<RolePermissions>(`/access/roles/${id}/permissions`, { signal }),
+    enabled: !!id,
   })
 }
 
 export function useUpdateRolePermissions() {
   const queryClient = useQueryClient()
-
   return useMutation({
     mutationFn: ({ id, permissionCodes }: UpdatePermissionsInput) =>
       fetchApi<RolePermissions>(`/access/roles/${id}/permissions`, {
@@ -32,10 +52,11 @@ export function useUpdateRolePermissions() {
         data: { permissionCodes },
       }),
     onSuccess: async (updated) => {
-      queryClient.setQueryData<RolePermissions[]>(permissionKeys.roles, (previous) =>
-        previous?.map((role) => (role.id === updated.id ? updated : role)),
-      )
-      await queryClient.invalidateQueries({ queryKey: authKeys.session })
+      queryClient.setQueryData(permissionKeys.role(updated.id), updated)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['permissions', 'roles'] }),
+        queryClient.invalidateQueries({ queryKey: authKeys.session }),
+      ])
     },
   })
 }

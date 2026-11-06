@@ -1,0 +1,60 @@
+@import './tokens.css';
+.ui-summary-trigger {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: 14rem;
+  padding: 0.25rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--ui-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.ui-summary-trigger > span {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.ui-summary-trigger strong {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.ui-summary-trigger svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--ui-faint);
+}
+.ui-summary-trigger small {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--ui-muted);
+}
+.ui-summary-trigger:hover strong {
+  color: var(--ui-accent);
+}
+.ui-summary-trigger:focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 3px;
+  border-radius: 0.25rem;
+}
+.ui-summary-menu {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 1rem;
+  max-height: min(24rem, calc(100dvh - 1rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--ui-border);
+  border-radius: 0.875rem;
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  font-family: var(--ui-font-sans);
+  box-shadow: 0 12px 36px #00000020;
+}

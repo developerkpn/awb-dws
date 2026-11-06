@@ -1,12 +1,22 @@
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button, Input } from '@awb/ui'
+import {
+  Button,
+  Field,
+  Input,
+  Select,
+  FormError,
+  FormSection,
+  PageHeader,
+  PageSkeleton,
+  useConfirm,
+} from '@awb/ui'
+import { ArrowLeft, Users, ShieldCheck, Save } from '@/ui/icons'
 import { useUserOptions } from '@/hooks/user'
-import { useDebounce } from '@/hooks/useDebounce'
 import { getErrorMessage } from '@/utils/errorHandler'
-import type { Partner, User, UserFormData } from '@/types/user'
+import type { User, UserFormData } from '@/types/user'
 import { userFormSchema } from './schema'
+import './account-form.css'
 
 interface UserFormProps {
   user?: User
@@ -15,23 +25,18 @@ interface UserFormProps {
   onSubmit: (data: UserFormData) => Promise<void>
   onCancel: () => void
 }
-
-const defaultValues: UserFormData = {
+const defaults: UserFormData = {
   name: '',
   username: '',
   email: '',
   phone: '',
   accountType: 'INTERNAL',
   role: 'LOGISTIC',
-  partnerIds: [],
   plantIds: [],
 }
 
 export default function UserForm({ user, isSubmitting, error, onSubmit, onCancel }: UserFormProps) {
-  const [search, setSearch] = useState('')
-  const [selectedPartners, setSelectedPartners] = useState<Partner[]>(user?.partners ?? [])
-  const partnerSearch = useDebounce(search)
-  const options = useUserOptions(partnerSearch)
+  const confirm = useConfirm()
   const form = useForm<UserFormData>({
     resolver: zodResolver(userFormSchema),
     defaultValues: user
@@ -42,177 +47,273 @@ export default function UserForm({ user, isSubmitting, error, onSubmit, onCancel
           phone: user.phone ?? '',
           accountType: user.accountType,
           role: user.role,
-          partnerIds: user.partners.map((partner) => partner.id),
-          plantIds: user.plantAccess.map((plant) => plant.id),
+          plantIds: user.plantAccess.map((item) => item.id),
         }
-      : defaultValues,
+      : defaults,
   })
-
-  const accountType = form.watch('accountType')
-  const role = form.watch('role')
-  const partners = Array.from(
-    new Map(
-      [...selectedPartners, ...(options.data?.partners ?? [])].map((partner) => [
-        partner.id,
-        partner,
-      ]),
-    ).values(),
-  )
-  const roles =
-    options.data?.roles.filter((item) =>
-      accountType === 'PARTNER'
-        ? ['CUSTOMER', 'VENDOR', 'INTERCO'].includes(item.code)
-        : !['CUSTOMER', 'VENDOR', 'INTERCO'].includes(item.code),
-    ) ?? []
+  const values = form.watch()
   const errors = form.formState.errors
+  const partnerAccount = values.accountType === 'PARTNER'
+  const options = useUserOptions()
+  const roles =
+    options.data?.roles.filter(
+      (role) => partnerAccount === ['CUSTOMER', 'VENDOR'].includes(role.code),
+    ) ?? []
+  const flags = { shouldDirty: true }
+
+  const cancel = async () => {
+    if (
+      !form.formState.isDirty ||
+      (await confirm({
+        title: 'Discard account changes?',
+        description: 'Your unsaved account details will be lost.',
+        confirmLabel: 'Discard changes',
+        variant: 'danger',
+      }))
+    )
+      onCancel()
+  }
+  const changeType = (type: UserFormData['accountType']) => {
+    form.setValue('accountType', type, flags)
+    form.setValue('role', type === 'PARTNER' ? 'CUSTOMER' : 'LOGISTIC', flags)
+    form.setValue('plantIds', [], flags)
+    form.resetField('username', { defaultValue: '' })
+    form.clearErrors(['accountType', 'role', 'plantIds'])
+  }
+
+  if (options.isPending)
+    return (
+      <PageSkeleton message="Loading account options…" view="form" back partner={partnerAccount} />
+    )
 
   return (
-    <form className="awb-card awb-user-form" onSubmit={form.handleSubmit(onSubmit)}>
-      <h1>{user ? 'Edit account' : 'Add account'}</h1>
-      {error && (
-        <p role="alert" className="awb-error">
-          {error}
-        </p>
-      )}
-      {options.error && (
-        <p role="alert" className="awb-error">
-          {getErrorMessage(options.error)}
-        </p>
-      )}
-      <fieldset disabled={isSubmitting}>
-        <label className="awb-field">
-          Account type
-          <select
-            value={accountType}
-            disabled={!!user}
-            onChange={(event) => {
-              const value = event.target.value as UserFormData['accountType']
-              form.reset({
-                ...defaultValues,
-                accountType: value,
-                role: value === 'PARTNER' ? 'CUSTOMER' : 'LOGISTIC',
-              })
-              setSelectedPartners([])
-            }}
-          >
-            <option value="INTERNAL">Internal staff</option>
-            <option value="PARTNER">Partner</option>
-          </select>
-        </label>
-        <label className="awb-field">
-          Role *
-          <select
-            value={role}
-            onChange={(event) => {
-              form.setValue('role', event.target.value, { shouldValidate: true })
-              form.setValue('partnerIds', [])
-              if (!user && accountType === 'PARTNER') form.setValue('username', '')
-              setSelectedPartners([])
-            }}
-          >
-            {roles.map((item) => (
-              <option key={item.id} value={item.code}>
-                {item.code}
-              </option>
-            ))}
-          </select>
-        </label>
-        <Input
-          label={accountType === 'PARTNER' ? 'Company / partner name' : 'Full name'}
-          required
-          maxLength={150}
-          {...form.register('name')}
-          error={errors.name?.message}
-        />
-        {accountType === 'PARTNER' && (
-          <>
-            <Input
-              label="Search SAP partners"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              maxLength={100}
-            />
-            <label className="awb-field">
-              SAP partner codes *
-              <select
-                aria-label="SAP partner codes"
-                multiple
-                required
-                value={form.watch('partnerIds')}
-                onChange={(event) => {
-                  const ids = Array.from(event.target.selectedOptions).map((option) => option.value)
-                  form.setValue('partnerIds', ids, { shouldValidate: true })
-                  setSelectedPartners(partners.filter((partner) => ids.includes(partner.id)))
-                  if (!user)
-                    form.setValue(
-                      'username',
-                      partners.find((partner) => partner.id === ids[0])?.sapCode ?? '',
-                      { shouldValidate: true },
-                    )
-                }}
+    <div className="account-workspace">
+      <Button
+        size="sm"
+        variant="ghost"
+        icon={<ArrowLeft />}
+        disabled={isSubmitting}
+        onClick={() => void cancel()}
+      >
+        Back to accounts
+      </Button>
+      <PageHeader
+        title={user ? 'Edit account' : 'Create a new account'}
+        subtitle={
+          user
+            ? `Update the profile and access for ${user.username}.`
+            : 'Set up a profile, choose a role, and assign the access they need.'
+        }
+      />
+      <form noValidate onSubmit={form.handleSubmit(onSubmit)}>
+        <FormError message={error} />
+        {options.error && (
+          <div className="account-options-error">
+            <FormError message={getErrorMessage(options.error)} />
+            <Button variant="secondary" size="sm" onClick={() => void options.refetch()}>
+              Retry options
+            </Button>
+          </div>
+        )}
+        <div className="account-layout">
+          <fieldset disabled={isSubmitting} className="account-sections">
+            <FormSection
+              step="01"
+              title="Account identity"
+              description="Who is this account for? Their account type determines the available roles."
+            >
+              <div className="account-type-options" role="radiogroup" aria-label="Account type">
+                {(['INTERNAL', 'PARTNER'] as const).map((type) => (
+                  <label
+                    key={type}
+                    className="account-type-card"
+                    data-selected={values.accountType === type}
+                  >
+                    <input
+                      type="radio"
+                      name="accountType"
+                      value={type}
+                      checked={values.accountType === type}
+                      disabled={!!user}
+                      onChange={() => changeType(type)}
+                    />
+                    <Users />
+                    <span>
+                      <strong>{type === 'INTERNAL' ? 'Internal staff' : 'Business partner'}</strong>
+                      <small>
+                        {type === 'INTERNAL'
+                          ? 'Your operations and support teams'
+                          : 'Customers, vendors and intercompany'}
+                      </small>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              {user && (
+                <p className="account-note">
+                  Account type and username are permanent. You can update the profile and access
+                  below.
+                </p>
+              )}
+              <div className="account-fields">
+                <Field
+                  label={partnerAccount ? 'Company / partner name' : 'Full name'}
+                  htmlFor="account-name"
+                  required
+                  error={errors.name?.message}
+                >
+                  <Input
+                    id="account-name"
+                    autoComplete="name"
+                    placeholder={partnerAccount ? 'Company name' : 'Enter their full name'}
+                    maxLength={150}
+                    {...form.register('name')}
+                  />
+                </Field>
+                <Field label="Role" htmlFor="account-role" required error={errors.role?.message}>
+                  <Select
+                    id="account-role"
+                    value={values.role}
+                    onChange={(event) => {
+                      form.setValue('role', event.target.value, {
+                        ...flags,
+                        shouldValidate: form.formState.isSubmitted,
+                      })
+                      if (!user && partnerAccount) form.resetField('username', { defaultValue: '' })
+                    }}
+                  >
+                    {roles.map((role) => (
+                      <option key={role.id} value={role.code}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                <div className="account-full-width">
+                  <Field
+                    label={partnerAccount ? 'Username (SAP Code)' : 'Username'}
+                    htmlFor="account-username"
+                    required
+                    error={errors.username?.message}
+                    hint={
+                      partnerAccount
+                        ? 'Use the business partner’s SAP code as their username.'
+                        : 'Letters, numbers, dots, underscores, @ and hyphens are supported.'
+                    }
+                  >
+                    <Input
+                      id="account-username"
+                      autoComplete="off"
+                      placeholder={partnerAccount ? 'Enter the SAP code' : 'e.g. operations.team'}
+                      maxLength={100}
+                      readOnly={!!user}
+                      {...form.register('username')}
+                    />
+                  </Field>
+                </div>
+              </div>
+            </FormSection>
+            <FormSection
+              step="02"
+              title="Contact details"
+              description="Optional contact information for this person or business."
+            >
+              <div className="account-fields">
+                <Field label="Email address" htmlFor="account-email" error={errors.email?.message}>
+                  <Input
+                    id="account-email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="name@company.com"
+                    maxLength={254}
+                    {...form.register('email')}
+                  />
+                </Field>
+                <Field label="Phone number" htmlFor="account-phone" error={errors.phone?.message}>
+                  <Input
+                    id="account-phone"
+                    type="tel"
+                    autoComplete="tel"
+                    placeholder="+62"
+                    maxLength={40}
+                    {...form.register('phone')}
+                  />
+                </Field>
+              </div>
+            </FormSection>
+            {partnerAccount && (
+              <FormSection
+                step="03"
+                title="Plant access"
+                description="Select the plants this business partner can access. No selection grants no plant access."
               >
-                {partners
-                  .filter((partner) => partner.partnerType === role)
-                  .map((partner) => (
-                    <option key={partner.id} value={partner.id}>
-                      {partner.sapCode} — {partner.name}
-                    </option>
+                <div className="account-plant-options">
+                  {options.data?.plants.map((plant) => (
+                    <label key={plant.id} className="account-choice">
+                      <input type="checkbox" value={plant.id} {...form.register('plantIds')} />
+                      <span>
+                        <strong>{plant.name}</strong>
+                        <small>{plant.code}</small>
+                      </span>
+                    </label>
                   ))}
-              </select>
-              <small>
-                Search to find more codes. Hold Ctrl or Command to select multiple codes.
-              </small>
-              {errors.partnerIds && <span role="alert">{errors.partnerIds.message}</span>}
-            </label>
-          </>
-        )}
-        <Input
-          label={accountType === 'PARTNER' ? 'Username (SAP Code)' : 'Username'}
-          required
-          maxLength={100}
-          readOnly={!!user || accountType === 'PARTNER'}
-          {...form.register('username')}
-          error={errors.username?.message}
-        />
-        <Input
-          label="Email address"
-          type="email"
-          maxLength={254}
-          {...form.register('email')}
-          error={errors.email?.message}
-        />
-        <Input
-          label="Phone number"
-          maxLength={40}
-          {...form.register('phone')}
-          error={errors.phone?.message}
-        />
-        {accountType === 'PARTNER' && (
-          <label className="awb-field">
-            Plant access
-            <select aria-label="Plant access" multiple {...form.register('plantIds')}>
-              {options.data?.plants.map((plant) => (
-                <option key={plant.id} value={plant.id}>
-                  {plant.name}
-                </option>
-              ))}
-            </select>
-            <small>Only selected plants are assigned. No selection grants no plant access.</small>
-          </label>
-        )}
-        <div className="awb-toolbar">
-          <Button type="button" variant="secondary" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            isLoading={isSubmitting}
-            disabled={options.isPending || !!options.error}
-          >
-            {user ? 'Save changes' : 'Create account'}
-          </Button>
+                </div>
+              </FormSection>
+            )}
+          </fieldset>
+          <aside className="account-summary" aria-label="Account summary">
+            <div className="account-summary-icon">
+              <ShieldCheck />
+            </div>
+            <span className="account-eyebrow">Account preview</span>
+            <h2>{values.name || 'Your new account'}</h2>
+            <p>{values.username || 'Username not set'}</p>
+            <dl>
+              <div>
+                <dt>Account type</dt>
+                <dd>{partnerAccount ? 'Business partner' : 'Internal staff'}</dd>
+              </div>
+              <div>
+                <dt>Role</dt>
+                <dd>{roles.find((role) => role.code === values.role)?.name ?? values.role}</dd>
+              </div>
+              {partnerAccount && (
+                <div>
+                  <dt>Plant access</dt>
+                  <dd>{values.plantIds.length} selected</dd>
+                </div>
+              )}
+            </dl>
+            <div className="account-summary-note">
+              {user
+                ? 'Saving access changes ends this account’s existing sessions.'
+                : 'Sign-in credentials are generated when the account is created.'}
+            </div>
+          </aside>
         </div>
-      </fieldset>
-    </form>
+        <div className="account-save-bar">
+          <p>
+            {form.formState.isDirty
+              ? 'You have unsaved changes'
+              : user
+                ? 'Account details are up to date'
+                : 'Complete the required fields to create this account'}
+          </p>
+          <div>
+            <Button variant="secondary" disabled={isSubmitting} onClick={() => void cancel()}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              icon={<Save />}
+              isLoading={isSubmitting}
+              disabled={options.isPending || !!options.error}
+            >
+              {user ? 'Save changes' : 'Create account'}
+            </Button>
+          </div>
+        </div>
+      </form>
+    </div>
   )
 }

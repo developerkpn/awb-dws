@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Route, Routes } from 'react-router'
+import { BrowserRouter, Route, Routes, Navigate } from 'react-router'
 import { PERMISSION } from '@/constant/PERMISSION'
 import AuthLayout from '@/layout/AuthLayout'
 import BaseLayout from '@/layout/BaseLayout'
@@ -13,6 +13,7 @@ const ListUser = lazy(() => import('@/pages/user/listUser'))
 const AddUser = lazy(() => import('@/pages/user/addUser'))
 const EditUser = lazy(() => import('@/pages/user/editUser'))
 const PermissionOfRole = lazy(() => import('@/pages/role/permissionOfRole'))
+const ListRole = lazy(() => import('@/pages/role/listRole'))
 const PreRegistration = lazy(() => import('@/pages/preRegistration/listPreRegistration'))
 const Approval = lazy(() => import('@/pages/approval/listApproval'))
 const Forbidden = lazy(() => import('@/pages/forbidden'))
@@ -21,7 +22,7 @@ const NotFound = lazy(() => import('@/pages/notFound'))
 export default function App() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<LoadingState />}>
+      <Suspense fallback={<LoadingState shell />}>
         <Routes>
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<Login />} />
@@ -39,7 +40,9 @@ export default function App() {
               <Route path="/users/:id/edit" element={<EditUser />} />
             </Route>
             <Route element={<RBACLayout permission={PERMISSION.ROLE.READ} adminOnly />}>
-              <Route path="/roles/permissions" element={<PermissionOfRole />} />
+              <Route path="/roles" element={<ListRole />} />
+              <Route path="/roles/permissions" element={<Navigate to="/roles" replace />} />
+              <Route path="/roles/:id/permissions" element={<PermissionOfRole />} />
             </Route>
             <Route element={<RBACLayout permission={PERMISSION.PREREG.READ} />}>
               <Route path="/pre-registration" element={<PreRegistration />} />

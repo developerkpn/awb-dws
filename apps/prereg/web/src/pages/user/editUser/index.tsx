@@ -22,7 +22,7 @@ export default function EditUser() {
       await update.mutateAsync({ id, data })
       navigate('/users', { state: { notice: 'Account updated.' } })
     } catch {
-      // The mutation error is shown above the form.
+      // error shown by form
     }
   }
 

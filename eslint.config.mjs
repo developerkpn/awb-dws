@@ -21,6 +21,7 @@ export default tseslint.config(
   {
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
     rules: {
+      'no-alert': 'error',
       'no-restricted-syntax': [
         'error',
         {

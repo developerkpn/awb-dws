@@ -13,7 +13,7 @@ export default function AddUser() {
       const response = await create.mutateAsync(data)
       navigate('/users', { state: { notice: response.message } })
     } catch {
-      // The mutation error is shown above the form.
+      // error shown by form
     }
   }
 

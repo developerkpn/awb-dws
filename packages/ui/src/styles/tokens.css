@@ -1,0 +1,56 @@
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/inter/files/inter-latin-standard-normal.woff2') format('woff2');
+}
+
+:root {
+  --ui-font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ui-canvas: #f4f5f7;
+  --ui-surface: #ffffff;
+  --ui-subtle: #fafbfc;
+  --ui-hover: #f0f2f6;
+  --ui-text: #182230;
+  --ui-muted: #667085;
+  --ui-faint: #98a2b3;
+  --ui-border: #e4e7ec;
+  --ui-border-strong: #cdd3dd;
+  --ui-accent: #a32b27;
+  --ui-danger: #b42318;
+  --ui-danger-bg: #fff1f0;
+  --ui-success: #067647;
+  --ui-success-bg: #ecfdf3;
+  --ui-shadow: 0 1px 3px #10182808;
+}
+:root[data-theme='dark'] {
+  --ui-canvas: #101010;
+  --ui-surface: #1b1b1b;
+  --ui-subtle: #222222;
+  --ui-hover: #2b2b2b;
+  --ui-text: #f1f1f1;
+  --ui-muted: #b5b5b5;
+  --ui-faint: #898989;
+  --ui-border: #343434;
+  --ui-border-strong: #505050;
+  --ui-accent: #c84e49;
+  --ui-danger: #ffaba6;
+  --ui-danger-bg: #3b2327;
+  --ui-success: #75ddb0;
+  --ui-success-bg: #17382d;
+  --ui-shadow: 0 1px 3px #00000020;
+}
+html {
+  background: var(--ui-canvas);
+  color: var(--ui-text);
+}
+body {
+  margin: 0;
+  font-family: var(--ui-font-sans);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  font-optical-sizing: auto;
+  background: var(--ui-canvas);
+  color: var(--ui-text);
+}

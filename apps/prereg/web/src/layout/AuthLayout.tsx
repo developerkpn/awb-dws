@@ -1,4 +1,5 @@
 import { Navigate, Outlet } from 'react-router'
+import { Suspense } from 'react'
 import { useAuth } from '@/hooks/auth'
 import LoadingState from '@/components/LoadingState'
 import ErrorState from '@/components/ErrorState'
@@ -11,5 +12,9 @@ export default function AuthLayout() {
   if (error) return <ErrorState message={getErrorMessage(error)} onRetry={() => void refresh()} />
   if (user) return <Navigate to={user.role === 'ADMIN' ? '/users' : '/'} replace />
 
-  return <Outlet />
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <Outlet />
+    </Suspense>
+  )
 }

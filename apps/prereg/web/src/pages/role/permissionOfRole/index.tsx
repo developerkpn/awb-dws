@@ -1,38 +1,24 @@
-import { usePermissions, useRolePermissions, useUpdateRolePermissions } from '@/hooks/permission'
+import { useRole, useUpdateRolePermissions } from '@/hooks/permission'
 import LoadingState from '@/components/LoadingState'
 import ErrorState from '@/components/ErrorState'
-import { RolePermissionsView } from '@/pages/role/permissionOfRole/_components/RolePermissionsTable'
+import { useParams } from 'react-router'
+import PermissionEditor from './_components/PermissionEditor'
 import { getErrorMessage } from '@/utils/errorHandler'
 
 export default function PermissionOfRole() {
-  const permissions = usePermissions()
-  const roles = useRolePermissions()
+  const { id = '' } = useParams()
+  const role = useRole(id)
   const update = useUpdateRolePermissions()
-
-  if (permissions.isPending || roles.isPending)
-    return <LoadingState message="Loading role permissions…" />
-
-  const error = permissions.error ?? roles.error
-  if (error)
-    return (
-      <ErrorState
-        message={getErrorMessage(error)}
-        onRetry={() => {
-          void permissions.refetch()
-          void roles.refetch()
-        }}
-      />
-    )
-
-  const save = async (id: string, permissionCodes: string[]) => {
-    await update.mutateAsync({ id, permissionCodes })
-  }
-
+  if (role.isPending) return <LoadingState message="Loading role…" />
+  if (role.error || !role.data)
+    return <ErrorState message={getErrorMessage(role.error)} onRetry={() => void role.refetch()} />
   return (
-    <RolePermissionsView
-      roles={roles.data ?? []}
-      permissions={permissions.data ?? []}
-      onSaveRolePermissions={save}
+    <PermissionEditor
+      key={id}
+      role={role.data}
+      onSave={async (id, permissionCodes) => {
+        await update.mutateAsync({ id, permissionCodes })
+      }}
     />
   )
 }
