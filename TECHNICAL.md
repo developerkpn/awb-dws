@@ -144,8 +144,19 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 | R-058 | 2026-11-06 | Avatar sidebar | Tile gelap berisi inisial pengguna | Ikon profil MUI dalam lingkaran netral, dengan placeholder skeleton lingkaran yang sama | Permintaan pemilik |
 | R-059 | 2026-11-06 | Penghapusan master kota | City/mst_city dan foreign key pada transporter, supir serta pengajuan | Migrasi menyalin nama kota ke city/driver_city lalu menghapus foreign key dan tabel kota; seed transporter memakai teks langsung | K-33; permintaan pemilik |
 | R-060 | 2026-11-06 | Akun mitra langsung di mst_user | Master Partner/UserPartner, lookup SAP, login alias serta seed/import Excel | Partner dan link dihapus; lokasi primer dipindah ke User.city/country, ID/login tetap. Input manual CUSTOMER/VENDOR langsung ke mst_user, login lewat username unik; partnerIds ditolak, opsi hanya role/pabrik, seed Excel/dependensi xlsx dihapus | K-33; permintaan pemilik |
+| R-061 | 2026-11-06 | Rencana preregistrasi JUL | Belum ada rencana implementasi paritas proses JUL yang terpisah | Rencana bertanggal di docs/plan memetakan proses JUL, OData/staging, fase implementasi dan verifikasi tanpa panggilan SAP; BEL ditunda dengan input PO, tanpa DP dan tanpa loading note otomatis | Permintaan pemilik |
+| R-062 | 2026-11-06 | Batas rencana JUL downstream | Rencana JUL mencakup upstream dan pekerjaan setelah loading note dibuat | Rencana dibatasi downstream sampai nomor loading note otomatis dikonfirmasi SAP, disimpan dan ditampilkan; upstream, penghapusan setelah dibuat, sinkronisasi timbangan/pabrik dan QR di luar rencana | Klarifikasi pemilik |
 
 Riwayat dari branch kedua dipetakan R-029 → R-034, R-031 → R-035, R-032 → R-036, R-033 → R-037 dan R-034 → R-038 karena nomornya berbenturan. Isi historis dipertahankan; kondisi terkini dijelaskan di R-039.
+
+## Rencana implementasi
+
+Rencana paritas proses JUL downstream, pemetaan OData/staging SAP, tahapan implementasi dan
+kriteria verifikasi ada di [rencana preregistrasi JUL](docs/plan/2026-11-06-jul-preregistration/implementation-plan.md).
+Alur berakhir saat SAP mengonfirmasi pembuatan loading note otomatis dan nomornya
+disimpan serta ditampilkan. Upstream dan pekerjaan setelah pembuatan loading note
+di luar rencana. Status masih perencanaan; belum ada perubahan runtime atau panggilan SAP. BEL menyusul
+dengan input PO, tanpa pemeriksaan DP dan tanpa pembuatan loading note otomatis.
 
 ## A. Aplikasi
 
