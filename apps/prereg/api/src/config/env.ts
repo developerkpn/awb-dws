@@ -15,6 +15,10 @@ export const env = loadEnv(
       SESSION_REMEMBER_DAYS: z.coerce.number().int().min(1).max(30).default(14),
       SESSION_IDLE_MINUTES: z.coerce.number().int().min(5).max(1440).default(60),
       ALLOW_LEGACY_PASSWORDS: z.enum(['true', 'false']).default('false'),
+      INTERNAL_SERVICE_KEY: z
+        .string()
+        .min(16)
+        .default('development-internal-service-secret-key-12345'),
       TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(3).default(0),
       DATABASE_URL: z
         .string()

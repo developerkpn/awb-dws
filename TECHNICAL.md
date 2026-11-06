@@ -144,6 +144,8 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 | R-058 | 2026-11-06 | Avatar sidebar | Tile gelap berisi inisial pengguna | Ikon profil MUI dalam lingkaran netral, dengan placeholder skeleton lingkaran yang sama | Permintaan pemilik |
 | R-059 | 2026-11-06 | Penghapusan master kota | City/mst_city dan foreign key pada transporter, supir serta pengajuan | Migrasi menyalin nama kota ke city/driver_city lalu menghapus foreign key dan tabel kota; seed transporter memakai teks langsung | K-33; permintaan pemilik |
 | R-060 | 2026-11-06 | Akun mitra langsung di mst_user | Master Partner/UserPartner, lookup SAP, login alias serta seed/import Excel | Partner dan link dihapus; lokasi primer dipindah ke User.city/country, ID/login tetap. Input manual CUSTOMER/VENDOR langsung ke mst_user, login lewat username unik; partnerIds ditolak, opsi hanya role/pabrik, seed Excel/dependensi xlsx dihapus | K-33; permintaan pemilik |
+| R-061 | 2026-11-06 | Sinkronisasi pabrik | Pengajuan supir/kendaraan hanya dibaca; belum ada outbox dan endpoint sinkronisasi pabrik | Outbox sinkronisasi atomik pada approval logistik, contract driverVehicleApprovedEvent, endpoint /api/internal/sync (outbox & ack) dengan autentikasi layanan | K-19; AWB-14 |
+| R-062 | 2026-11-06 | Sinkronisasi pabrik | Master supir & kendaraan di pabrik belum ada; sync hanya router kosong | Worker berkala di site-api mengambil pesan outbox HO dengan contract driverVehicleApprovedEvent, simpan ke mst_driver & mst_vehicle SQL Server, catat sequence terakhir di sys_sync_state/inbox dan tangani putus koneksi | AWB-15 |
 
 Riwayat dari branch kedua dipetakan R-029 → R-034, R-031 → R-035, R-032 → R-036, R-033 → R-037 dan R-034 → R-038 karena nomornya berbenturan. Isi historis dipertahankan; kondisi terkini dijelaskan di R-039.
 
@@ -167,7 +169,7 @@ Riwayat dari branch kedua dipetakan R-029 → R-034, R-031 → R-035, R-032 → 
 | `site/api/domains/registration` | Reg IN dan Reg OUT, cache prereg, QR, fallback QR, registrasi tanpa prereg, keluar | FR-001–FR-010, FR-027, FR-029, FR-045–FR-047 | direncanakan (router saja) |
 | `site/api/domains/weighbridge`  | Pengganti WB.NET: tap 1/2, penimbangan, OCR, pemeriksaan AI, toleransi, tiket      | FR-011–FR-019, FR-028, FR-048–FR-050         | direncanakan (router saja) |
 | `site/api/domains/tcs`          | Alur yang dapat dikonfigurasi, tahap, input stasiun, keputusan QC                  | FR-020–FR-026                                | direncanakan (router saja) |
-| `site/api/domains/sync`         | Outbox/inbox dengan HO, rekonsiliasi, klien prereg                                 | FR-031–FR-036                                | direncanakan (router saja) |
+| `site/api/domains/sync`         | Outbox/inbox dengan HO, rekonsiliasi, klien prereg                                 | FR-031–FR-036, AWB-15                        | selesai                    |
 | `site/api/domains/erp`          | Posting ke SAP (keluar saja)                                                       | FR-037, O-07                                 | direncanakan               |
 
 | Modul                              | Fungsi                                                                       | Status   |
@@ -183,7 +185,8 @@ Riwayat dari branch kedua dipetakan R-029 → R-034, R-031 → R-035, R-032 → 
 | `prereg/api/modules/role-permission`  | Pengelolaan hak akses izin peran dan menu, penolakan akses terlarang (HTTP 403), dan matriks perizinan peran                           | FR-042         | selesai                                                    |
 | `prereg/api/modules/auth`             | Login, logout, profil sesi, throttle bersama dan peningkatan hash lama secara eksplisit                                                | FR-040         | selesai untuk cakupan ini                                  |
 | `prereg/api/modules/document`         | Upload JPEG/PNG/PDF privat (5 MB), validasi signature, unduh berdasarkan UUID dan pemeriksaan pemilik/reviewer                         | AWB-11         | selesai lokal; volume persisten diperlukan pada deployment |
-| `prereg/api/modules/driver-request`   | Daftar pengajuan terbatas berdasarkan pemilik atau reviewer; cursor tanggal dan UUID                                                   | AWB-10         | baca saja; alur pengajuan/approval belum dibangun          |
+| `prereg/api/modules/driver-request`   | Daftar pengajuan terbatas; approval logistik atomik bersama penulisan outbox sinkronisasi                                              | AWB-10, AWB-14 | selesai                                                    |
+| `prereg/api/modules/sync`             | Antrean keluar sinkronisasi (outbox) dan konfirmasi terima dari pabrik dengan autentikasi layanan                                      | K-19, AWB-14   | selesai                                                    |
 
 ## C. Endpoint API
 
@@ -207,6 +210,9 @@ Riwayat dari branch kedua dipetakan R-029 → R-034, R-031 → R-035, R-032 → 
 | prereg/api | POST   | `/api/documents/upload`                                                             | document         | sesi dan izin upload; kategori sim/driver/stnk; disk streaming        |
 | prereg/api | GET    | `/api/documents/:id`                                                                | document         | UUID; hanya pemilik, ADMIN atau LOGISTIC berizin                      |
 | prereg/api | GET    | `/api/driver-requests`                                                              | driver-request   | sesi dan izin baca; cursorAt/cursorId, status, limit maksimum 100     |
+| prereg/api | POST   | `/api/driver-requests/:id/approve`                                                  | driver-request   | LOGISTIC/ADMIN; approval atomik bersama penulisan event sinkronisasi  |
+| prereg/api | GET    | `/api/internal/sync/outbox`                                                         | sync             | autentikasi layanan; kirim pesan sinkronisasi setelah nomor X         |
+| prereg/api | POST   | `/api/internal/sync/ack`                                                            | sync             | autentikasi layanan; konfirmasi penerimaan sampai nomor Y             |
 | prereg/api | GET    | `/api/pre-registrations/:id`                                                        | pre-registration | dilindungi izin prereg:read; isi masih contoh                         |
 | prereg/api | —      | `/api/internal/*`                                                                   | internal         | belum ada handler sinkronisasi; belum siap dipakai pabrik             |
 
@@ -234,6 +240,11 @@ Schema prereg menyatukan akun dan data master/pengajuan. Schema site masih koson
 | `DriverRequest`         | prereg/api · PostgreSQL | `awb_driver_request`          | diimplementasikan |
 | `DriverRequestDecision` | prereg/api · PostgreSQL | `awb_driver_request_decision` | diimplementasikan |
 | `Document`              | prereg/api · PostgreSQL | `awb_document`                | diimplementasikan |
+| `SyncOutbox`            | prereg/api · PostgreSQL | `sys_sync_outbox`             | diimplementasikan |
+| `Driver`                | site/api · SQL Server   | `mst_driver`                  | diimplementasikan |
+| `Vehicle`               | site/api · SQL Server   | `mst_vehicle`                 | diimplementasikan |
+| `SyncInbox`             | site/api · SQL Server   | `sys_sync_inbox`              | diimplementasikan |
+| `SyncState`             | site/api · SQL Server   | `sys_sync_state`              | diimplementasikan |
 
 | Migrasi                               | Aplikasi     | Isi                                                                                                                                                        |
 | ------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -247,24 +258,28 @@ Schema prereg menyatukan akun dan data master/pengajuan. Schema site masih koson
 
 | `20261105110000_account_filter_indexes` | prereg/api | Indeks urutan akun, updated_at, trigram phone dan nama pabrik untuk filter server |
 | `20261106110000_simplify_account_masters` | prereg/api | Backfill nama kota/lokasi akun; hapus City, Partner dan UserPartner; login langsung mst_user |
+| `20261106160000_sync_outbox` | prereg/api | Kolom site_id pada pengajuan dan tabel sys_sync_outbox untuk antrean sinkronisasi pabrik |
+| `20261106093604_plant_driver_vehicle_sync` | site/api | Tabel mst_driver, mst_vehicle, sys_sync_inbox dan sys_sync_state di database pabrik (SQL Server) |
 
 ## E. Contract (format data antar aplikasi)
 
 Skema di `@awb/contracts`; format sesi/akun dipakai API dan frontend.
 
-| Skema                   | File                      | Dari → ke               | Status                                                            |
-| ----------------------- | ------------------------- | ----------------------- | ----------------------------------------------------------------- |
-| `transactionType`       | `common/transaction.ts`   | semua aplikasi          | terdefinisi                                                       |
-| `registrationOrigin`    | `common/transaction.ts`   | semua aplikasi          | terdefinisi                                                       |
-| `syncEnvelope`          | `sync/envelope.ts`        | prereg ↔ site           | terdefinisi, belum dikirim                                        |
-| `preregApprovedPayload` | `sync/prereg-approved.ts` | prereg → site           | terdefinisi, belum dikirim                                        |
-| `preregApprovedEvent`   | `sync/prereg-approved.ts` | prereg → site           | terdefinisi, belum dikirim                                        |
-| `wbSessionPhase`        | `realtime/lane-event.ts`  | site/api → site/kiosk   | terdefinisi                                                       |
-| `laneScreenEvent`       | `realtime/lane-event.ts`  | site/api → site/kiosk   | terdefinisi, belum dikirim                                        |
-| `sessionUser`           | `common/account.ts`       | prereg/api → prereg/web | dipakai                                                           |
-| `accountChoice`         | `common/account.ts`       | prereg/api → prereg/web | dipakai                                                           |
-| `accountProfile`        | `common/account.ts`       | prereg/api → prereg/web | dipakai                                                           |
-| `accountListItem`       | `common/account.ts`       | prereg/api → prereg/web | Daftar ringkas, roleName/plantCount dan maksimal dua plantPreview |
+| Skema                          | File                              | Dari → ke               | Status                                                            |
+| ------------------------------ | --------------------------------- | ----------------------- | ----------------------------------------------------------------- |
+| `transactionType`              | `common/transaction.ts`           | semua aplikasi          | terdefinisi                                                       |
+| `registrationOrigin`           | `common/transaction.ts`           | semua aplikasi          | terdefinisi                                                       |
+| `syncEnvelope`                 | `sync/envelope.ts`                | prereg ↔ site           | terdefinisi, belum dikirim                                        |
+| `preregApprovedPayload`        | `sync/prereg-approved.ts`         | prereg → site           | terdefinisi, belum dikirim                                        |
+| `preregApprovedEvent`          | `sync/prereg-approved.ts`         | prereg → site           | terdefinisi, belum dikirim                                        |
+| `driverVehicleApprovedPayload` | `sync/driver-vehicle-approved.ts` | prereg → site           | terdefinisi                                                       |
+| `driverVehicleApprovedEvent`   | `sync/driver-vehicle-approved.ts` | prereg → site           | terdefinisi                                                       |
+| `wbSessionPhase`               | `realtime/lane-event.ts`          | site/api → site/kiosk   | terdefinisi                                                       |
+| `laneScreenEvent`              | `realtime/lane-event.ts`          | site/api → site/kiosk   | terdefinisi, belum dikirim                                        |
+| `sessionUser`                  | `common/account.ts`               | prereg/api → prereg/web | dipakai                                                           |
+| `accountChoice`                | `common/account.ts`               | prereg/api → prereg/web | dipakai                                                           |
+| `accountProfile`               | `common/account.ts`               | prereg/api → prereg/web | dipakai                                                           |
+| `accountListItem`              | `common/account.ts`               | prereg/api → prereg/web | Daftar ringkas, roleName/plantCount dan maksimal dua plantPreview |
 
 | `PERMISSION` | `common/permission.ts` | API dan frontend | konstanta izin bersama |
 | `permissionCatalogue` | `common/permission.ts` | API, seed dan frontend | katalog izin bersama |
@@ -325,7 +340,7 @@ Daftar akun memakai dropdown MultiSelect Roles dan Plants dari packages/ui, meng
 | Item                                              | Fungsi                                                                                                                                                                                                                     | Status                                                                                                             |
 | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `site/api/devices/controller`                     | Satu koneksi TCP per controller timbangan (2 per jembatan timbang), sambung ulang otomatis, status di `/health`, `sendToController()` untuk perintah                                                                       | koneksi selesai; format pesan dicatat di `docs/design/protokol-controller.md`, belum diterapkan (data mentah saja) |
-| Sinkronisasi HO ↔ pabrik                          | Outbox/inbox dengan contract sinkronisasi                                                                                                                                                                                  | direncanakan                                                                                                       |
+| Sinkronisasi HO ↔ pabrik                          | Outbox prereg atomik (AWB-14) dan worker berkala di pabrik mengambil pesan, validasi contract driverVehicleApprovedEvent, simpan master supir/kendaraan ke SQL Server, catat nomor sequence dan tangani offline (AWB-15)   | selesai                                                                                                            |
 | SAP / ERP                                         | Posting hasil yang diterima. Akun: saat Logistik approve memakai kredensial SAP petugas (`session_sap`); akses lain memakai satu akun di `SAP_API_CREDENTIALS` (`user:password`, Basic auth) seperti `warehouse_be` (K-22) | direncanakan (kontrak terbuka, O-07)                                                                               |
 | Tampilan realtime kiosk (`site/api/src/realtime`) | Mengirim status lane ke layar kiosk                                                                                                                                                                                        | direncanakan                                                                                                       |
 | Kamera AI/OCR, indikator, printer                 | Adapter perangkat                                                                                                                                                                                                          | direncanakan (O-05, O-13)                                                                                          |

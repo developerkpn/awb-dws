@@ -11,3 +11,7 @@ export const listDriverRequests = z
     message: 'Supply both cursorId and cursorAt',
     path: ['cursorId'],
   })
+
+export const approveDriverRequestSchema = z.object({
+  siteId: z.string().optional(),
+})

@@ -25,6 +25,10 @@ export const sessionCookie = (token: string, expires?: Date) =>
   })
 
 export const sameOrigin: RequestHandler = (req, _res, next) => {
+  if (req.path.startsWith('/internal')) {
+    next()
+    return
+  }
   if (
     !['GET', 'HEAD', 'OPTIONS'].includes(req.method) &&
     req.headers.origin !== new URL(env.APP_ORIGIN).origin

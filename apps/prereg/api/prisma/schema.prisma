@@ -246,6 +246,7 @@ model DriverRequest {
   vehiclePlateNumber  String  @map("vehicle_plate_number")
   transporterId       String? @map("transporter_id") @db.Uuid
   vehicleStnkPhotoUrl String? @map("vehicle_stnk_photo_url")
+  siteId              String? @map("site_id")
 
   decidedBy       String?   @map("decided_by") @db.Uuid
   decidedAt       DateTime? @map("decided_at")
@@ -306,4 +307,21 @@ model Document {
 
   @@index([uploadedBy, createdAt, id])
   @@map("awb_document")
+}
+
+model SyncOutbox {
+  id             Int       @id @default(autoincrement())
+  eventId        String    @unique @map("event_id") @db.Uuid
+  eventType      String    @map("event_type")
+  siteId         String    @map("site_id")
+  aggregateId    String    @map("aggregate_id")
+  payload        Json      @map("payload")
+  status         String    @default("PENDING") @map("status")
+  acknowledgedAt DateTime? @map("acknowledged_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([siteId, id])
+  @@index([status, siteId])
+  @@map("sys_sync_outbox")
 }

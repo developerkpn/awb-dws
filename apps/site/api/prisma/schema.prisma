@@ -10,4 +10,56 @@ datasource db {
   provider = "sqlserver"
 }
 
-// Add plant models following docs/design/penamaan-tabel.md.
+model Driver {
+  id              String   @id @default(uuid(7))
+  licenseNumber   String   @unique @map("license_number")
+  name            String   @map("name")
+  address         String   @map("address")
+  birthPlace      String   @map("birth_place")
+  birthDate       DateTime @map("birth_date")
+  phone           String   @map("phone")
+  city            String?  @map("city")
+  licensePhotoUrl String?  @map("license_photo_url")
+  driverPhotoUrl  String?  @map("driver_photo_url")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("mst_driver")
+}
+
+model Vehicle {
+  id              String   @id @default(uuid(7))
+  plateNumber     String   @unique @map("plate_number")
+  transporterId   String?  @map("transporter_id")
+  transporterName String?  @map("transporter_name")
+  transporterCode String?  @map("transporter_code")
+  stnkPhotoUrl    String?  @map("stnk_photo_url")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("mst_vehicle")
+}
+
+model SyncInbox {
+  id             Int      @id @default(autoincrement())
+  sequenceNumber Int      @map("sequence_number")
+  eventId        String   @unique @map("event_id")
+  eventType      String   @map("event_type")
+  aggregateId    String   @map("aggregate_id")
+  payload        String   @map("payload") @db.NVarChar(Max)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([sequenceNumber])
+  @@map("sys_sync_inbox")
+}
+
+model SyncState {
+  key          String   @id @map("key")
+  lastSequence Int      @default(0) @map("last_sequence")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("sys_sync_state")
+}
