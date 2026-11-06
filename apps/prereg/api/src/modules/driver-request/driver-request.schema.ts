@@ -26,3 +26,7 @@ export const driverRequestBody = z.object({
   transporterId: z.uuid().optional(),
   vehicleStnkPhotoUrl: z.string().trim().max(500).optional(),
 })
+
+export const approveDriverRequestSchema = z.object({
+  siteId: z.string().optional(),
+})

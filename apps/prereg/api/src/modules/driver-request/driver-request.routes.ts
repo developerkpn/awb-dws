@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { Router } from 'express'
 import { success } from '@awb/server-core'
 import { currentUser, requirePermission } from '../../middlewares/auth'
-import { listDriverRequests, driverRequestBody } from './driver-request.schema'
+import { listDriverRequests, driverRequestBody, approveDriverRequestSchema } from './driver-request.schema'
 import service from './driver-request.service'
 
 const idParam = z.object({ id: z.uuid() })
@@ -32,6 +32,12 @@ router.put('/:id', requirePermission('prereg:update'), async (req, res) => {
   const { id } = idParam.parse(req.params)
   const body = driverRequestBody.parse(req.body)
   res.json(success(await service.resubmit(id, body, currentUser(req))))
+})
+
+router.post('/:id/approve', requirePermission('prereg:approve'), async (req, res) => {
+  const { id } = idParam.parse(req.params)
+  const input = approveDriverRequestSchema.parse(req.body)
+  res.json(success(await service.approve(id, currentUser(req), input)))
 })
 
 export default router

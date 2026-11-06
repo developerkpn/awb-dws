@@ -3,6 +3,7 @@ import { env } from './config/env'
 import { controllers } from './config/controllers'
 import { prisma } from './config/prisma'
 import { startControllers } from './devices'
+import { startSyncWorker, stopSyncWorker } from './domains/sync'
 
 const server = app.listen(env.PORT, () => {
   console.log(
@@ -10,12 +11,17 @@ const server = app.listen(env.PORT, () => {
   )
 })
 
+if (env.SYNC_ENABLED !== 'false' && env.NODE_ENV !== 'test') {
+  startSyncWorker()
+}
+
 const stopControllers = startControllers(controllers, (event) => {
   // Hand events to the weighbridge domain once the controller protocol is mapped.
   console.log(`[controller ${event.controllerId}] ${event.type}`)
 })
 
 const shutdown = () => {
+  stopSyncWorker()
   stopControllers()
   server.close(() => {
     void prisma.$disconnect().finally(() => process.exit(0))

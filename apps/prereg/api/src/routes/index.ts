@@ -5,6 +5,7 @@ import rolePermissionRouter from '../modules/role-permission/role-permission.rou
 import internalRouter from './internal'
 import authRouter from '../modules/auth/auth.routes'
 import { requireAuth, requirePermission } from '../middlewares/auth'
+import { requireServiceAuth } from '../middlewares/service-auth'
 import documentRouter from '../modules/document/document.routes'
 import driverRequestRouter from '../modules/driver-request/driver-request.routes'
 
@@ -22,6 +23,6 @@ router.use(
   requirePermission('prereg:read'),
   preRegistrationRouter,
 )
-router.use('/internal', requireAuth, requirePermission('sync:internal'), internalRouter)
+router.use('/internal', requireServiceAuth, internalRouter)
 
 export default router

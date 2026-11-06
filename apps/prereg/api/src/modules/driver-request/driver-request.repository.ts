@@ -1,4 +1,5 @@
 import { prisma } from '../../config/prisma'
+import type { DriverVehicleApprovedEvent } from '@awb/contracts'
 import type { Prisma } from '../../generated/prisma/client'
 
 export default {
@@ -78,5 +79,49 @@ export default {
 
   update(id: string, data: Prisma.DriverRequestUncheckedUpdateInput) {
     return prisma.driverRequest.update({ where: { id }, data })
+  },
+
+  async approveAndEnqueue(
+    requestId: string,
+    approverId: string,
+    siteId: string,
+    event: DriverVehicleApprovedEvent,
+  ) {
+    return prisma.$transaction(async (tx) => {
+      const now = new Date()
+
+      const request = await tx.driverRequest.update({
+        where: { id: requestId },
+        data: {
+          status: 'APPROVED',
+          decision: 'APPROVED',
+          decidedBy: approverId,
+          decidedAt: now,
+          siteId,
+        },
+      })
+
+      const decision = await tx.driverRequestDecision.create({
+        data: {
+          requestId,
+          decision: 'APPROVED',
+          decidedBy: approverId,
+          decidedAt: now,
+        },
+      })
+
+      const outbox = await tx.syncOutbox.create({
+        data: {
+          eventId: event.eventId,
+          eventType: event.eventType,
+          siteId,
+          aggregateId: requestId,
+          payload: event as unknown as Prisma.InputJsonValue,
+          status: 'PENDING',
+        },
+      })
+
+      return { request, decision, outbox }
+    })
   },
 }
