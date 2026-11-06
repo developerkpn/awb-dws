@@ -1,0 +1,36 @@
+{
+  "d": {
+    "results": [
+      {
+        "Lifnr": "AT00000001",
+        "Bsart": "EU10",
+        "Ebeln": "4500000001",
+        "Ebelp": "00010",
+        "Matnr": "8000000001",
+        "Elikz": "",
+        "Erfmg": "850.000",
+        "Erfme": "KG",
+        "Lsmng": "900.000",
+        "Lsmeh": "KG",
+        "Menge": "1500.000",
+        "Meins": "KG",
+        "Inco1": "FRC"
+      },
+      {
+        "Lifnr": "AT00000001",
+        "Bsart": "EU10",
+        "Ebeln": "4500000001",
+        "Ebelp": "00020",
+        "Matnr": "8000000002",
+        "Elikz": "",
+        "Erfmg": "0.000",
+        "Erfme": "KG",
+        "Lsmng": "0.000",
+        "Lsmeh": "KG",
+        "Menge": "500.000",
+        "Meins": "KG",
+        "Inco1": "FRC"
+      }
+    ]
+  }
+}
