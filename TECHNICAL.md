@@ -144,6 +144,8 @@ Tabel master memakai awalan `mst_`, tabel transaksi `awb_`. Kolom memakai `snake
 | R-058 | 2026-11-06 | Avatar sidebar | Tile gelap berisi inisial pengguna | Ikon profil MUI dalam lingkaran netral, dengan placeholder skeleton lingkaran yang sama | Permintaan pemilik |
 | R-059 | 2026-11-06 | Penghapusan master kota | City/mst_city dan foreign key pada transporter, supir serta pengajuan | Migrasi menyalin nama kota ke city/driver_city lalu menghapus foreign key dan tabel kota; seed transporter memakai teks langsung | K-33; permintaan pemilik |
 | R-060 | 2026-11-06 | Akun mitra langsung di mst_user | Master Partner/UserPartner, lookup SAP, login alias serta seed/import Excel | Partner dan link dihapus; lokasi primer dipindah ke User.city/country, ID/login tetap. Input manual CUSTOMER/VENDOR langsung ke mst_user, login lewat username unik; partnerIds ditolak, opsi hanya role/pabrik, seed Excel/dependensi xlsx dihapus | K-33; permintaan pemilik |
+| R-061 | 2026-11-06 | Pengajuan supir dan kendaraan (backend) | `prereg/api/modules/driver-request` hanya bisa membaca; tidak ada endpoint submit | Endpoint POST `/api/driver-requests` (submit baru), GET `/:id` (detail), PUT `/:id` (resubmit setelah REJECTED) dan GET `/transporters` (dropdown) ditambahkan; validasi duplikat no. SIM dan plat di pengajuan aktif; hanya pemilik yang bisa resubmit | AWB-12 |
+| R-062 | 2026-11-06 | Pengajuan supir dan kendaraan (frontend) | Halaman prereg/web masih berupa stub Coming Soon | Daftar pengajuan mitra terhubung API dengan filter status dan status badge; formulir submit pengajuan supir/kendaraan baru dan form revisi penolakan dengan upload dokumen SIM, foto supir, dan STNK | AWB-12 |
 
 Riwayat dari branch kedua dipetakan R-029 → R-034, R-031 → R-035, R-032 → R-036, R-033 → R-037 dan R-034 → R-038 karena nomornya berbenturan. Isi historis dipertahankan; kondisi terkini dijelaskan di R-039.
 
@@ -183,7 +185,7 @@ Riwayat dari branch kedua dipetakan R-029 → R-034, R-031 → R-035, R-032 → 
 | `prereg/api/modules/role-permission`  | Pengelolaan hak akses izin peran dan menu, penolakan akses terlarang (HTTP 403), dan matriks perizinan peran                           | FR-042         | selesai                                                    |
 | `prereg/api/modules/auth`             | Login, logout, profil sesi, throttle bersama dan peningkatan hash lama secara eksplisit                                                | FR-040         | selesai untuk cakupan ini                                  |
 | `prereg/api/modules/document`         | Upload JPEG/PNG/PDF privat (5 MB), validasi signature, unduh berdasarkan UUID dan pemeriksaan pemilik/reviewer                         | AWB-11         | selesai lokal; volume persisten diperlukan pada deployment |
-| `prereg/api/modules/driver-request`   | Daftar pengajuan terbatas berdasarkan pemilik atau reviewer; cursor tanggal dan UUID                                                   | AWB-10         | baca saja; alur pengajuan/approval belum dibangun          |
+| `prereg/api/modules/driver-request`   | Daftar, detail, submit baru dan resubmit pengajuan; validasi duplikat no. SIM dan plat aktif; daftar transporter aktif untuk dropdown  | AWB-10, AWB-12 | submit dan resubmit selesai; approval belum dibangun       |
 
 ## C. Endpoint API
 
@@ -207,6 +209,10 @@ Riwayat dari branch kedua dipetakan R-029 → R-034, R-031 → R-035, R-032 → 
 | prereg/api | POST   | `/api/documents/upload`                                                             | document         | sesi dan izin upload; kategori sim/driver/stnk; disk streaming        |
 | prereg/api | GET    | `/api/documents/:id`                                                                | document         | UUID; hanya pemilik, ADMIN atau LOGISTIC berizin                      |
 | prereg/api | GET    | `/api/driver-requests`                                                              | driver-request   | sesi dan izin baca; cursorAt/cursorId, status, limit maksimum 100     |
+| prereg/api | GET    | `/api/driver-requests/transporters`                                                 | driver-request   | daftar transporter aktif untuk dropdown form pengajuan                |
+| prereg/api | GET    | `/api/driver-requests/:id`                                                          | driver-request   | detail pengajuan; hanya pemilik, ADMIN atau LOGISTIC berizin          |
+| prereg/api | POST   | `/api/driver-requests`                                                              | driver-request   | submit pengajuan baru; validasi duplikat no. SIM dan plat aktif       |
+| prereg/api | PUT    | `/api/driver-requests/:id`                                                          | driver-request   | resubmit setelah REJECTED; hanya pemilik; validasi duplikat ulang     |
 | prereg/api | GET    | `/api/pre-registrations/:id`                                                        | pre-registration | dilindungi izin prereg:read; isi masih contoh                         |
 | prereg/api | —      | `/api/internal/*`                                                                   | internal         | belum ada handler sinkronisasi; belum siap dipakai pabrik             |
 
@@ -303,7 +309,9 @@ Skema di `@awb/contracts`; format sesi/akun dipakai API dan frontend.
 | `prereg/web/pages/user/editUser`                       | Ubah akun mitra/internal             | tersambung API                    |
 | `prereg/web/pages/role/permissionOfRole`               | Matriks izin peran                   | tersambung API                    |
 | `prereg/web/pages/dashboard`                           | Ringkasan dan navigasi               | kerangka                          |
-| `prereg/web/pages/preRegistration/listPreRegistration` | Daftar prereg                        | kerangka; workflow belum dibangun |
+| `prereg/web/pages/preRegistration/listPreRegistration` | Daftar prereg supir & armada mitra   | tersambung API                    |
+| `prereg/web/pages/preRegistration/submitRequest`       | Form submit pengajuan supir & armada | tersambung API                    |
+| `prereg/web/pages/preRegistration/editRequest`         | Form revisi pengajuan ditolak        | tersambung API                    |
 | `prereg/web/pages/approval/listApproval`               | Persetujuan prereg                   | kerangka; workflow belum dibangun |
 | `prereg/web/pages/forbidden`                           | Penolakan akses halaman              | selesai                           |
 | `prereg/web/pages/notFound`                            | Alamat tidak dikenal                 | selesai                           |

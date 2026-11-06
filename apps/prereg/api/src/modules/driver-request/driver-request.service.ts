@@ -1,13 +1,45 @@
 import type { z } from 'zod'
+import { CustomError, NotFoundError } from '@awb/server-core'
 import type { SessionUser } from '@awb/contracts'
+import { notifyLogisticsSubmission } from '../../services/mailer'
 import repository from './driver-request.repository'
-import type { listDriverRequests } from './driver-request.schema'
+import type { listDriverRequests, driverRequestBody } from './driver-request.schema'
+
+type ListQuery = z.infer<typeof listDriverRequests>
+type RequestBody = z.infer<typeof driverRequestBody>
+
+function isReviewer(user: SessionUser) {
+  return (
+    user.role === 'ADMIN' ||
+    (user.role === 'LOGISTIC' && user.permissions.includes('prereg:approve'))
+  )
+}
+
+async function checkConflicts(licenseNumber: string, plateNumber: string, excludeId?: string) {
+  const conflicts = await repository.findConflicts(licenseNumber, plateNumber, excludeId)
+  const licenseConflict = conflicts.find(
+    (r) => r.driverLicenseNumber.toLowerCase() === licenseNumber.toLowerCase(),
+  )
+  if (licenseConflict)
+    throw new CustomError('A pending or approved request already exists for this license number', 409)
+
+  const plateConflict = conflicts.find(
+    (r) => r.vehiclePlateNumber.toLowerCase() === plateNumber.toLowerCase(),
+  )
+  if (plateConflict)
+    throw new CustomError('A pending or approved request already exists for this plate number', 409)
+}
+
+async function resolveTransporter(transporterId?: string) {
+  if (!transporterId) return undefined
+  const found = await repository.findTransporter(transporterId)
+  if (!found) throw new CustomError('Transporter not found or inactive', 422)
+  return transporterId
+}
 
 export default {
-  async list(query: z.infer<typeof listDriverRequests>, user: SessionUser) {
-    const reviewer =
-      user.role === 'ADMIN' ||
-      (user.role === 'LOGISTIC' && user.permissions.includes('prereg:approve'))
+  async list(query: ListQuery, user: SessionUser) {
+    const reviewer = isReviewer(user)
     const rows = await repository.list(
       {
         ...(!reviewer ? { submittedBy: user.id } : {}),
@@ -34,4 +66,73 @@ export default {
           : null,
     }
   },
+
+  async getById(id: string, user: SessionUser) {
+    const request = await repository.findById(id)
+    if (!request) throw new NotFoundError('Request not found')
+    // Non-reviewers can only see their own requests.
+    if (!isReviewer(user) && request.submittedBy !== user.id)
+      throw new NotFoundError('Request not found')
+    return request
+  },
+
+  async create(body: RequestBody, user: SessionUser) {
+    await checkConflicts(body.driverLicenseNumber, body.vehiclePlateNumber)
+    await resolveTransporter(body.transporterId)
+
+    const request = await repository.create({
+      submittedBy: user.id,
+      driverLicenseNumber: body.driverLicenseNumber,
+      driverName: body.driverName,
+      driverAddress: body.driverAddress,
+      driverBirthPlace: body.driverBirthPlace,
+      driverBirthDate: new Date(body.driverBirthDate),
+      driverPhone: body.driverPhone,
+      driverCity: body.driverCity ?? null,
+      driverLicensePhotoUrl: body.driverLicensePhotoUrl ?? null,
+      driverPhotoUrl: body.driverPhotoUrl ?? null,
+      vehiclePlateNumber: body.vehiclePlateNumber,
+      transporterId: body.transporterId ?? null,
+      vehicleStnkPhotoUrl: body.vehicleStnkPhotoUrl ?? null,
+    })
+
+    notifyLogisticsSubmission(request.id, request.driverName, request.vehiclePlateNumber)
+    return request
+  },
+
+  async resubmit(id: string, body: RequestBody, user: SessionUser) {
+    const request = await repository.findById(id)
+    if (!request) throw new NotFoundError('Request not found')
+    if (request.submittedBy !== user.id) throw new NotFoundError('Request not found')
+    if (request.status !== 'REJECTED')
+      throw new CustomError('Only rejected requests can be resubmitted', 422)
+
+    await checkConflicts(body.driverLicenseNumber, body.vehiclePlateNumber, id)
+    await resolveTransporter(body.transporterId)
+
+    const updated = await repository.update(id, {
+      status: 'SUBMITTED',
+      driverLicenseNumber: body.driverLicenseNumber,
+      driverName: body.driverName,
+      driverAddress: body.driverAddress,
+      driverBirthPlace: body.driverBirthPlace,
+      driverBirthDate: new Date(body.driverBirthDate),
+      driverPhone: body.driverPhone,
+      driverCity: body.driverCity ?? null,
+      driverLicensePhotoUrl: body.driverLicensePhotoUrl ?? null,
+      driverPhotoUrl: body.driverPhotoUrl ?? null,
+      vehiclePlateNumber: body.vehiclePlateNumber,
+      transporterId: body.transporterId ?? null,
+      vehicleStnkPhotoUrl: body.vehicleStnkPhotoUrl ?? null,
+      decidedBy: null,
+      decidedAt: null,
+      decision: null,
+      rejectionReason: null,
+    })
+
+    notifyLogisticsSubmission(updated.id, updated.driverName, updated.vehiclePlateNumber)
+    return updated
+  },
+
+  listTransporters: () => repository.listTransporters(),
 }

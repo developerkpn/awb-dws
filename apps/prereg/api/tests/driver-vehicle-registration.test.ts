@@ -4,7 +4,7 @@ import request from 'supertest'
 import app from '../src/app'
 import { prisma } from '../src/config/prisma'
 import { seedTransporters } from '../prisma/seed/transporters'
-import { createTestUser, sessionFor, grant } from './helpers'
+import { createTestUser, sessionFor, grant, origin } from './helpers'
 
 describe('UUID driver and vehicle data', () => {
   it('keeps master seeds repeatable and relates requests and decisions through UUIDs', async () => {
@@ -106,5 +106,97 @@ describe('UUID driver and vehicle data', () => {
       (await request(app).get('/api/driver-requests?limit=10000').set('Cookie', owner.cookie))
         .status,
     ).toBe(422)
+  })
+
+  it('handles submission, duplicate checks, detail retrieval, and resubmission of rejected requests', async () => {
+    await seedTransporters()
+    const transporter = await prisma.transporter.findUniqueOrThrow({ where: { code: 'TR-PNR' } })
+    const submitter = await sessionFor('CUSTOMER')
+    const otherUser = await sessionFor('VENDOR')
+    await grant(submitter.user.roleId, 'prereg:read')
+    await grant(submitter.user.roleId, 'prereg:create')
+    await grant(submitter.user.roleId, 'prereg:update')
+    await grant(otherUser.user.roleId, 'prereg:read')
+
+    // 1. Get transporters list
+    const transportersRes = await request(app)
+      .get('/api/driver-requests/transporters')
+      .set('Cookie', submitter.cookie)
+    expect(transportersRes.status).toBe(200)
+    expect(transportersRes.body.data.length).toBeGreaterThanOrEqual(1)
+
+    const run = randomUUID().slice(0, 8)
+    const validPayload = {
+      driverLicenseNumber: `SIM-${run}`,
+      driverName: 'Budi Santoso',
+      driverAddress: 'Jl. Merdeka No. 10',
+      driverBirthPlace: 'Jakarta',
+      driverBirthDate: '1992-05-12',
+      driverPhone: '081234567890',
+      driverCity: 'Jakarta',
+      vehiclePlateNumber: `B-${run}-XYZ`,
+      transporterId: transporter.id,
+    }
+
+    // 2. Submit new driver request
+    const createRes = await request(app)
+      .post('/api/driver-requests')
+      .set('Origin', origin)
+      .set('Cookie', submitter.cookie)
+      .send(validPayload)
+
+    expect(createRes.status).toBe(201)
+    const requestId = createRes.body.data.id
+    expect(createRes.body.data.status).toBe('SUBMITTED')
+    expect(createRes.body.data.driverLicenseNumber).toBe(validPayload.driverLicenseNumber)
+
+    // 3. Reject duplicate license number or plate number in pending/approved
+    const dupRes = await request(app)
+      .post('/api/driver-requests')
+      .set('Origin', origin)
+      .set('Cookie', submitter.cookie)
+      .send(validPayload)
+    expect(dupRes.status).toBe(409)
+
+    // 4. Detail endpoint permission check (owner vs non-owner)
+    const ownerDetail = await request(app)
+      .get(`/api/driver-requests/${requestId}`)
+      .set('Cookie', submitter.cookie)
+    expect(ownerDetail.status).toBe(200)
+    expect(ownerDetail.body.data.id).toBe(requestId)
+    expect(ownerDetail.body.data.transporter.code).toBe('TR-PNR')
+
+    const otherDetail = await request(app)
+      .get(`/api/driver-requests/${requestId}`)
+      .set('Cookie', otherUser.cookie)
+    expect(otherDetail.status).toBe(404)
+
+    // 5. Resubmit rejected only
+    const prematureResubmit = await request(app)
+      .put(`/api/driver-requests/${requestId}`)
+      .set('Origin', origin)
+      .set('Cookie', submitter.cookie)
+      .send(validPayload)
+    expect(prematureResubmit.status).toBe(422)
+
+    // Simulate rejection by reviewer
+    await prisma.driverRequest.update({
+      where: { id: requestId },
+      data: { status: 'REJECTED', rejectionReason: 'Foto SIM buram' },
+    })
+
+    // 6. Resubmit rejected request
+    const resubmitRes = await request(app)
+      .put(`/api/driver-requests/${requestId}`)
+      .set('Origin', origin)
+      .set('Cookie', submitter.cookie)
+      .send({
+        ...validPayload,
+        driverName: 'Budi Santoso Updated',
+      })
+    expect(resubmitRes.status).toBe(200)
+    expect(resubmitRes.body.data.status).toBe('SUBMITTED')
+    expect(resubmitRes.body.data.driverName).toBe('Budi Santoso Updated')
+    expect(resubmitRes.body.data.rejectionReason).toBeNull()
   })
 })
