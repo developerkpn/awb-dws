@@ -15,6 +15,8 @@ const EditUser = lazy(() => import('@/pages/user/editUser'))
 const PermissionOfRole = lazy(() => import('@/pages/role/permissionOfRole'))
 const ListRole = lazy(() => import('@/pages/role/listRole'))
 const PreRegistration = lazy(() => import('@/pages/preRegistration/listPreRegistration'))
+const SubmitRequest = lazy(() => import('@/pages/preRegistration/submitRequest'))
+const EditRequest = lazy(() => import('@/pages/preRegistration/editRequest'))
 const Approval = lazy(() => import('@/pages/approval/listApproval'))
 const Forbidden = lazy(() => import('@/pages/forbidden'))
 const NotFound = lazy(() => import('@/pages/notFound'))
@@ -46,6 +48,12 @@ export default function App() {
             </Route>
             <Route element={<RBACLayout permission={PERMISSION.PREREG.READ} />}>
               <Route path="/pre-registration" element={<PreRegistration />} />
+            </Route>
+            <Route element={<RBACLayout permission={PERMISSION.PREREG.CREATE} />}>
+              <Route path="/pre-registration/new" element={<SubmitRequest />} />
+            </Route>
+            <Route element={<RBACLayout permission={PERMISSION.PREREG.UPDATE} />}>
+              <Route path="/pre-registration/:id/edit" element={<EditRequest />} />
             </Route>
             <Route element={<RBACLayout permission={PERMISSION.PREREG.APPROVE} />}>
               <Route path="/approval" element={<Approval />} />

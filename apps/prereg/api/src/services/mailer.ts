@@ -14,3 +14,15 @@ export function deliverCredentials(username: string, password: string) {
   if (env.NODE_ENV === 'development')
     console.info('[AWB development credentials]', { username, password })
 }
+
+export function notifyLogisticsSubmission(requestId: string, driverName: string, plateNumber: string) {
+  if (env.NODE_ENV === 'development') {
+    console.info('[AWB logistics notification]', {
+      event: 'DRIVER_REQUEST_SUBMITTED',
+      requestId,
+      driverName,
+      plateNumber,
+      message: 'New driver and vehicle request submitted. Pending Logistics review.',
+    })
+  }
+}
