@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { success } from '@awb/server-core'
-import { currentUser, requirePermission } from '../../middlewares/auth'
+import { currentUser, requirePermission, disallowRole } from '../../middlewares/auth'
 import {
   idParam,
   customerQuery,
@@ -19,6 +19,7 @@ import service from './jul.service'
 
 const router = Router()
 
+router.use(disallowRole(['VENDOR']))
 router.use(requirePermission('prereg:read'))
 
 router.get('/configuration', async (req, res) => {

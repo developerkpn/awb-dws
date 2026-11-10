@@ -189,8 +189,34 @@ await prisma.userPlant.createMany({
   skipDuplicates: true,
 })
 
+const vendorRole = await prisma.role.upsert({
+  where: { code: 'VENDOR' },
+  create: {
+    code: 'VENDOR',
+    name: 'Vendor',
+  },
+  update: { isActive: true },
+})
+
+await prisma.user.upsert({
+  where: { username: 'browser_test_vendor' },
+  create: {
+    ...data,
+    username: 'browser_test_vendor',
+    name: 'Browser test vendor',
+    accountType: 'PARTNER',
+    roleId: vendorRole.id,
+  },
+  update: {
+    ...data,
+    accountType: 'PARTNER',
+    roleId: vendorRole.id,
+  },
+})
+
 for (const [roleId, codes] of [
   [partnerRole.id, ['prereg:read', 'prereg:create', 'prereg:update']],
+  [vendorRole.id, ['prereg:read', 'prereg:create', 'prereg:update']],
   [logisticRole.id, ['prereg:read', 'prereg:approve', 'documents:read']],
 ] as const) {
   for (const code of codes) {

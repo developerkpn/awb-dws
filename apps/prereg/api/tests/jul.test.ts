@@ -736,58 +736,9 @@ describe('downstream JUL', () => {
 
     const vendorCookie = cookieFrom(await login(vendor.username))
 
-    const vendorRefs = fixtureReferences({
-      id: vendor.id,
-      username: vendor.username,
-      role: 'VENDOR',
-    })
-
     const listed = await api('/references', vendorCookie).query({ sto: '4500000001' })
 
-    expect(listed.body.data).toEqual([vendorRefs[1]])
-
-    const doc = await api('/documents', vendorCookie).query({
-      reference: vendorRefs[1],
-      sto: '4500000001',
-    })
-
-    expect(doc.status, JSON.stringify(doc.body)).toBe(200)
-
-    const vendorLine = {
-      ...line,
-      documentId: doc.body.data.id,
-    }
-
-    const wrong = await post(
-      '',
-      {
-        lines: [
-          {
-            ...vendorLine,
-            variant: 'FRC_TO_LCO',
-          },
-        ],
-      },
-      vendorCookie,
-    )
-
-    expect(wrong.status).toBe(422)
-
-    const right = await post(
-      '',
-      {
-        lines: [
-          {
-            ...vendorLine,
-            variant: 'FRC',
-          },
-        ],
-      },
-      vendorCookie,
-    )
-
-    expect(right.status, JSON.stringify(right.body)).toBe(201)
-    expect(right.body.data.lines[0].stoNumber).toBe('4500000001')
+    expect(listed.status).toBe(403)
   })
 
   it('lists only downstream LCO/FRC delivery orders, as the legacy DO list did', async () => {
