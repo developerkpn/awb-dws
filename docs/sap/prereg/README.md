@@ -26,9 +26,20 @@ These are selection/calculation requirements. A field used to filter records doe
 
 ## Why the examples use `d.results`
 
-The current local configuration has `SAP_PO_DETAIL_URL` pointing to the service path `/sap/opu/odata/sap/ZGW_REGISTRA_SRV/PODETAILSet`. Hosts and credentials are intentionally omitted. This is evidence of the existing integration pattern, not the URL of the new service.
+An existing KPN integration already reads PO details from SAP through the service path `/sap/opu/odata/sap/ZGW_REGISTRA_SRV/PODETAILSet`. Hosts and credentials are intentionally omitted. This is evidence of the existing integration pattern, not the URL of the new service.
 
-The existing [SAP PO reader](../../../../warehouse_management/warehouse_be/src/services/purchaseOrderService.ts) (`getPOFromSAP`) requests `$format=json` and reads `response.data.d.results`. The [SAP PO types](../../../../warehouse_management/warehouse_be/src/types/po.ts) (`SAPPOItem`) and [offline PO types](../../../../warehouse_management/warehouse_be/src/types/offlineGr.ts) (`SapPoDetailRow`) use names such as `Ebeln`, `Ebelp`, `Matnr`, `Lifnr`, `Menge`, `Wemng`, `Meins`, and `Inco1`.
+That integration requests `$format=json` and reads the rows from `d.results`. Each row uses SAP field names with only the first letter capitalised:
+
+| Property | Meaning                        |
+| -------- | ------------------------------ |
+| `Ebeln`  | PO number                      |
+| `Ebelp`  | PO item number                 |
+| `Matnr`  | Material number                |
+| `Lifnr`  | Vendor account                 |
+| `Menge`  | Ordered quantity               |
+| `Wemng`  | Quantity already received (GR) |
+| `Meins`  | Unit of measure                |
+| `Inco1`  | Incoterm                       |
 
 Accordingly, an OData V2 collection and similar property casing are reasonable working assumptions. OData V2 uses `d.results` for collections and represents `Edm.Decimal` values as JSON strings. Optional metadata and paging properties can also appear. See the [official OData V2 JSON format](https://www.odata.org/documentation/odata-version-2-0/json-format/).
 
@@ -53,7 +64,7 @@ Identifiers are strings, including the five-digit item number `"00010"`. A flag 
 
 There is no single `Bwart` on an aggregate row combining 101, 102, and 122. If ABAP returns `Bwart`, clarify whether the response is grouped by movement type or contains individual movements instead.
 
-The primary mock deliberately contains no app-specific `success`, `message`, or `materials` wrapper. The current warehouse backend constructs a `materials` array after reading SAP; that is an application response, not evidence of the raw SAP response.
+The primary mock deliberately contains no app-specific `success`, `message`, or `materials` wrapper. Applications that read SAP may build their own wrapper (for example a `materials` array) after reading it; that is an application response, not evidence of the raw SAP response.
 
 ## Quantity example and alternative layout
 
@@ -84,7 +95,7 @@ Normalize units before addition or subtraction. The FSD does not say how mixed u
 | `Meins`  | `EKPO-MEINS`, PO order unit. Compare ordered and received quantities only after unit conversion where needed.                              |
 | `Inco1`  | Candidate incoterm property, following the existing integration's naming. `FRC` is an illustrative value, not a code mandated by this FSD. |
 
-None of these additions is a confirmed JSON output property in the FSD. In particular, do not map the new `Erfmg` directly to the existing warehouse `Wemng` without confirming scope, units, and calculation. The current reader uses `Menge - Wemng` to derive outstanding quantity.
+None of these additions is a confirmed JSON output property in the FSD. In particular, do not map the new `Erfmg` directly to the existing `PODETAILSet` field `Wemng` without confirming scope, units, and calculation. The existing integration derives outstanding quantity as `Menge - Wemng`.
 
 ## Illustrative request
 
