@@ -1,3 +1,4 @@
+import { driverVehicleApprovedEvent } from '@awb/contracts'
 import { randomUUID } from 'node:crypto'
 import request from 'supertest'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -7,11 +8,7 @@ import { env } from '../src/config/env'
 import { prisma } from '../src/config/prisma'
 import syncService from '../src/modules/sync/sync.service'
 import syncRepository from '../src/modules/sync/sync.repository'
-import {
-  startSyncWorker,
-  stopSyncWorker,
-  isSyncWorkerRunning,
-} from '../src/modules/sync/sync.worker'
+import { startSyncWorker, stopSyncWorker, isSyncWorkerRunning } from '../src/jobs/sync.worker'
 
 function createValidApprovedEvent(overrides?: {
   eventId?: string
@@ -19,8 +16,10 @@ function createValidApprovedEvent(overrides?: {
   plateNumber?: string
 }): DriverVehicleApprovedEvent {
   const eventId = overrides?.eventId ?? randomUUID()
+
   const licenseNumber =
     overrides?.licenseNumber ?? `SIM-${Math.floor(100000 + Math.random() * 900000)}`
+
   const plateNumber = overrides?.plateNumber ?? `B ${Math.floor(1000 + Math.random() * 9000)} XYZ`
   const now = new Date().toISOString()
   const requestId = randomUUID()
@@ -83,10 +82,12 @@ describe('Sync Domain (AWB-15)', () => {
   describe('1. Scheduled Worker', () => {
     it('protects manual synchronization with service authentication', async () => {
       expect((await request(app).post('/api/sync/pull')).status).toBe(401)
+
       expect((await request(app).post('/api/sync/pull').set('x-service-key', 'wrong')).status).toBe(
         401,
       )
     })
+
     it('starts, reports running status, and stops cleanly', () => {
       expect(isSyncWorkerRunning()).toBe(false)
       startSyncWorker()
@@ -97,8 +98,10 @@ describe('Sync Domain (AWB-15)', () => {
 
     it('reports worker status via GET /api/sync/status', async () => {
       const res = await request(app).get('/api/sync/status')
+
       expect(res.status).toBe(200)
       expect(res.body.success).toBe(true)
+
       expect(res.body.data).toMatchObject({
         siteId: env.SITE_ID,
         lastSequence: 0,
@@ -108,8 +111,47 @@ describe('Sync Domain (AWB-15)', () => {
   })
 
   describe('2. Contract Validation & Persistence', () => {
+    it('applies an event that carries only a vehicle and rejects an empty one', async () => {
+      const event = createValidApprovedEvent()
+
+      const vehicleOnly = {
+        ...event,
+        payload: {
+          ...event.payload,
+          driver: null,
+        },
+      }
+
+      expect(driverVehicleApprovedEvent.safeParse(vehicleOnly).success).toBe(true)
+
+      expect(
+        driverVehicleApprovedEvent.safeParse({
+          ...event,
+          payload: {
+            ...event.payload,
+            driver: null,
+            vehicle: null,
+          },
+        }).success,
+      ).toBe(false)
+
+      await syncRepository.upsertDriverAndVehicleFromApprovedEvent({
+        event: driverVehicleApprovedEvent.parse(vehicleOnly),
+        sequenceNumber: 900001,
+      })
+
+      expect(
+        await syncRepository.findVehicleByPlate(event.payload.vehicle!.plateNumber),
+      ).not.toBeNull()
+
+      expect(
+        await syncRepository.findDriverByLicense(event.payload.driver!.licenseNumber),
+      ).toBeNull()
+    })
+
     it('validates incoming message with contract and persists driver and vehicle to SQL Server', async () => {
       const event = createValidApprovedEvent()
+
       const mockOutboxMessage = {
         id: 101,
         eventId: event.eventId,
@@ -121,10 +163,12 @@ describe('Sync Domain (AWB-15)', () => {
 
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
         const urlStr = input.toString()
+
         if (urlStr.includes('/api/internal/sync/outbox')) {
           expect(init?.headers).toMatchObject({
             'x-service-key': env.INTERNAL_SERVICE_KEY,
           })
+
           return new Response(
             JSON.stringify({
               success: true,
@@ -133,25 +177,38 @@ describe('Sync Domain (AWB-15)', () => {
                 lastId: 101,
               },
             }),
-            { status: 200, headers: { 'Content-Type': 'application/json' } },
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            },
           )
         }
+
         if (urlStr.includes('/api/internal/sync/ack')) {
-          return new Response(JSON.stringify({ success: true, data: { count: 1 } }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          })
+          return new Response(
+            JSON.stringify({
+              success: true,
+              data: { count: 1 },
+            }),
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            },
+          )
         }
+
         return new Response('Not Found', { status: 404 })
       })
 
       const result = await syncService.pullAndProcess()
+
       expect(result.success).toBe(true)
       expect(result.processedCount).toBe(1)
       expect(result.lastSequence).toBe(101)
 
       // Verify driver saved
-      const driver = await syncRepository.findDriverByLicense(event.payload.driver.licenseNumber)
+      const driver = await syncRepository.findDriverByLicense(event.payload.driver!.licenseNumber)
+
       expect(driver).not.toBeNull()
       expect(driver?.name).toBe('Budi Santoso')
       expect(driver?.phone).toBe('081234567890')
@@ -159,7 +216,8 @@ describe('Sync Domain (AWB-15)', () => {
       expect(driver?.licensePhotoUrl).toBe('/documents/sim/test-sim.jpg')
 
       // Verify vehicle saved
-      const vehicle = await syncRepository.findVehicleByPlate(event.payload.vehicle.plateNumber)
+      const vehicle = await syncRepository.findVehicleByPlate(event.payload.vehicle!.plateNumber)
+
       expect(vehicle).not.toBeNull()
       expect(vehicle?.transporterName).toBe('PT Logistics Maju')
       expect(vehicle?.transporterCode).toBe('TR-001')
@@ -167,6 +225,7 @@ describe('Sync Domain (AWB-15)', () => {
 
       // Verify inbox and state saved
       const inbox = await syncRepository.findInboxByEventId(event.eventId)
+
       expect(inbox).not.toBeNull()
       expect(inbox?.sequenceNumber).toBe(101)
       expect(await syncRepository.getLastSequence()).toBe(101)
@@ -176,7 +235,10 @@ describe('Sync Domain (AWB-15)', () => {
         expect.stringContaining('/api/internal/sync/ack'),
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ upTo: 101, siteId: env.SITE_ID }),
+          body: JSON.stringify({
+            upTo: 101,
+            siteId: env.SITE_ID,
+          }),
         }),
       )
     })
@@ -203,11 +265,15 @@ describe('Sync Domain (AWB-15)', () => {
               lastId: 102,
             },
           }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
         ),
       )
 
       const result = await syncService.pullAndProcess()
+
       expect(result.success).toBe(false)
       expect(result.processedCount).toBe(0)
       expect(result.lastSequence).toBe(0)
@@ -222,6 +288,7 @@ describe('Sync Domain (AWB-15)', () => {
   describe('3. Idempotency & Duplicate Handling', () => {
     it('ignores duplicate messages without throwing error or duplicating records', async () => {
       const event = createValidApprovedEvent()
+
       const mockOutboxMessage = {
         id: 201,
         eventId: event.eventId,
@@ -233,6 +300,7 @@ describe('Sync Domain (AWB-15)', () => {
 
       vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
         const urlStr = input.toString()
+
         if (urlStr.includes('/api/internal/sync/outbox')) {
           return new Response(
             JSON.stringify({
@@ -242,14 +310,19 @@ describe('Sync Domain (AWB-15)', () => {
                 lastId: 201,
               },
             }),
-            { status: 200, headers: { 'Content-Type': 'application/json' } },
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            },
           )
         }
+
         return new Response(JSON.stringify({ success: true }), { status: 200 })
       })
 
       // First pull: successfully processed
       const firstResult = await syncService.pullAndProcess()
+
       expect(firstResult.processedCount).toBe(1)
       expect(await syncRepository.countInbox()).toBe(1)
       expect(await prisma.driver.count()).toBe(1)
@@ -257,6 +330,7 @@ describe('Sync Domain (AWB-15)', () => {
 
       // Second pull with the exact same message: duplicate ignored
       const secondResult = await syncService.pullAndProcess()
+
       expect(secondResult.success).toBe(true)
       expect(secondResult.processedCount).toBe(0) // 0 new processed
       expect(await syncRepository.countInbox()).toBe(1) // Still exactly 1
@@ -269,16 +343,19 @@ describe('Sync Domain (AWB-15)', () => {
     it('handles network failure gracefully without crashing and leaves database intact', async () => {
       // Pre-seed an existing message sequence
       const initialEvent = createValidApprovedEvent()
+
       await syncRepository.upsertDriverAndVehicleFromApprovedEvent({
         sequenceNumber: 50,
         event: initialEvent,
       })
+
       expect(await syncRepository.getLastSequence()).toBe(50)
 
       // Simulate connection drop: fetch throws network error
       vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('fetch failed: ECONNREFUSED'))
 
       const result = await syncService.pullAndProcess()
+
       expect(result.success).toBe(false)
       expect(result.disconnected).toBe(true)
       expect(result.lastSequence).toBe(50)
@@ -292,6 +369,7 @@ describe('Sync Domain (AWB-15)', () => {
     it('resumes from last received sequence number once connection is restored', async () => {
       // Start with lastSequence = 50
       const initialEvent = createValidApprovedEvent()
+
       await syncRepository.upsertDriverAndVehicleFromApprovedEvent({
         sequenceNumber: 50,
         event: initialEvent,
@@ -299,6 +377,7 @@ describe('Sync Domain (AWB-15)', () => {
 
       // When reconnected, HO gives next messages starting after 50
       const nextEvent = createValidApprovedEvent()
+
       const mockOutboxMessage = {
         id: 51,
         eventId: nextEvent.eventId,
@@ -309,10 +388,13 @@ describe('Sync Domain (AWB-15)', () => {
       }
 
       let outboxUrl = ''
+
       vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
         const urlStr = input.toString()
+
         if (urlStr.includes('/api/internal/sync/outbox')) {
           outboxUrl = urlStr
+
           return new Response(
             JSON.stringify({
               success: true,
@@ -321,13 +403,18 @@ describe('Sync Domain (AWB-15)', () => {
                 lastId: 51,
               },
             }),
-            { status: 200, headers: { 'Content-Type': 'application/json' } },
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            },
           )
         }
+
         return new Response(JSON.stringify({ success: true }), { status: 200 })
       })
 
       const resumeResult = await syncService.pullAndProcess()
+
       expect(resumeResult.success).toBe(true)
       expect(resumeResult.processedCount).toBe(1)
       expect(resumeResult.lastSequence).toBe(51)

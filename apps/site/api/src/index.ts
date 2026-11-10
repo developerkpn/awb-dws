@@ -3,7 +3,7 @@ import { env } from './config/env'
 import { controllers } from './config/controllers'
 import { prisma } from './config/prisma'
 import { startControllers } from './devices'
-import { startSyncWorker, stopSyncWorker } from './modules/sync/sync.worker'
+import { startSyncWorker, stopSyncWorker } from './jobs/sync.worker'
 
 const server = app.listen(env.PORT, env.HOST, () => {
   console.log(
@@ -23,9 +23,11 @@ const stopControllers = startControllers(controllers, (event) => {
 const shutdown = () => {
   stopSyncWorker()
   stopControllers()
+
   server.close(() => {
     void prisma.$disconnect().finally(() => process.exit(0))
   })
 }
+
 process.on('SIGINT', shutdown)
 process.on('SIGTERM', shutdown)

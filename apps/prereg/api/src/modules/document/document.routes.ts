@@ -4,11 +4,12 @@ import multer from 'multer'
 import { z } from 'zod'
 import { CustomError, success } from '@awb/server-core'
 import { currentUser, requirePermission } from '../../middlewares/auth'
-import { incomingDirectory, prepareIncoming, removeFile } from '../../helpers/storage'
+import { incomingDirectory, prepareIncoming, removeFile } from '../../lib/storage'
 import authService from '../auth/auth.service'
 import service from './document.service'
 
 const categories = z.enum(['sim', 'driver', 'stnk'])
+
 const upload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, callback) => {
@@ -18,7 +19,13 @@ const upload = multer({
     },
     filename: (_req, _file, callback) => callback(null, randomUUID()),
   }),
-  limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 1, fieldSize: 100, parts: 2 },
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+    files: 1,
+    fields: 1,
+    fieldSize: 100,
+    parts: 2,
+  },
 })
 
 const router = Router()
@@ -39,6 +46,7 @@ router.post(
             422,
           ),
         )
+
         return
       }
 
@@ -65,10 +73,12 @@ router.get('/:id', requirePermission('documents:read'), async (req, res, next) =
 
   res.setHeader('Cache-Control', 'private, no-store')
   res.setHeader('Content-Type', result.document.mimeType)
+
   res.setHeader(
     'Content-Disposition',
     `attachment; filename*=UTF-8''${encodeURIComponent(result.document.fileName)}`,
   )
+
   res.sendFile(result.path, { dotfiles: 'allow' }, (error) => {
     if (error) next(new CustomError('Document unavailable', 404))
   })

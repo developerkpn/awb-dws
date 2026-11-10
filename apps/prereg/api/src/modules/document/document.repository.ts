@@ -13,6 +13,8 @@ export default {
   },
 
   findById(id: string) {
-    return prisma.document.findUnique({ where: { id } })
+    return prisma.document.findUnique({
+      where: { id },
+    })
   },
 }
