@@ -3,7 +3,15 @@ import { CustomError } from '@awb/server-core'
 import { prisma } from '../src/config/prisma'
 import gateway from '../src/modules/sap/sap.repository'
 import staging from '../src/modules/sap/sap-stage.repository'
-import type { SapEntity, SapMasterEntity, SapOwner, SapRow, StagePayload } from '../src/types/sap'
+import belPoRepository, { mockPoRows, parsePoRows } from '../src/modules/bel/bel-po.repository'
+import type {
+  BelStagePayload,
+  SapEntity,
+  SapMasterEntity,
+  SapOwner,
+  SapRow,
+  StagePayload,
+} from '../src/types/sap'
 
 export function fixtureReferences(owner: SapOwner) {
   const known = ['CU00010000', 'AT11000001'].includes(owner.username.toUpperCase())
@@ -159,6 +167,8 @@ export const stagedRows = new Map<
   { payload: StagePayload; loadingNoteNumber: string | null; error: string | null }
 >()
 
+export const stagedBelRows = new Map<string, BelStagePayload>()
+
 export function setStageError(ids: string[], error: string) {
   for (const id of ids) {
     const row = stagedRows.get(id)
@@ -270,6 +280,23 @@ export function installSapMock() {
         })
     }
   }
+
+  staging.stageBel = async (payloads: BelStagePayload[]) => {
+    for (const payload of payloads) {
+      stagedBelRows.set(payload.DET_ID, payload)
+    }
+
+    return 'oracle'
+  }
+
+  belPoRepository.listByVendor = async (vendorCode: string) =>
+    parsePoRows(
+      mockPoRows(vendorCode).map((row) => ({
+        ...row,
+        Werks: '3701',
+      })),
+      vendorCode,
+    )
 
   staging.acknowledge = async () => undefined
 

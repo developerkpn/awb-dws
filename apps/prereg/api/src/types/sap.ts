@@ -61,3 +61,32 @@ export interface StagePayload {
   USERSAP: string
   IS_MULTI?: number
 }
+
+export interface BelStagePayload {
+  DET_ID: string
+  HEAD_ID: string
+  REG_NUMBER: string
+  LIFNR: string
+  BSART: string | null
+  EBELN: string
+  EBELP: string
+  MATNR: string
+  WERKS: string
+  INCO1: string | null
+  PLN_MENGE: string
+  MEINS: string
+  CREDAT: string | null
+  ZZTRANSP_TYPE: string
+  WNOSIM: string
+  WNONAMA: string | null
+  WNOPOLISI: string
+  REMARK: string | null
+  CREATE_BY: string
+  CREATE_AT: string
+  USERSAP: string
+  PREREG_STATUS: 'APPROVED' | 'CANCELLED'
+  FLAG: 'I' | 'U'
+  ISACTIVE: 'TRUE' | 'FALSE'
+  PREREG_FLAG: 'I' | 'U'
+  ISRETREIVEDBYSAP: 'FALSE' | 'TRUE'
+}

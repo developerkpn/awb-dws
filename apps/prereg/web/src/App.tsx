@@ -17,6 +17,9 @@ const ListRole = lazy(() => import('@/pages/role/listRole'))
 const ListDriverRequest = lazy(() => import('@/pages/driverRequest/listDriverRequest'))
 const SubmitDriverRequest = lazy(() => import('@/pages/driverRequest/submitDriverRequest'))
 const EditDriverRequest = lazy(() => import('@/pages/driverRequest/editDriverRequest'))
+const BelList = lazy(() => import('@/pages/bel/listBel'))
+const BelForm = lazy(() => import('@/pages/bel/editBel'))
+const BelDetail = lazy(() => import('@/pages/bel/viewBel'))
 const JulList = lazy(() => import('@/pages/jul/listJul'))
 const JulForm = lazy(() => import('@/pages/jul/editJul'))
 const JulDetail = lazy(() => import('@/pages/jul/viewJul'))
@@ -58,6 +61,8 @@ export default function App() {
                 path="/pre-registration"
                 element={<Navigate to="/driver-requests" replace />}
               />
+              <Route path="/bel" element={<BelList />} />
+              <Route path="/bel/:id" element={<BelDetail />} />
               <Route path="/jul" element={<JulList />} />
               <Route path="/jul/:id" element={<JulDetail />} />
             </Route>
@@ -67,10 +72,12 @@ export default function App() {
                 path="/pre-registration/new"
                 element={<Navigate to="/driver-requests/new" replace />}
               />
+              <Route path="/bel/new" element={<BelForm />} />
               <Route path="/jul/new" element={<JulForm />} />
             </Route>
             <Route element={<RBACLayout permission={PERMISSION.PREREG.UPDATE} />}>
               <Route path="/driver-requests/:id/edit" element={<EditDriverRequest />} />
+              <Route path="/bel/:id/edit" element={<BelForm />} />
               <Route path="/jul/:id/edit" element={<JulForm />} />
             </Route>
             <Route element={<RBACLayout permission={PERMISSION.PREREG.APPROVE} />}>
@@ -79,6 +86,7 @@ export default function App() {
                 element={<Navigate to="/driver-requests" replace />}
               />
               <Route path="/approval" element={<Navigate to="/driver-requests/review" replace />} />
+              <Route path="/bel/review" element={<BelList review />} />
               <Route path="/jul/review" element={<JulList review />} />
             </Route>
             <Route path="/forbidden" element={<Forbidden />} />

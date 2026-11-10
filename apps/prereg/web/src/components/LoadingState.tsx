@@ -2,10 +2,28 @@ import { PageSkeleton } from '@awb/ui'
 import { useLocation } from 'react-router'
 import { loadingColumnsFor } from '@/ui/loadingLayouts'
 import { RequestFormSkeleton, RequestListSkeleton } from './DriverRequestSkeleton'
+import { BelSkeleton } from '@/pages/bel/_components/BelSkeleton'
 import { JulSkeleton } from '@/pages/jul/_components/JulSkeleton'
 
 export default function LoadingState({ message, shell }: { message?: string; shell?: boolean }) {
   const { pathname } = useLocation()
+
+  if (pathname === '/bel/new' || /^\/bel\/[^/]+\/edit$/.test(pathname))
+    return <BelSkeleton view="form" shell={shell} />
+
+  if (pathname === '/bel' || pathname === '/bel/review')
+    return (
+      <PageSkeleton
+        view="table"
+        columns={loadingColumnsFor('jul')}
+        toolbar="search"
+        action
+        subtitle
+        shell={shell}
+      />
+    )
+
+  if (pathname.startsWith('/bel/')) return <BelSkeleton view="detail" shell={shell} />
 
   if (pathname === '/jul/new' || /^\/jul\/[^/]+\/edit$/.test(pathname))
     return <JulSkeleton view="form" shell={shell} />
