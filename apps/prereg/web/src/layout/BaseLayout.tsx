@@ -19,6 +19,9 @@ const PAGE_TITLES: Record<string, string> = {
   '/sap-master': 'SAP drivers & trucks',
   '/driver-requests/new': 'New request',
   '/driver-requests': 'Drivers & vehicles',
+  '/bel/review': 'BEL review',
+  '/bel/new': 'New BEL registration',
+  '/bel': 'BEL registrations',
   '/jul/review': 'JUL review',
   '/jul': 'JUL registrations',
 }

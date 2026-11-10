@@ -39,6 +39,11 @@ model User {
   createdJul        JulRegistration[]       @relation("JulCreator")
   julHistory        JulHistory[]
   julHolds          JulHold[]
+  belDocuments      BelDocument[]
+  belRegistrations  BelRegistration[]       @relation("BelVendor")
+  createdBel        BelRegistration[]       @relation("BelCreator")
+  decidedBel        BelRegistration[]       @relation("BelDecider")
+  belHistory        BelHistory[]
 
   @@index([accountType, createdAt, id])
   @@index([createdAt, id])
@@ -106,6 +111,7 @@ model Plant {
   users        UserPlant[]
   julDocuments JulDocument[]
   julRules     JulPlantRule[]
+  belDocuments BelDocument[]
 
   @@map("mst_plant")
 }
@@ -530,4 +536,91 @@ model JulHold {
   @@unique([providerMode, referenceDocument])
   @@index([actorId])
   @@map("mst_jul_hold")
+}
+
+model BelDocument {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  vendorId  String    @map("vendor_id") @db.Uuid
+  poNumber  String    @map("po_number")
+  poItem    String    @map("po_item")
+  plantId   String    @map("plant_id") @db.Uuid
+  snapshot  Json
+  fetchedAt DateTime  @default(now()) @map("fetched_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  vendor    User      @relation(fields: [vendorId], references: [id])
+  plant     Plant     @relation(fields: [plantId], references: [id])
+  lines     BelLine[]
+
+  @@unique([vendorId, poNumber, poItem])
+  @@index([poNumber, poItem, id])
+  @@index([plantId, fetchedAt])
+  @@map("mst_bel_document")
+}
+
+model BelRegistration {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  number      String       @unique
+  vendorId    String       @map("vendor_id") @db.Uuid
+  createdById String       @map("created_by_id") @db.Uuid
+  decidedById String?      @map("decided_by_id") @db.Uuid
+  status      String       @default("DRAFT")
+  version     Int          @default(1)
+  submittedAt DateTime?    @map("submitted_at")
+  decidedAt   DateTime?    @map("decided_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  vendor      User         @relation("BelVendor", fields: [vendorId], references: [id])
+  creator     User         @relation("BelCreator", fields: [createdById], references: [id])
+  decider     User?        @relation("BelDecider", fields: [decidedById], references: [id])
+  lines       BelLine[]
+  history     BelHistory[]
+
+  @@index([vendorId, createdAt, id])
+  @@index([status, createdAt, id])
+  @@map("awb_bel_registration")
+}
+
+model BelLine {
+  id                  String          @id @default(uuid(7)) @db.Uuid
+  registrationId      String          @map("registration_id") @db.Uuid
+  documentId          String          @map("document_id") @db.Uuid
+  documentSnapshot    Json            @map("document_snapshot")
+  driverLicenseNumber String?         @map("driver_license_number")
+  driverName          String?         @map("driver_name")
+  vehiclePlateNumber  String?         @map("vehicle_plate_number")
+  quantity            Decimal         @db.Decimal(20, 6)
+  loadingDate         DateTime?       @map("loading_date") @db.Date
+  mediaTransport      String          @map("media_transport")
+  remark              String?
+  status              String          @default("DRAFT")
+  stagedAt            DateTime?       @map("staged_at")
+  stagePayload        Json?           @map("stage_payload")
+  stageError          String?         @map("stage_error")
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+  registration        BelRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  document            BelDocument     @relation(fields: [documentId], references: [id])
+
+  @@index([documentId, status])
+  @@index([registrationId, createdAt, id])
+  @@index([status, loadingDate, id])
+  @@map("awb_bel_line")
+}
+
+model BelHistory {
+  id             String          @id @default(uuid(7)) @db.Uuid
+  registrationId String          @map("registration_id") @db.Uuid
+  actorId        String?         @map("actor_id") @db.Uuid
+  action         String
+  reason         String?
+  details        Json?
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  registration   BelRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  actor          User?           @relation(fields: [actorId], references: [id])
+
+  @@index([registrationId, createdAt, id])
+  @@index([actorId])
+  @@map("awb_bel_history")
 }

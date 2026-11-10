@@ -50,3 +50,97 @@ Columns of the source tables that prereg rows never fill (`DRIVERCODE`, `EXPDATE
 left out.
 
 Rollback: `DROP TABLE PREREG_TRUCK_SAP; DROP TABLE PREREG_DRIVER_SAP;`
+
+## PREREG_BEL_SAP
+
+One row per approved BEL allocation line (`DET_ID`). Written idempotently when Logistics/Admin approves a BEL registration (with no DP check and no automatic SAP loading-note trigger). This DDL file is added to the repository only and is not executed against Oracle automatically.
+
+### Columns
+
+| Column             | Type / Default / Check                                                        | Written by | Meaning & Values                                                               |
+| ------------------ | ----------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------ |
+| `DET_ID`           | `VARCHAR2(200) NOT NULL` (PK)                                                 | prereg     | UUID of `awb_bel_line.id` (idempotency key per allocation line)                |
+| `HEAD_ID`          | `VARCHAR2(200) NOT NULL`                                                      | prereg     | UUID of `awb_bel_registration.id`                                              |
+| `REG_NUMBER`       | `VARCHAR2(60) NOT NULL`                                                       | prereg     | Human-readable BEL registration number (`BEL-YYYYMMDD-...`)                    |
+| `LIFNR`            | `VARCHAR2(20) NOT NULL`                                                       | prereg     | SAP vendor code (`Lifnr`)                                                      |
+| `BSART`            | `VARCHAR2(10)`                                                                | prereg     | SAP PO document type (e.g., `ZM10`, `ZR10`)                                    |
+| `EBELN`            | `VARCHAR2(20) NOT NULL`                                                       | prereg     | SAP purchase order number                                                      |
+| `EBELP`            | `VARCHAR2(10) NOT NULL`                                                       | prereg     | SAP purchase order item number                                                 |
+| `MATNR`            | `VARCHAR2(40) NOT NULL`                                                       | prereg     | SAP material number (`8*`)                                                     |
+| `WERKS`            | `VARCHAR2(10) NOT NULL`                                                       | prereg     | Destination SAP plant code                                                     |
+| `INCO1`            | `VARCHAR2(10)`                                                                | prereg     | SAP Incoterm 1 (e.g., `FRC`, `CIF`)                                            |
+| `PLN_MENGE`        | `NUMBER(20, 6) NOT NULL`                                                      | prereg     | Approved planned delivery quantity from open PO quota                          |
+| `MEINS`            | `VARCHAR2(10) NOT NULL`                                                       | prereg     | Quantity unit of measure (e.g., `KG`)                                          |
+| `CREDAT`           | `DATE`                                                                        | prereg     | Planned loading date (`tanggal muat`)                                          |
+| `ZZTRANSP_TYPE`    | `VARCHAR2(10) NOT NULL`                                                       | prereg     | SAP transport mode (`T`, `V`, `R`, `P`, `L`, `E`, `A`, `W`)                    |
+| `WNOSIM`           | `VARCHAR2(50) NOT NULL`                                                       | prereg     | Assigned SAP driver SIM license number                                         |
+| `WNONAMA`          | `VARCHAR2(100)`                                                               | prereg     | Assigned SAP driver full name                                                  |
+| `WNOPOLISI`        | `VARCHAR2(25) NOT NULL`                                                       | prereg     | Assigned SAP vehicle license plate                                             |
+| `REMARK`           | `VARCHAR2(500)`                                                               | prereg     | Optional vendor or logistics remark                                            |
+| `CREATE_BY`        | `VARCHAR2(100) NOT NULL`                                                      | prereg     | Username of approving Logistics/Admin operator                                 |
+| `CREATE_AT`        | `TIMESTAMP NOT NULL`                                                          | prereg     | UTC timestamp of staging write/update                                          |
+| `USERSAP`          | `VARCHAR2(50) NOT NULL`                                                       | prereg     | Approving operator username reference                                          |
+| `PREREG_STATUS`    | `VARCHAR2(20) DEFAULT 'APPROVED' NOT NULL`, `CHECK ('APPROVED', 'CANCELLED')` | prereg     | `APPROVED` ready for SAP pickup · `CANCELLED` retracted in prereg              |
+| `FLAG`             | `VARCHAR2(1) DEFAULT 'I' NOT NULL`, `CHECK ('I', 'U')`                        | prereg     | `I` data baru (new staged row) · `U` perubahan (update to existing staged row) |
+| `ISACTIVE`         | `VARCHAR2(5) DEFAULT 'TRUE' NOT NULL`, `CHECK ('TRUE', 'FALSE')`              | prereg     | `TRUE` active · `FALSE` deactivated/cancelled                                  |
+| `PREREG_FLAG`      | `VARCHAR2(1) DEFAULT 'I' NOT NULL`, `CHECK ('I', 'U')`                        | SAP        | `I` waiting for SAP · `U` processed by SAP                                     |
+| `ISRETREIVEDBYSAP` | `VARCHAR2(5) DEFAULT 'FALSE' NOT NULL`, `CHECK ('TRUE', 'FALSE')`             | SAP        | `FALSE` belum diambil SAP · `TRUE` sudah diambil SAP                           |
+| `ERRORMSG_PULL`    | `VARCHAR2(100)`                                                               | SAP        | Error message when SAP pulls rows from the staging table                       |
+| `ERRORMSG_POST`    | `VARCHAR2(100)`                                                               | SAP        | Error message when SAP posts retrieved BEL data to SAP ERP                     |
+| `LASTUPDATE`       | `DATE`                                                                        | SAP        | Date SAP last pulled or processed the row                                      |
+| `LASTTIME`         | `VARCHAR2(8)`                                                                 | SAP        | Time SAP last pulled or processed the row (`HH:MM:SS`)                         |
+
+### Lifecycle
+
+| Step                         | Written by | `PREREG_STATUS` | `FLAG` | `ISACTIVE` | `PREREG_FLAG` | `ISRETREIVEDBYSAP` | Error Columns             |
+| ---------------------------- | ---------- | --------------- | ------ | ---------- | ------------- | ------------------ | ------------------------- |
+| Logistics approves BEL       | prereg     | `APPROVED`      | `I`    | `TRUE`     | `I`           | `FALSE`            | `NULL`                    |
+| SAP pulls & fails validation | SAP        | `APPROVED`      | `I`    | `TRUE`     | `I`           | `FALSE` / `TRUE`   | `ERRORMSG_PULL` populated |
+| SAP posts BEL & succeeds     | SAP        | `APPROVED`      | `I`    | `TRUE`     | `U`           | `TRUE`             | `NULL`                    |
+| SAP post fails               | SAP        | `APPROVED`      | `I`    | `TRUE`     | `U` / `I`     | `TRUE`             | `ERRORMSG_POST` populated |
+| Registration cancelled       | prereg     | `CANCELLED`     | `U`    | `FALSE`    | `I`           | `FALSE`            | `NULL`                    |
+
+| Column             | Type / Default / Check                                                        | Written by | Meaning & Values                                                               |
+| ------------------ | ----------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------ |
+| `DET_ID`           | `VARCHAR2(200) NOT NULL` (PK)                                                 | prereg     | UUID of `awb_bel_line.id` (idempotency key per allocation line)                |
+| `HEAD_ID`          | `VARCHAR2(200) NOT NULL`                                                      | prereg     | UUID of `awb_bel_registration.id`                                              |
+| `REG_NUMBER`       | `VARCHAR2(60) NOT NULL`                                                       | prereg     | Human-readable BEL registration number (`BEL-YYYYMMDD-...`)                    |
+| `LIFNR`            | `VARCHAR2(20) NOT NULL`                                                       | prereg     | SAP vendor code (`Lifnr`)                                                      |
+| `BSART`            | `VARCHAR2(10)`                                                                | prereg     | SAP PO document type (e.g., `ZM10`, `ZR10`)                                    |
+| `EBELN`            | `VARCHAR2(20) NOT NULL`                                                       | prereg     | SAP purchase order number                                                      |
+| `EBELP`            | `VARCHAR2(10) NOT NULL`                                                       | prereg     | SAP purchase order item number                                                 |
+| `MATNR`            | `VARCHAR2(40) NOT NULL`                                                       | prereg     | SAP material number (`8*`)                                                     |
+| `WERKS`            | `VARCHAR2(10) NOT NULL`                                                       | prereg     | Destination SAP plant code                                                     |
+| `INCO1`            | `VARCHAR2(10)`                                                                | prereg     | SAP Incoterm 1 (e.g., `FRC`, `CIF`)                                            |
+| `PLN_MENGE`        | `NUMBER(20, 6) NOT NULL`                                                      | prereg     | Approved planned delivery quantity from open PO quota                          |
+| `MEINS`            | `VARCHAR2(10) NOT NULL`                                                       | prereg     | Quantity unit of measure (e.g., `KG`)                                          |
+| `CREDAT`           | `DATE`                                                                        | prereg     | Planned loading date (`tanggal muat`)                                          |
+| `ZZTRANSP_TYPE`    | `VARCHAR2(10) NOT NULL`                                                       | prereg     | SAP transport mode (`T`, `V`, `R`, `P`, `L`, `E`, `A`, `W`)                    |
+| `WNOSIM`           | `VARCHAR2(50) NOT NULL`                                                       | prereg     | Assigned SAP driver SIM license number                                         |
+| `WNONAMA`          | `VARCHAR2(100)`                                                               | prereg     | Assigned SAP driver full name                                                  |
+| `WNOPOLISI`        | `VARCHAR2(25) NOT NULL`                                                       | prereg     | Assigned SAP vehicle license plate                                             |
+| `REMARK`           | `VARCHAR2(500)`                                                               | prereg     | Optional vendor or logistics remark                                            |
+| `CREATE_BY`        | `VARCHAR2(100) NOT NULL`                                                      | prereg     | Username of approving Logistics/Admin operator                                 |
+| `CREATE_AT`        | `TIMESTAMP NOT NULL`                                                          | prereg     | UTC timestamp of staging write/update                                          |
+| `USERSAP`          | `VARCHAR2(50) NOT NULL`                                                       | prereg     | Approving operator username reference                                          |
+| `PREREG_STATUS`    | `VARCHAR2(20) DEFAULT 'APPROVED' NOT NULL`, `CHECK ('APPROVED', 'CANCELLED')` | prereg     | `APPROVED` ready for SAP pickup · `CANCELLED` retracted in prereg              |
+| `FLAG`             | `VARCHAR2(1) DEFAULT 'I' NOT NULL`, `CHECK ('I', 'U')`                        | prereg     | `I` data baru (new staged row) · `U` perubahan (update to existing staged row) |
+| `ISACTIVE`         | `VARCHAR2(5) DEFAULT 'TRUE' NOT NULL`, `CHECK ('TRUE', 'FALSE')`              | prereg     | `TRUE` active · `FALSE` deactivated/cancelled                                  |
+| `PREREG_FLAG`      | `VARCHAR2(1) DEFAULT 'I' NOT NULL`, `CHECK ('I', 'U')`                        | SAP        | `I` waiting for SAP · `U` processed by SAP                                     |
+| `ISRETREIVEDBYSAP` | `VARCHAR2(5) DEFAULT 'FALSE' NOT NULL`, `CHECK ('TRUE', 'FALSE')`             | SAP        | `FALSE` belum diambil SAP · `TRUE` sudah diambil SAP                           |
+| `ERRORMSG_PULL`    | `VARCHAR2(100)`                                                               | SAP        | Error message when SAP pulls rows from the staging table                       |
+| `ERRORMSG_POST`    | `VARCHAR2(100)`                                                               | SAP        | Error message when SAP posts retrieved BEL data to SAP ERP                     |
+| `LASTUPDATE`       | `DATE`                                                                        | SAP        | Date SAP last pulled or processed the row                                      |
+| `LASTTIME`         | `VARCHAR2(8)`                                                                 | SAP        | Time SAP last pulled or processed the row (`HH:MM:SS`)                         |
+
+### Lifecycle
+
+| Step                         | Written by | `PREREG_STATUS` | `FLAG` | `ISACTIVE` | `PREREG_FLAG` | `ISRETREIVEDBYSAP` | Error Columns             |
+| ---------------------------- | ---------- | --------------- | ------ | ---------- | ------------- | ------------------ | ------------------------- |
+| Logistics approves BEL       | prereg     | `APPROVED`      | `I`    | `TRUE`     | `I`           | `FALSE`            | `NULL`                    |
+| SAP pulls & fails validation | SAP        | `APPROVED`      | `I`    | `TRUE`     | `I`           | `FALSE` / `TRUE`   | `ERRORMSG_PULL` populated |
+| SAP posts BEL & succeeds     | SAP        | `APPROVED`      | `I`    | `TRUE`     | `U`           | `TRUE`             | `NULL`                    |
+| SAP post fails               | SAP        | `APPROVED`      | `I`    | `TRUE`     | `U` / `I`     | `TRUE`             | `ERRORMSG_POST` populated |
+| Registration cancelled       | prereg     | `CANCELLED`     | `U`    | `FALSE`    | `I`           | `FALSE`            | `NULL`                    |
+
+Rollback: `DROP TABLE PREREG_BEL_SAP;`

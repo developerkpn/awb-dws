@@ -7,8 +7,8 @@ import { requireAuth } from '../middlewares/auth'
 import { requireServiceAuth } from '../middlewares/service-auth'
 import documentRouter from '../modules/document/document.routes'
 import driverRequestRouter from '../modules/driver-request/driver-request.routes'
-import julRouter from '../modules/jul/jul.routes'
 import belRouter from '../modules/bel/bel.routes'
+import julRouter from '../modules/jul/jul.routes'
 import sapMasterRouter from '../modules/sap-master/sap-master.routes'
 
 const router = Router()
@@ -19,8 +19,8 @@ router.use('/internal-users', requireAuth, internalUserRouter)
 router.use('/access', requireAuth, rolePermissionRouter)
 router.use('/documents', requireAuth, documentRouter)
 router.use('/driver-requests', requireAuth, driverRequestRouter)
-router.use('/jul', requireAuth, julRouter)
 router.use('/bel', requireAuth, belRouter)
+router.use('/jul', requireAuth, julRouter)
 router.use('/sap-master', requireAuth, sapMasterRouter)
 router.use('/internal', requireServiceAuth, internalRouter)
 

@@ -68,22 +68,22 @@ describe('BEL and JUL RBAC role restrictions (AWB-20)', () => {
   })
 
   it('rejects customer from accessing BEL endpoints with 403 Forbidden', async () => {
-    const res = await request(app).get('/api/bel/configuration').set('Cookie', customerCookie)
+    const res = await request(app).get('/api/bel/vendors').set('Cookie', customerCookie)
 
     expect(res.status).toBe(403)
   })
 
   it('allows vendor to access BEL endpoints', async () => {
-    const res = await request(app).get('/api/bel/configuration').set('Cookie', vendorCookie)
+    const res = await request(app).get('/api/bel/vendors').set('Cookie', vendorCookie)
 
     expect(res.status).toBe(200)
-    expect(res.body.data).toEqual({ role: 'VENDOR' })
+    expect(res.body.data).toBeDefined()
   })
 
   it('allows internal staff (ADMIN and LOGISTIC) to access both JUL and BEL endpoints', async () => {
     // Admin
     const adminJul = await request(app).get('/api/jul/configuration').set('Cookie', adminCookie)
-    const adminBel = await request(app).get('/api/bel/configuration').set('Cookie', adminCookie)
+    const adminBel = await request(app).get('/api/bel/vendors').set('Cookie', adminCookie)
 
     expect(adminJul.status).toBe(200)
     expect(adminBel.status).toBe(200)
@@ -94,7 +94,7 @@ describe('BEL and JUL RBAC role restrictions (AWB-20)', () => {
       .set('Cookie', logisticCookie)
 
     const logisticBel = await request(app)
-      .get('/api/bel/configuration')
+      .get('/api/bel/vendors')
       .set('Cookie', logisticCookie)
 
     expect(logisticJul.status).toBe(200)

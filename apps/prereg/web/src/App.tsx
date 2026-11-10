@@ -17,10 +17,12 @@ const ListRole = lazy(() => import('@/pages/role/listRole'))
 const ListDriverRequest = lazy(() => import('@/pages/driverRequest/listDriverRequest'))
 const SubmitDriverRequest = lazy(() => import('@/pages/driverRequest/submitDriverRequest'))
 const EditDriverRequest = lazy(() => import('@/pages/driverRequest/editDriverRequest'))
+const BelList = lazy(() => import('@/pages/bel/listBel'))
+const BelForm = lazy(() => import('@/pages/bel/editBel'))
+const BelDetail = lazy(() => import('@/pages/bel/viewBel'))
 const JulList = lazy(() => import('@/pages/jul/listJul'))
 const JulForm = lazy(() => import('@/pages/jul/editJul'))
 const JulDetail = lazy(() => import('@/pages/jul/viewJul'))
-const BelList = lazy(() => import('@/pages/bel/listBel'))
 const SapMaster = lazy(() => import('@/pages/sapMaster'))
 const Forbidden = lazy(() => import('@/pages/forbidden'))
 const NotFound = lazy(() => import('@/pages/notFound'))
@@ -64,6 +66,17 @@ export default function App() {
               element={
                 <RBACLayout
                   permission={PERMISSION.PREREG.READ}
+                  disallowedRoles={['CUSTOMER']}
+                />
+              }
+            >
+              <Route path="/bel" element={<BelList />} />
+              <Route path="/bel/:id" element={<BelDetail />} />
+            </Route>
+            <Route
+              element={
+                <RBACLayout
+                  permission={PERMISSION.PREREG.READ}
                   disallowedRoles={['VENDOR']}
                 />
               }
@@ -74,20 +87,12 @@ export default function App() {
             <Route
               element={
                 <RBACLayout
-                  permission={PERMISSION.PREREG.READ}
+                  permission={PERMISSION.PREREG.CREATE}
                   disallowedRoles={['CUSTOMER']}
                 />
               }
             >
-              <Route path="/bel" element={<BelList />} />
-              <Route path="/bel/:id" element={<BelList />} />
-            </Route>
-            <Route element={<RBACLayout permission={PERMISSION.PREREG.CREATE} />}>
-              <Route path="/driver-requests/new" element={<SubmitDriverRequest />} />
-              <Route
-                path="/pre-registration/new"
-                element={<Navigate to="/driver-requests/new" replace />}
-              />
+              <Route path="/bel/new" element={<BelForm />} />
             </Route>
             <Route
               element={
@@ -102,15 +107,12 @@ export default function App() {
             <Route
               element={
                 <RBACLayout
-                  permission={PERMISSION.PREREG.CREATE}
+                  permission={PERMISSION.PREREG.UPDATE}
                   disallowedRoles={['CUSTOMER']}
                 />
               }
             >
-              <Route path="/bel/new" element={<BelList />} />
-            </Route>
-            <Route element={<RBACLayout permission={PERMISSION.PREREG.UPDATE} />}>
-              <Route path="/driver-requests/:id/edit" element={<EditDriverRequest />} />
+              <Route path="/bel/:id/edit" element={<BelForm />} />
             </Route>
             <Route
               element={
@@ -122,15 +124,15 @@ export default function App() {
             >
               <Route path="/jul/:id/edit" element={<JulForm />} />
             </Route>
-            <Route
-              element={
-                <RBACLayout
-                  permission={PERMISSION.PREREG.UPDATE}
-                  disallowedRoles={['CUSTOMER']}
-                />
-              }
-            >
-              <Route path="/bel/:id/edit" element={<BelList />} />
+            <Route element={<RBACLayout permission={PERMISSION.PREREG.CREATE} />}>
+              <Route path="/driver-requests/new" element={<SubmitDriverRequest />} />
+              <Route
+                path="/pre-registration/new"
+                element={<Navigate to="/driver-requests/new" replace />}
+              />
+            </Route>
+            <Route element={<RBACLayout permission={PERMISSION.PREREG.UPDATE} />}>
+              <Route path="/driver-requests/:id/edit" element={<EditDriverRequest />} />
             </Route>
             <Route element={<RBACLayout permission={PERMISSION.PREREG.APPROVE} />}>
               <Route
@@ -143,21 +145,21 @@ export default function App() {
               element={
                 <RBACLayout
                   permission={PERMISSION.PREREG.APPROVE}
-                  disallowedRoles={['VENDOR']}
-                />
-              }
-            >
-              <Route path="/jul/review" element={<JulList review />} />
-            </Route>
-            <Route
-              element={
-                <RBACLayout
-                  permission={PERMISSION.PREREG.APPROVE}
                   disallowedRoles={['CUSTOMER']}
                 />
               }
             >
               <Route path="/bel/review" element={<BelList review />} />
+            </Route>
+            <Route
+              element={
+                <RBACLayout
+                  permission={PERMISSION.PREREG.APPROVE}
+                  disallowedRoles={['VENDOR']}
+                />
+              }
+            >
+              <Route path="/jul/review" element={<JulList review />} />
             </Route>
             <Route path="/forbidden" element={<Forbidden />} />
           </Route>

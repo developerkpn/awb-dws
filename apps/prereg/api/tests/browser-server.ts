@@ -156,6 +156,32 @@ const julCustomer = await prisma.user.upsert({
   },
 })
 
+const vendorRole = await prisma.role.upsert({
+  where: { code: 'VENDOR' },
+  create: {
+    code: 'VENDOR',
+    name: 'Vendor',
+  },
+  update: { isActive: true },
+})
+
+const belVendor = await prisma.user.upsert({
+  where: { username: 'browser_test_bel_vendor' },
+  create: {
+    ...data,
+    username: 'browser_test_bel_vendor',
+    name: 'Browser BEL vendor',
+    accountType: 'PARTNER',
+    roleId: vendorRole.id,
+  },
+  update: {
+    ...data,
+    name: 'Browser BEL vendor',
+    accountType: 'PARTNER',
+    roleId: vendorRole.id,
+  },
+})
+
 await prisma.userPlant.deleteMany({
   where: {
     userId: browserCustomer.id,
@@ -182,36 +208,11 @@ const logistic = await prisma.user.upsert({
 })
 
 await prisma.userPlant.createMany({
-  data: [julCustomer, logistic].map((user) => ({
+  data: [julCustomer, logistic, belVendor].map((user) => ({
     userId: user.id,
     plantId: julPlant.id,
   })),
   skipDuplicates: true,
-})
-
-const vendorRole = await prisma.role.upsert({
-  where: { code: 'VENDOR' },
-  create: {
-    code: 'VENDOR',
-    name: 'Vendor',
-  },
-  update: { isActive: true },
-})
-
-await prisma.user.upsert({
-  where: { username: 'browser_test_vendor' },
-  create: {
-    ...data,
-    username: 'browser_test_vendor',
-    name: 'Browser test vendor',
-    accountType: 'PARTNER',
-    roleId: vendorRole.id,
-  },
-  update: {
-    ...data,
-    accountType: 'PARTNER',
-    roleId: vendorRole.id,
-  },
 })
 
 for (const [roleId, codes] of [
@@ -269,6 +270,29 @@ await prisma.julRegistration.deleteMany({
   where: {
     id: { in: priorIds },
   },
+})
+
+const priorBel = await prisma.belRegistration.findMany({
+  where: { vendorId: belVendor.id },
+  select: { id: true },
+})
+
+const priorBelIds = priorBel.map((row) => row.id)
+
+await prisma.belLine.deleteMany({
+  where: {
+    registrationId: { in: priorBelIds },
+  },
+})
+
+await prisma.belRegistration.deleteMany({
+  where: {
+    id: { in: priorBelIds },
+  },
+})
+
+await prisma.belDocument.deleteMany({
+  where: { vendorId: belVendor.id },
 })
 
 const server = app.listen(3001, '127.0.0.1')
