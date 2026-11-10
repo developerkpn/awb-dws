@@ -3,17 +3,24 @@ import { prisma } from '../../config/prisma'
 
 export default {
   async getLastSequence(key = 'prereg_outbox'): Promise<number> {
-    const state = await prisma.syncState.findUnique({ where: { key } })
+    const state = await prisma.syncState.findUnique({
+      where: { key },
+    })
+
     if (state) return state.lastSequence
 
     const lastInbox = await prisma.syncInbox.findFirst({
       orderBy: { sequenceNumber: 'desc' },
     })
+
     return lastInbox?.sequenceNumber ?? 0
   },
 
   async hasProcessedEvent(eventId: string): Promise<boolean> {
-    const inbox = await prisma.syncInbox.findUnique({ where: { eventId } })
+    const inbox = await prisma.syncInbox.findUnique({
+      where: { eventId },
+    })
+
     return inbox !== null
   },
 
@@ -28,56 +35,62 @@ export default {
       const existing = await tx.syncInbox.findUnique({
         where: { eventId: event.eventId },
       })
+
       if (existing) {
         if (existing.sequenceNumber !== sequenceNumber) throw new Error('Event sequence mismatch')
+
         return { applied: false }
       }
 
-      await tx.driver.upsert({
-        where: { licenseNumber: payload.driver.licenseNumber },
-        create: {
-          licenseNumber: payload.driver.licenseNumber,
-          name: payload.driver.name,
-          address: payload.driver.address,
-          birthPlace: payload.driver.birthPlace,
-          birthDate: new Date(payload.driver.birthDate),
-          phone: payload.driver.phone,
-          city: payload.driver.city ?? null,
-          licensePhotoUrl: payload.driver.licensePhotoUrl ?? null,
-          driverPhotoUrl: payload.driver.driverPhotoUrl ?? null,
-          isActive: true,
-        },
-        update: {
-          name: payload.driver.name,
-          address: payload.driver.address,
-          birthPlace: payload.driver.birthPlace,
-          birthDate: new Date(payload.driver.birthDate),
-          phone: payload.driver.phone,
-          city: payload.driver.city ?? null,
-          licensePhotoUrl: payload.driver.licensePhotoUrl ?? null,
-          driverPhotoUrl: payload.driver.driverPhotoUrl ?? null,
-          isActive: true,
-        },
-      })
+      const { driver, vehicle } = payload
 
-      await tx.vehicle.upsert({
-        where: { plateNumber: payload.vehicle.plateNumber },
-        create: {
-          plateNumber: payload.vehicle.plateNumber,
-          transporterId: payload.vehicle.transporterId ?? null,
-          transporterName: payload.vehicle.transporterName ?? null,
-          transporterCode: payload.vehicle.transporterCode ?? null,
-          stnkPhotoUrl: payload.vehicle.stnkPhotoUrl ?? null,
-          isActive: true,
-        },
-        update: {
-          transporterId: payload.vehicle.transporterId ?? null,
-          transporterName: payload.vehicle.transporterName ?? null,
-          transporterCode: payload.vehicle.transporterCode ?? null,
-          stnkPhotoUrl: payload.vehicle.stnkPhotoUrl ?? null,
-          isActive: true,
-        },
-      })
+      if (driver)
+        await tx.driver.upsert({
+          where: { licenseNumber: driver.licenseNumber },
+          create: {
+            licenseNumber: driver.licenseNumber,
+            name: driver.name,
+            address: driver.address,
+            birthPlace: driver.birthPlace,
+            birthDate: new Date(driver.birthDate),
+            phone: driver.phone,
+            city: driver.city ?? null,
+            licensePhotoUrl: driver.licensePhotoUrl ?? null,
+            driverPhotoUrl: driver.driverPhotoUrl ?? null,
+            isActive: true,
+          },
+          update: {
+            name: driver.name,
+            address: driver.address,
+            birthPlace: driver.birthPlace,
+            birthDate: new Date(driver.birthDate),
+            phone: driver.phone,
+            city: driver.city ?? null,
+            licensePhotoUrl: driver.licensePhotoUrl ?? null,
+            driverPhotoUrl: driver.driverPhotoUrl ?? null,
+            isActive: true,
+          },
+        })
+
+      if (vehicle)
+        await tx.vehicle.upsert({
+          where: { plateNumber: vehicle.plateNumber },
+          create: {
+            plateNumber: vehicle.plateNumber,
+            transporterId: vehicle.transporterId ?? null,
+            transporterName: vehicle.transporterName ?? null,
+            transporterCode: vehicle.transporterCode ?? null,
+            stnkPhotoUrl: vehicle.stnkPhotoUrl ?? null,
+            isActive: true,
+          },
+          update: {
+            transporterId: vehicle.transporterId ?? null,
+            transporterName: vehicle.transporterName ?? null,
+            transporterCode: vehicle.transporterCode ?? null,
+            stnkPhotoUrl: vehicle.stnkPhotoUrl ?? null,
+            isActive: true,
+          },
+        })
 
       await tx.syncInbox.create({
         data: {
@@ -92,6 +105,7 @@ export default {
       const currentState = await tx.syncState.findUnique({
         where: { key: 'prereg_outbox' },
       })
+
       const nextSequence = Math.max(currentState?.lastSequence ?? 0, sequenceNumber)
 
       await tx.syncState.upsert({
@@ -110,15 +124,21 @@ export default {
   },
 
   async findDriverByLicense(licenseNumber: string) {
-    return prisma.driver.findUnique({ where: { licenseNumber } })
+    return prisma.driver.findUnique({
+      where: { licenseNumber },
+    })
   },
 
   async findVehicleByPlate(plateNumber: string) {
-    return prisma.vehicle.findUnique({ where: { plateNumber } })
+    return prisma.vehicle.findUnique({
+      where: { plateNumber },
+    })
   },
 
   async findInboxByEventId(eventId: string) {
-    return prisma.syncInbox.findUnique({ where: { eventId } })
+    return prisma.syncInbox.findUnique({
+      where: { eventId },
+    })
   },
 
   async countInbox() {

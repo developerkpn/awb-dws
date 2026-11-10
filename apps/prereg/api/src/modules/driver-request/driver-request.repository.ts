@@ -6,6 +6,28 @@ import type {
   SortDirection,
 } from '@awb/contracts'
 import type { Prisma } from '../../generated/prisma/client'
+import { driverAddress } from '../../lib/master-data'
+import type {
+  DriverRequestDecisionInput,
+  DriverRequestIdentity,
+  DriverRequestRecord,
+} from '../../types/driverRequest'
+
+function driverData(request: DriverRequestRecord, now: Date) {
+  return {
+    name: request.driverName ?? '',
+    address: driverAddress(request),
+    birthPlace: request.driverBirthPlace,
+    birthDate: request.driverBirthDate,
+    phone: request.driverPhone,
+    city: request.driverCity,
+    licensePhotoUrl: request.driverLicensePhotoUrl,
+    driverPhotoUrl: request.driverPhotoUrl,
+    isActive: true,
+    inSap: true,
+    sapSyncedAt: now,
+  }
+}
 
 async function writeRequest<T>(operation: () => Promise<T>) {
   try {
@@ -17,6 +39,7 @@ async function writeRequest<T>(operation: () => Promise<T>) {
         409,
       )
     }
+
     throw error
   }
 }
@@ -40,10 +63,12 @@ export default {
           orderBy: [{ [query.sortBy]: query.sortDirection }, { id: query.sortDirection }],
           select: {
             id: true,
+            kind: true,
             status: true,
             driverName: true,
             driverLicenseNumber: true,
             vehiclePlateNumber: true,
+            siteId: true,
             submittedBy: true,
             createdAt: true,
             updatedAt: true,
@@ -53,22 +78,39 @@ export default {
       ],
       { isolationLevel: 'RepeatableRead' },
     )
-    return { rows, total }
+
+    return {
+      rows,
+      total,
+    }
   },
 
   findById(id: string) {
     return prisma.driverRequest.findUnique({
       where: { id },
       include: {
-        transporter: { select: { id: true, code: true, name: true } },
+        submitter: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            email: true,
+          },
+        },
         decisions: {
           orderBy: [{ decidedAt: 'desc' }],
           select: {
             id: true,
             decision: true,
             rejectionReason: true,
+            note: true,
             decidedAt: true,
-            decider: { select: { id: true, name: true } },
+            decider: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
       },
@@ -77,41 +119,88 @@ export default {
 
   // Returns all SUBMITTED or APPROVED requests that have the same license or plate,
   // excluding the given request id (used when checking conflicts on resubmit).
-  async findConflicts(licenseNumber: string, plateNumber: string, excludeId?: string) {
+  async findConflicts(identity: DriverRequestIdentity, excludeId?: string) {
     return prisma.driverRequest.findMany({
       where: {
-        status: { in: ['SUBMITTED', 'APPROVED', 'SENT_TO_PLANT'] },
-        ...(excludeId ? { id: { not: excludeId } } : {}),
-        OR: [
-          { driverLicenseNumber: { equals: licenseNumber, mode: 'insensitive' } },
-          { vehiclePlateNumber: { equals: plateNumber, mode: 'insensitive' } },
-        ],
+        status: {
+          in: ['SUBMITTED', 'APPROVED', 'SENT_TO_PLANT'],
+        },
+        ...(excludeId
+          ? {
+              id: { not: excludeId },
+            }
+          : {}),
+        ...(identity.licenseNumber
+          ? {
+              driverLicenseNumber: {
+                equals: identity.licenseNumber,
+                mode: 'insensitive',
+              },
+            }
+          : {
+              vehiclePlateNumber: {
+                equals: identity.plateNumber,
+                mode: 'insensitive',
+              },
+            }),
       },
-      select: { id: true, driverLicenseNumber: true, vehiclePlateNumber: true },
-    })
-  },
-
-  findTransporter(id: string) {
-    return prisma.transporter.findUnique({ where: { id, isActive: true }, select: { id: true } })
-  },
-
-  listTransporters() {
-    return prisma.transporter.findMany({
-      where: { isActive: true },
-      select: { id: true, code: true, name: true },
-      orderBy: { name: 'asc' },
+      select: { id: true },
     })
   },
 
   findDocuments(ids: string[]) {
     return prisma.document.findMany({
-      where: { id: { in: ids } },
-      select: { id: true, uploadedBy: true, category: true },
+      where: {
+        id: { in: ids },
+      },
+      select: {
+        id: true,
+        uploadedBy: true,
+        category: true,
+      },
+    })
+  },
+
+  plants(userId?: string) {
+    return prisma.plant.findMany({
+      where: {
+        isActive: true,
+        ...(userId
+          ? {
+              users: {
+                some: { userId },
+              },
+            }
+          : {}),
+      },
+      select: {
+        code: true,
+        name: true,
+      },
+      orderBy: [{ name: 'asc' }, { code: 'asc' }],
+    })
+  },
+
+  plantNames(codes: string[]) {
+    return prisma.plant.findMany({
+      where: {
+        code: { in: codes },
+      },
+      select: {
+        code: true,
+        name: true,
+      },
     })
   },
 
   findSite(code: string) {
-    return prisma.plant.findUnique({ where: { code, isActive: true }, select: { code: true } })
+    return prisma.plant.findUnique({
+      where: {
+        code,
+        isActive: true,
+      },
+      select: { code: true },
+    })
   },
 
   create(
@@ -127,48 +216,109 @@ export default {
     return writeRequest(() =>
       prisma.$transaction(async (tx) => {
         const result = await tx.driverRequest.updateMany({
-          where: { id, submittedBy, status: 'REJECTED' },
+          where: {
+            id,
+            submittedBy,
+            status: 'REJECTED',
+          },
           data,
         })
+
         if (result.count !== 1)
           throw new CustomError('Only rejected requests can be resubmitted', 422)
-        return tx.driverRequest.findUniqueOrThrow({ where: { id } })
+
+        return tx.driverRequest.findUniqueOrThrow({
+          where: { id },
+        })
       }),
     )
   },
 
-  async approveAndEnqueue(
-    requestId: string,
-    approverId: string,
-    siteId: string,
-    event: DriverVehicleApprovedEvent,
-  ) {
+  decide(requestId: string, deciderId: string, decision: DriverRequestDecisionInput) {
+    return prisma.$transaction(async (tx) => {
+      const now = new Date()
+
+      const changed = await tx.driverRequest.updateMany({
+        where: {
+          id: requestId,
+          status: 'SUBMITTED',
+        },
+        data: {
+          status: decision.decision,
+          decision: decision.decision,
+          decidedBy: deciderId,
+          decidedAt: now,
+          rejectionReason: decision.rejectionReason ?? null,
+        },
+      })
+
+      if (changed.count !== 1) throw new CustomError('Driver request is already processed', 409)
+
+      const record = await tx.driverRequestDecision.create({
+        data: {
+          requestId,
+          decision: decision.decision,
+          rejectionReason: decision.rejectionReason ?? null,
+          note: decision.note ?? null,
+          decidedBy: deciderId,
+          decidedAt: now,
+        },
+      })
+
+      const request = await tx.driverRequest.findUniqueOrThrow({
+        where: { id: requestId },
+      })
+
+      return {
+        request,
+        decision: record,
+      }
+    })
+  },
+
+  confirmInSap(requestId: string, siteId: string, event: DriverVehicleApprovedEvent) {
     return prisma.$transaction(async (tx) => {
       // Per-site ordering prevents a later committed sequence hiding an earlier event.
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${siteId}), 14)`
       const now = new Date()
 
-      const changed = await tx.driverRequest.updateMany({
-        where: { id: requestId, status: 'SUBMITTED' },
-        data: {
-          status: 'APPROVED',
-          decision: 'APPROVED',
-          decidedBy: approverId,
-          decidedAt: now,
-          siteId,
-        },
+      const request = await tx.driverRequest.findUniqueOrThrow({
+        where: { id: requestId },
       })
-      if (changed.count !== 1) throw new CustomError('Driver request is already processed', 400)
-      const request = await tx.driverRequest.findUniqueOrThrow({ where: { id: requestId } })
 
-      const decision = await tx.driverRequestDecision.create({
-        data: {
-          requestId,
-          decision: 'APPROVED',
-          decidedBy: approverId,
-          decidedAt: now,
-        },
-      })
+      if (request.status !== 'APPROVED')
+        throw new CustomError('Only approved requests can be confirmed in SAP', 409)
+
+      const driver =
+        request.kind === 'DRIVER' && request.driverLicenseNumber
+          ? await tx.driver.upsert({
+              where: { licenseNumber: request.driverLicenseNumber },
+              create: {
+                licenseNumber: request.driverLicenseNumber,
+                ...driverData(request, now),
+              },
+              update: driverData(request, now),
+            })
+          : null
+
+      const vehicleData = {
+        stnkPhotoUrl: request.vehicleStnkPhotoUrl,
+        isActive: true,
+        inSap: true,
+        sapSyncedAt: now,
+      }
+
+      const vehicle =
+        request.kind === 'VEHICLE' && request.vehiclePlateNumber
+          ? await tx.vehicle.upsert({
+              where: { plateNumber: request.vehiclePlateNumber },
+              create: {
+                plateNumber: request.vehiclePlateNumber,
+                ...vehicleData,
+              },
+              update: vehicleData,
+            })
+          : null
 
       const outbox = await tx.syncOutbox.create({
         data: {
@@ -181,7 +331,20 @@ export default {
         },
       })
 
-      return { request, decision, outbox }
+      const updated = await tx.driverRequest.update({
+        where: { id: requestId },
+        data: {
+          status: 'SENT_TO_PLANT',
+          driverId: driver?.id ?? null,
+          vehicleId: vehicle?.id ?? null,
+          sentToPlantAt: now,
+        },
+      })
+
+      return {
+        request: updated,
+        outbox,
+      }
     })
   },
 }

@@ -34,6 +34,11 @@ model User {
   decidedRequests   DriverRequest[]         @relation("DecidedRequests")
   decisions         DriverRequestDecision[] @relation("DecisionUser")
   documents         Document[]              @relation("UserDocuments")
+  julDocuments      JulDocument[]
+  julRegistrations  JulRegistration[]       @relation("JulCustomer")
+  createdJul        JulRegistration[]       @relation("JulCreator")
+  julHistory        JulHistory[]
+  julHolds          JulHold[]
 
   @@index([accountType, createdAt, id])
   @@index([createdAt, id])
@@ -88,15 +93,19 @@ model RolePermission {
 }
 
 model Plant {
-  id        String   @id @default(uuid(7)) @db.Uuid
-  code      String   @unique @map("code") // e.g. "PRISCOLIN_KARAWANG", "DUMAI", "MEDAN"
-  name      String   @map("name")
-  city      String?  @map("city")
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid(7)) @db.Uuid
+  code         String   @unique @map("code") // e.g. "PRISCOLIN_KARAWANG", "DUMAI", "MEDAN"
+  name         String   @map("name")
+  city         String?  @map("city")
+  sapPlantCode String?  @unique @map("sap_plant_code")
+  companyGroup String?  @map("company_group")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  users UserPlant[]
+  users        UserPlant[]
+  julDocuments JulDocument[]
+  julRules     JulPlantRule[]
 
   @@map("mst_plant")
 }
@@ -104,7 +113,7 @@ model Plant {
 model UserPlant {
   id        String   @id @default(uuid(7)) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
-  plantId   String   @map("plant_id")
+  plantId   String   @map("plant_id") @db.Uuid
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -175,18 +184,17 @@ model AccountAudit {
 }
 
 model Transporter {
-  id             String          @id @default(uuid(7)) @db.Uuid
-  code           String          @unique
-  name           String
-  address        String?
-  phone          String?
-  contactPerson  String?         @map("contact_person")
-  city           String?         @map("city")
-  isActive       Boolean         @default(true) @map("is_active")
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @updatedAt @map("updated_at")
-  vehicles       Vehicle[]
-  driverRequests DriverRequest[]
+  id            String    @id @default(uuid(7)) @db.Uuid
+  code          String    @unique
+  name          String
+  address       String?
+  phone         String?
+  contactPerson String?   @map("contact_person")
+  city          String?   @map("city")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  vehicles      Vehicle[]
 
   @@map("mst_transporter")
 }
@@ -195,56 +203,66 @@ model Driver {
   id              String          @id @default(uuid(7)) @db.Uuid
   licenseNumber   String          @unique @map("license_number")
   name            String
-  address         String
-  birthPlace      String          @map("birth_place")
-  birthDate       DateTime        @map("birth_date")
-  phone           String
+  address         String?
+  birthPlace      String?         @map("birth_place")
+  birthDate       DateTime?       @map("birth_date")
+  phone           String?
   city            String?         @map("city")
   licensePhotoUrl String?         @map("license_photo_url")
   driverPhotoUrl  String?         @map("driver_photo_url")
   isActive        Boolean         @default(true) @map("is_active")
+  inSap           Boolean         @default(false) @map("in_sap")
+  sapLocation     String?         @map("sap_location")
+  sapSyncedAt     DateTime?       @map("sap_synced_at")
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
   requests        DriverRequest[]
 
+  @@index([inSap, isActive])
   @@map("mst_driver")
 }
 
 model Vehicle {
-  id            String   @id @default(uuid(7)) @db.Uuid
-  plateNumber   String   @unique @map("plate_number")
-  transporterId String?  @map("transporter_id") @db.Uuid
-  stnkPhotoUrl  String?  @map("stnk_photo_url")
-  isActive      Boolean  @default(true) @map("is_active")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id            String    @id @default(uuid(7)) @db.Uuid
+  plateNumber   String    @unique @map("plate_number")
+  transporterId String?   @map("transporter_id") @db.Uuid
+  stnkPhotoUrl  String?   @map("stnk_photo_url")
+  isActive      Boolean   @default(true) @map("is_active")
+  inSap         Boolean   @default(false) @map("in_sap")
+  sapLocation   String?   @map("sap_location")
+  sapSyncedAt   DateTime? @map("sap_synced_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
   transporter Transporter?    @relation(fields: [transporterId], references: [id])
   requests    DriverRequest[]
 
   @@index([transporterId])
+  @@index([inSap, isActive])
   @@map("mst_vehicle")
 }
 
 model DriverRequest {
   id          String @id @default(uuid(7)) @db.Uuid
+  kind        String @default("DRIVER")
   status      String @default("SUBMITTED")
   submittedBy String @map("submitted_by") @db.Uuid
 
-  driverId              String?  @map("driver_id") @db.Uuid
-  driverLicenseNumber   String   @map("driver_license_number")
-  driverName            String   @map("driver_name")
-  driverAddress         String   @map("driver_address")
-  driverBirthPlace      String   @map("driver_birth_place")
-  driverBirthDate       DateTime @map("driver_birth_date")
-  driverPhone           String   @map("driver_phone")
-  driverCity            String?  @map("driver_city")
-  driverLicensePhotoUrl String?  @map("driver_license_photo_url")
-  driverPhotoUrl        String?  @map("driver_photo_url")
+  driverId              String?   @map("driver_id") @db.Uuid
+  driverLicenseNumber   String?   @map("driver_license_number")
+  driverName            String?   @map("driver_name")
+  driverAddress         String?   @map("driver_address")
+  driverAddress2        String?   @map("driver_address2")
+  driverAddress3        String?   @map("driver_address3")
+  driverBirthPlace      String?   @map("driver_birth_place")
+  driverBirthDate       DateTime? @map("driver_birth_date")
+  driverPhone           String?   @map("driver_phone")
+  driverCity            String?   @map("driver_city")
+  driverLicensePhotoUrl String?   @map("driver_license_photo_url")
+  driverPhotoUrl        String?   @map("driver_photo_url")
 
   vehicleId           String? @map("vehicle_id") @db.Uuid
-  vehiclePlateNumber  String  @map("vehicle_plate_number")
-  transporterId       String? @map("transporter_id") @db.Uuid
+  vehiclePlateNumber  String? @map("vehicle_plate_number")
   vehicleStnkPhotoUrl String? @map("vehicle_stnk_photo_url")
   siteId              String? @map("site_id")
 
@@ -257,19 +275,19 @@ model DriverRequest {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  submitter   User                    @relation("SubmittedRequests", fields: [submittedBy], references: [id])
-  decider     User?                   @relation("DecidedRequests", fields: [decidedBy], references: [id])
-  driver      Driver?                 @relation(fields: [driverId], references: [id])
-  vehicle     Vehicle?                @relation(fields: [vehicleId], references: [id])
-  transporter Transporter?            @relation(fields: [transporterId], references: [id])
-  decisions   DriverRequestDecision[]
+  submitter User                    @relation("SubmittedRequests", fields: [submittedBy], references: [id])
+  decider   User?                   @relation("DecidedRequests", fields: [decidedBy], references: [id])
+  driver    Driver?                 @relation(fields: [driverId], references: [id])
+  vehicle   Vehicle?                @relation(fields: [vehicleId], references: [id])
+  decisions DriverRequestDecision[]
 
   @@index([status, createdAt, id])
   @@index([submittedBy, createdAt, id])
+  @@index([siteId, status, createdAt])
+  @@index([kind, status, createdAt])
   @@index([createdAt, id])
   @@index([driverId])
   @@index([vehicleId])
-  @@index([transporterId])
   @@index([decidedBy])
   @@map("awb_driver_request")
 }
@@ -279,6 +297,7 @@ model DriverRequestDecision {
   requestId       String   @map("request_id") @db.Uuid
   decision        String
   rejectionReason String?  @map("rejection_reason")
+  note            String?
   decidedBy       String   @map("decided_by") @db.Uuid
   decidedAt       DateTime @default(now()) @map("decided_at")
   createdAt       DateTime @default(now()) @map("created_at")
@@ -309,6 +328,20 @@ model Document {
   @@map("awb_document")
 }
 
+model SapMasterImport {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  status       String    @default("RUNNING")
+  startedById  String    @map("started_by_id") @db.Uuid
+  driverCount  Int       @default(0) @map("driver_count")
+  vehicleCount Int       @default(0) @map("vehicle_count")
+  error        String?
+  startedAt    DateTime  @default(now()) @map("started_at")
+  finishedAt   DateTime? @map("finished_at")
+
+  @@index([startedAt])
+  @@map("sys_sap_master_import")
+}
+
 model SyncOutbox {
   id             Int       @id @default(autoincrement())
   eventId        String    @unique @map("event_id") @db.Uuid
@@ -324,4 +357,177 @@ model SyncOutbox {
   @@index([siteId, id])
   @@index([status, siteId])
   @@map("sys_sync_outbox")
+}
+
+model JulDocument {
+  id                String    @id @default(uuid(7)) @db.Uuid
+  customerId        String    @map("customer_id") @db.Uuid
+  referenceDocument String    @map("reference_document")
+  providerMode      String    @map("provider_mode")
+  plantId           String    @map("plant_id") @db.Uuid
+  snapshot          Json
+  fetchedAt         DateTime  @default(now()) @map("fetched_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  customer          User      @relation(fields: [customerId], references: [id])
+  plant             Plant     @relation(fields: [plantId], references: [id])
+  lines             JulLine[]
+
+  @@unique([customerId, providerMode, referenceDocument])
+  @@index([providerMode, referenceDocument, id])
+  @@index([plantId, fetchedAt])
+  @@map("mst_jul_document")
+}
+
+model JulRegistration {
+  id           String       @id @default(uuid(7)) @db.Uuid
+  number       String       @unique
+  customerId   String       @map("customer_id") @db.Uuid
+  createdById  String       @map("created_by_id") @db.Uuid
+  providerMode String       @map("provider_mode")
+  isMulti      Boolean      @default(false) @map("is_multi")
+  status       String       @default("DRAFT")
+  version      Int          @default(1)
+  submittedAt  DateTime?    @map("submitted_at")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  customer     User         @relation("JulCustomer", fields: [customerId], references: [id])
+  creator      User         @relation("JulCreator", fields: [createdById], references: [id])
+  lines        JulLine[]
+  history      JulHistory[]
+  jobs         JulJob[]
+
+  @@index([customerId, createdAt, id])
+  @@index([status, createdAt, id])
+  @@map("awb_jul_registration")
+}
+
+model JulLine {
+  id                  String          @id @default(uuid(7)) @db.Uuid
+  registrationId      String          @map("registration_id") @db.Uuid
+  documentId          String          @map("document_id") @db.Uuid
+  documentSnapshot    Json            @map("document_snapshot")
+  variant             String
+  stoNumber           String?         @map("sto_number")
+  driverLicenseNumber String?         @map("driver_license_number")
+  driverName          String?         @map("driver_name")
+  vehiclePlateNumber  String?         @map("vehicle_plate_number")
+  quantity            Decimal         @db.Decimal(20, 6)
+  loadingDate         DateTime?       @map("loading_date") @db.Date
+  mediaTransport      String          @map("media_transport")
+  remark              String?
+  status              String          @default("DRAFT")
+  loadingNoteNumber   String?         @map("loading_note_number")
+  sapError            String?         @map("sap_error")
+  factoryStorage      String?         @map("factory_storage")
+  otherStorage        String?         @map("other_storage")
+  factoryValuation    String?         @map("factory_valuation")
+  otherValuation      String?         @map("other_valuation")
+  factoryBatch        String?         @map("factory_batch")
+  otherBatch          String?         @map("other_batch")
+  jobId               String?         @map("job_id") @db.Uuid
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+  registration        JulRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  document            JulDocument     @relation(fields: [documentId], references: [id])
+  job                 JulJob?         @relation(fields: [jobId], references: [id])
+
+  @@index([documentId, status])
+  @@index([registrationId, createdAt, id])
+  @@index([status, loadingDate, id])
+  @@index([jobId])
+  @@map("awb_jul_line")
+}
+
+model JulHistory {
+  id             String          @id @default(uuid(7)) @db.Uuid
+  registrationId String          @map("registration_id") @db.Uuid
+  actorId        String?         @map("actor_id") @db.Uuid
+  action         String
+  reason         String?
+  details        Json?
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  registration   JulRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  actor          User?           @relation(fields: [actorId], references: [id])
+
+  @@index([registrationId, createdAt, id])
+  @@index([actorId])
+  @@map("awb_jul_history")
+}
+
+model JulJob {
+  id               String          @id @default(uuid(7)) @db.Uuid
+  registrationId   String          @map("registration_id") @db.Uuid
+  providerMode     String          @map("provider_mode")
+  operatorUsername String          @map("operator_username")
+  status           String          @default("QUEUED")
+  payload          Json
+  triggerStartedAt DateTime?       @map("trigger_started_at")
+  nextPollAt       DateTime        @default(now()) @map("next_poll_at")
+  attempts         Int             @default(0)
+  error            String?
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  registration     JulRegistration @relation(fields: [registrationId], references: [id])
+  lines            JulLine[]
+
+  @@index([status, nextPollAt, id])
+  @@index([operatorUsername, status])
+  @@index([registrationId])
+  @@map("sys_jul_job")
+}
+
+model JulPlantRule {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  plantId          String   @map("plant_id") @db.Uuid
+  material         String
+  incoterm         String
+  factoryStorage   String   @map("factory_storage")
+  otherStorage     String   @map("other_storage")
+  factoryValuation String   @map("factory_valuation")
+  otherValuation   String   @map("other_valuation")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  plant            Plant    @relation(fields: [plantId], references: [id])
+
+  @@unique([plantId, material, incoterm])
+  @@map("mst_jul_plant_rule")
+}
+
+model JulLoadingNoteType {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  incoterm  String   @unique
+  type      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("mst_jul_ln_type")
+}
+
+model JulTransportMode {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  code      String   @unique
+  name      String
+  isActive  Boolean  @default(false) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("mst_jul_transport_mode")
+}
+
+model JulHold {
+  id                String   @id @default(uuid(7)) @db.Uuid
+  providerMode      String   @map("provider_mode")
+  referenceDocument String   @map("reference_document")
+  quantity          Decimal  @default(0) @db.Decimal(20, 6)
+  actorId           String?  @map("actor_id") @db.Uuid
+  reason            String
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  actor             User?    @relation(fields: [actorId], references: [id])
+
+  @@unique([providerMode, referenceDocument])
+  @@index([actorId])
+  @@map("mst_jul_hold")
 }

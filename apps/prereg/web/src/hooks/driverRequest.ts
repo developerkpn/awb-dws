@@ -5,7 +5,7 @@ import type {
   DriverRequestFormData,
   DriverRequestsResponse,
   ListDriverRequestsQuery,
-  TransporterOption,
+  PlantOption,
   UploadedDocument,
 } from '@/types/driverRequest'
 
@@ -14,7 +14,7 @@ export const driverRequestKeys = {
   lists: ['driverRequests', 'list'] as const,
   list: (query: ListDriverRequestsQuery) => ['driverRequests', 'list', query] as const,
   detail: (id: string) => ['driverRequests', 'detail', id] as const,
-  transporters: () => ['driverRequests', 'transporters'] as const,
+  plants: () => ['driverRequests', 'plants'] as const,
 }
 
 export function useDriverRequests(query: ListDriverRequestsQuery = {}) {
@@ -24,6 +24,7 @@ export function useDriverRequests(query: ListDriverRequestsQuery = {}) {
       const params = Object.fromEntries(
         Object.entries(query).filter(([, value]) => value !== undefined && value !== ''),
       )
+
       return fetchApi<DriverRequestsResponse>('/driver-requests', {
         params,
         signal,
@@ -40,17 +41,17 @@ export function useDriverRequest(id: string, enabled = true) {
   })
 }
 
-export function useTransporters() {
+export function useDriverRequestPlants() {
   return useQuery({
-    queryKey: driverRequestKeys.transporters(),
-    queryFn: ({ signal }) =>
-      fetchApi<TransporterOption[]>('/driver-requests/transporters', { signal }),
+    queryKey: driverRequestKeys.plants(),
+    queryFn: ({ signal }) => fetchApi<PlantOption[]>('/driver-requests/plants', { signal }),
     staleTime: 60_000,
   })
 }
 
 function useInvalidateDriverRequests() {
   const queryClient = useQueryClient()
+
   return async () => {
     await queryClient.invalidateQueries({ queryKey: driverRequestKeys.all })
   }
@@ -58,6 +59,7 @@ function useInvalidateDriverRequests() {
 
 export function useSubmitDriverRequest() {
   const invalidate = useInvalidateDriverRequests()
+
   return useMutation({
     mutationFn: (data: DriverRequestFormData) =>
       fetchApi<DriverRequestDetail>('/driver-requests', {
@@ -70,6 +72,7 @@ export function useSubmitDriverRequest() {
 
 export function useResubmitDriverRequest() {
   const invalidate = useInvalidateDriverRequests()
+
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: DriverRequestFormData }) =>
       fetchApi<DriverRequestDetail>(`/driver-requests/${id}`, {
@@ -80,12 +83,40 @@ export function useResubmitDriverRequest() {
   })
 }
 
+export function useApproveDriverRequest() {
+  const invalidate = useInvalidateDriverRequests()
+
+  return useMutation({
+    mutationFn: ({ id, note }: { id: string; note?: string }) =>
+      fetchApi(`/driver-requests/${id}/approve`, {
+        method: 'POST',
+        data: note ? { note } : {},
+      }),
+    onSuccess: invalidate,
+  })
+}
+
+export function useRejectDriverRequest() {
+  const invalidate = useInvalidateDriverRequests()
+
+  return useMutation({
+    mutationFn: ({ id, rejectionReason }: { id: string; rejectionReason: string }) =>
+      fetchApi(`/driver-requests/${id}/reject`, {
+        method: 'POST',
+        data: { rejectionReason },
+      }),
+    onSuccess: invalidate,
+  })
+}
+
 export function useUploadDocument() {
   return useMutation({
     mutationFn: async ({ file, category }: { file: File; category: 'sim' | 'driver' | 'stnk' }) => {
       const formData = new FormData()
+
       formData.append('file', file)
       formData.append('category', category)
+
       return fetchApi<UploadedDocument>('/documents/upload', {
         method: 'POST',
         data: formData,
