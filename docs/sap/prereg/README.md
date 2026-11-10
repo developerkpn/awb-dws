@@ -6,7 +6,7 @@ Start with [expected-po-by-vendor.json](expected-po-by-vendor.json). It proposes
 
 ## What the FSD actually requires
 
-Source: `~/Downloads/PMO - Functional Specification -Odata Vendor &qty PO-v1.docx`, especially “Deskripsi Program”, “Proses Bisnis”, and “Tabel dan Referensi Transaksi”.
+Source: [fsd-odata-po-by-vendor-v1.docx](fsd-odata-po-by-vendor-v1.docx) (PMO Functional Specification "Odata PO by Vendor dan Qty GR PO", v1), especially “Deskripsi Program”, “Proses Bisnis”, and “Tabel dan Referensi Transaksi”.
 
 | Requirement        | Expected behavior                                                                                                                      |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
