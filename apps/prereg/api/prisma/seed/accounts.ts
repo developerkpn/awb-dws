@@ -15,29 +15,50 @@ export async function seedAccounts(
   const defaultPassword = 'password123'
   const defaultPasswordHash = await hashPassword(defaultPassword)
 
-  const adminUser = await prisma.user.upsert({
-    where: { username: 'admin' },
-    update: {
-      passwordHash: defaultPasswordHash,
-      isActive: true,
-      roleId: adminRoleId,
-      sessions: { deleteMany: {} },
-    },
-    create: {
-      name: 'Bambang Admin HO',
+  const admins = [
+    {
       username: 'admin',
+      name: 'Bambang Admin HO',
       email: 'admin@kpncorp.com',
       phone: '+62 811 1234 567',
-      passwordHash: defaultPasswordHash,
-      accountType: 'INTERNAL',
-      roleId: adminRoleId,
-      isActive: true,
     },
-  })
+    {
+      username: 'ben',
+      name: 'ben',
+      email: 'ben@mail.com',
+      phone: null,
+    },
+  ]
 
-  console.log(`✅ Admin account seeded: ${adminUser.username}`)
+  for (const admin of admins) {
+    await prisma.user.upsert({
+      where: { username: admin.username },
+      update: {
+        passwordHash: defaultPasswordHash,
+        isActive: true,
+        roleId: adminRoleId,
+        sessions: { deleteMany: {} },
+      },
+      create: {
+        ...admin,
+        passwordHash: defaultPasswordHash,
+        accountType: 'INTERNAL',
+        roleId: adminRoleId,
+        isActive: true,
+      },
+    })
+  }
 
-  const fixtures = [
+  console.log(`✅ Admin accounts seeded: ${admins.map((admin) => admin.username).join(', ')}`)
+
+  const fixtures: {
+    role: string
+    username: string
+    name: string
+    accountType: string
+    email?: string
+    phone?: string
+  }[] = [
     {
       role: 'LOGISTIC',
       username: 'logistic',
@@ -52,12 +73,6 @@ export async function seedAccounts(
     },
     {
       role: 'CUSTOMER',
-      username: 'CU00001000',
-      name: 'Development customer',
-      accountType: 'PARTNER',
-    },
-    {
-      role: 'CUSTOMER',
       username: 'CU00010000',
       name: 'PT. JUJUR SENTOSA',
       accountType: 'PARTNER',
@@ -65,7 +80,7 @@ export async function seedAccounts(
     {
       role: 'VENDOR',
       username: 'AT11000001',
-      name: 'Development vendor',
+      name: 'PACIFIC INDOPALM INDUSTRIES PT.',
       accountType: 'PARTNER',
     },
   ]
@@ -88,6 +103,8 @@ export async function seedAccounts(
         ...fields,
         username: fixture.username,
         name: fixture.name,
+        email: fixture.email ?? null,
+        phone: fixture.phone ?? null,
       },
     })
 
@@ -108,6 +125,6 @@ export async function seedAccounts(
   }
 
   console.log(
-    'Development accounts ready: admin, logistic, commercial, CU00001000, CU00010000, AT11000001',
+    'Development accounts ready: admin, ben, logistic, commercial, CU00010000, AT11000001',
   )
 }

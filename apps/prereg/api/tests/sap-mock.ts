@@ -6,7 +6,7 @@ import staging from '../src/modules/sap/sap-stage.repository'
 import type { SapEntity, SapMasterEntity, SapOwner, SapRow, StagePayload } from '../src/types/sap'
 
 export function fixtureReferences(owner: SapOwner) {
-  const known = ['CU00001000', 'AT11000001'].includes(owner.username.toUpperCase())
+  const known = ['CU00010000', 'AT11000001'].includes(owner.username.toUpperCase())
 
   const base = known
     ? 10000000

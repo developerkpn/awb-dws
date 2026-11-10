@@ -27,10 +27,11 @@ administrator bootstrap command is provided.
 
 The development seed keeps ADMIN, LOGISTIC, COMMERCIAL, CUSTOMER and VENDOR. It
 removes unused MANAGER/KRANIWB/INTERCO roles, stopping if one still has accounts.
-Test logins are `admin`, `logistic`, `commercial`, `CU00001000` (customer), and
-`AT11000001` (vendor), all with `password123`. Logistics gets operational approval;
-commercial and partners get preregistration/document access. Partner fixtures have
-two plants and internal test staff have all four seeded plants.
+Test logins are `admin` and `ben` (admins), `logistic`, `commercial`, `CU00010000`
+(customer with downstream DOs on erpdev) and `AT11000001` (vendor), all with
+`password123`. Logistics gets operational approval; commercial and partners get
+preregistration/document access. Partners have the three downstream plants and
+internal test staff have all five seeded plants.
 Every run restores those passwords using bcrypt
 with a separate salt per account and revokes their existing sessions. It leaves
 passwords for accounts created outside the seed unchanged. The seed refuses to run
