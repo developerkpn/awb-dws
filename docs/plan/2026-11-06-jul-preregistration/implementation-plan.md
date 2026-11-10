@@ -2,7 +2,10 @@
 
 Date: 2026-11-06
 
-Status: Planned; implementation has not started.
+Status: Implemented against synthetic fixtures (2026-11-08). The browser and API tests cover
+the flow from document selection to a confirmed loading-note number. The legacy comparison is
+in [parity-matrix.md](parity-matrix.md); live `erpdev` OData and Oracle staging checks are
+prepared in [erpdev-verification.md](erpdev-verification.md) and have not been run.
 
 ## Goal and boundaries
 
@@ -208,55 +211,55 @@ and add it to this mapping before changing the flow.
 
 ### Phase 1: Freeze the parity specification
 
-- [ ] Trace each active customer and Logistics route to its controller/model and UI.
-- [ ] Build a matrix for downstream LOCO/FRC, applicable STO and downstream JUL multi-DO paths.
-- [ ] Record calculations, state transitions, field mappings, side effects and error outcomes.
-- [ ] Separate working paths from commented RFC code, obsolete handlers and broken paths.
-- [ ] Resolve ambiguous numeric formats, document-item identity and retry semantics.
-- [ ] Add synthetic OData/staging fixtures and expected business outcomes.
+- [x] Trace each active customer and Logistics route to its controller/model and UI.
+- [x] Build a matrix for downstream LOCO/FRC, applicable STO and downstream JUL multi-DO paths.
+- [x] Record calculations, state transitions, field mappings, side effects and error outcomes.
+- [x] Separate working paths from commented RFC code, obsolete handlers and broken paths.
+- [x] Resolve ambiguous numeric formats, document-item identity and retry semantics.
+- [x] Add synthetic OData/staging fixtures and expected business outcomes.
 
 ### Phase 2: Implement persistence and business rules
 
-- [ ] Add UUID-based preregistration headers/lines, snapshots, decisions, holds/reservations,
+- [x] Add UUID-based preregistration headers/lines, snapshots, decisions, holds/reservations,
       integration jobs and audit records using the established table naming conventions.
-- [ ] Reuse current users, plants, drivers, vehicles and private documents where appropriate.
-- [ ] Replace the in-memory transaction repository with persistent repositories.
-- [ ] Implement lookup/save/edit/submit/review and pre-creation cancellation with typed contracts.
-- [ ] Enforce ownership, plant permissions, state transitions and idempotency on the server.
-- [ ] Add reservation locking and indexes for customer, plant, state, document and date queries.
-- [ ] Keep list responses bounded, sortable and paginated on the server, default 20 rows.
+- [x] Reuse current users, plants, drivers, vehicles and private documents where appropriate.
+- [x] Replace the in-memory transaction repository with persistent repositories.
+- [x] Implement lookup/save/edit/submit/review and pre-creation cancellation with typed contracts.
+- [x] Enforce ownership, plant permissions, state transitions and idempotency on the server.
+- [x] Add reservation locking and indexes for customer, plant, state, document and date queries.
+- [x] Keep list responses bounded, sortable and paginated on the server, default 20 rows.
 
 ### Phase 3: Implement the JUL UI
 
-- [ ] Add customer request lists/forms and Logistics review using the documented frontend structure.
-- [ ] Use shared buttons, inputs, dialogs, MUI icons, themes and matching skeletons.
-- [ ] Show payment status, available/reserved/held quantities and loading-note processing outcomes.
-- [ ] Preserve draft edits, display line-level failures and prevent duplicate submissions.
-- [ ] Add request history and pre-creation cancellation without native browser confirmations.
-- [ ] End the successful flow by displaying the confirmed SAP loading-note number.
+- [x] Add customer request lists/forms and Logistics review using the documented frontend structure.
+- [x] Use shared buttons, inputs, dialogs, MUI icons, themes and matching skeletons.
+- [x] Show payment status, available/reserved/held quantities and loading-note processing outcomes.
+- [x] Preserve draft edits, display line-level failures and prevent duplicate submissions.
+- [x] Add request history and pre-creation cancellation without native browser confirmations.
+- [x] End the successful flow by displaying the confirmed SAP loading-note number.
 
 ### Phase 4: Implement integration adapters and reconciliation
 
-- [ ] Create typed SAP lookup adapters preserving the existing OData contracts.
-- [ ] Create downstream staging/trigger/result adapters through confirmed LN creation.
-- [ ] Use durable jobs with correlation, bounded retries and explicit uncertain outcomes.
-- [ ] Reconcile creation results and quantity reservations with duplicate protection.
-- [ ] Keep every external adapter mocked/disabled by default during development and tests.
-- [ ] Prepare a separate `erpdev` verification procedure; this plan does not run it.
+- [x] Create typed SAP lookup adapters preserving the existing OData contracts.
+- [x] Create downstream staging/trigger/result adapters through confirmed LN creation.
+- [x] Use durable jobs with correlation, bounded retries and explicit uncertain outcomes.
+- [x] Reconcile creation results and quantity reservations with duplicate protection.
+- [x] Keep every external adapter mocked/disabled by default during development and tests.
+- [x] Prepare a separate `erpdev` verification procedure; this plan does not run it.
 
 ### Phase 5: Verify and document
 
-- [ ] Test downstream payment amounts below, at and above the `5000` boundary.
-- [ ] Test zero/nonzero actual quantities, deletions, holds, expiry and request edits.
-- [ ] Test concurrent reservations, repeated approval, partial failures, worker restarts and timeouts.
-- [ ] Verify staging payloads and each in-scope downstream JUL variant against the parity matrix.
-- [ ] Test authorization and attempts to forge customer/payment/quantity/role data.
-- [ ] Run browser checks from customer entry through Logistics approval to a confirmed SAP LN
+- [x] Test downstream payment amounts below, at and above the `5000` boundary.
+- [x] Test zero/nonzero actual quantities, deletions, holds, expiry and request edits.
+- [x] Test concurrent reservations, repeated approval, partial failures, worker restarts and timeouts.
+- [x] Verify staging payloads and each in-scope downstream JUL variant against the parity matrix.
+- [x] Test authorization and attempts to forge customer/payment/quantity/role data.
+- [x] Run browser checks from customer entry through Logistics approval to a confirmed SAP LN
       using synthetic SAP/staging responses, including failures and pending results.
-- [ ] Verify the flow contains no upstream branch or post-creation operational steps.
-- [ ] Confirm automated checks cannot contact external SAP/staging/plant systems.
-- [ ] Run formatting, lint, type checks, architecture/document checks, API tests and builds.
-- [ ] Update technical documentation and business progress when implementation actually changes them.
+- [x] Verify the flow contains no upstream branch or post-creation operational steps.
+- [x] Confirm automated checks cannot contact external SAP/staging/plant systems.
+- [x] Run formatting, lint, type checks, architecture/document checks, API tests and builds.
+- [x] Update technical documentation and business progress when implementation actually changes them.
 
 ## Completion criteria
 
@@ -271,3 +274,13 @@ unverified until a separately controlled development-environment check is comple
 BEL implementation remains outside this plan. Its later policy will share general
 request/review infrastructure while requiring PO input and bypassing the JUL DP and
 automatic loading-note steps.
+
+## Corrections from the parity review
+
+The parity review (2026-11-08) against `dev_1.3.1/bc` (and `dev_1.3.0/multi_ln` for the
+multi-DO staging write) found that the active Logistics form takes storage locations,
+valuation types and `DOTYPE` from local tables (`mst_jul_plant_rule`, `mst_jul_ln_type`), not
+`SLOCSet`/`VALTYPESet`; that decimal quantities are accepted at entry and truncated to whole
+numbers at Logistics approval; and that multi-DO trips group multiple DOs on the same plant
+under one truck header and stage one `IS_MULTI = 1` row per DO. The implementation follows
+those findings; details are in [parity-matrix.md](parity-matrix.md).
