@@ -80,7 +80,7 @@ Do not reintroduce `features/<domain>` or duplicate `pages` and `features` trees
 
 ## Naming and exports
 
-- Domain folders use singular camelCase: `user`, `role`, `preRegistration`.
+- Domain folders use singular camelCase: `user`, `role`, `driverRequest`, `jul`.
 - Page folders describe the action: `listUser`, `addUser`, `editUser`.
 - Every route page has `index.tsx` with a named PascalCase function as its default
   export. Route definitions lazy-load that folder.
@@ -94,11 +94,12 @@ Do not reintroduce `features/<domain>` or duplicate `pages` and `features` trees
 
 ## Types and validation
 
-API models, response shapes, filters and mutation inputs live in `types/<domain>.ts`.
-Reuse/infer shared contract types instead of redefining API models inside pages or
-components. Small component-prop interfaces remain beside their component. Use
-interfaces for object inputs/props and type aliases for unions, inference and
-compositions. Keep unrelated domain types out of a central catch-all file.
+Every type and interface lives in `types/<domain>.ts`: API models, response shapes,
+filters, mutation inputs, form values and component props. ESLint rejects top-level
+type declarations elsewhere in `src/`. Reuse/infer shared contract types instead of
+redefining API models. Use interfaces for object inputs/props and type aliases for
+unions, inference and compositions. Keep unrelated domain types out of a central
+catch-all file; layout and UI primitives use `types/layout.ts` and `types/ui.ts`.
 
 Use strict TypeScript and explicit typed HTTP responses. Do not use `any`, unsafe
 response casts to bypass validation, or non-null assertions to ignore missing data.

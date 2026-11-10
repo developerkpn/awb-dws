@@ -37,10 +37,11 @@ apps/site/api/src/
     registration/   registration.routes.ts (workflow pending)
     weighbridge/    weighbridge.routes.ts (workflow pending)
     tcs/            tcs.routes.ts (workflow pending)
-    sync/           sync.routes.ts, sync.service.ts, sync.repository.ts, sync.schema.ts, sync.worker.ts
+    sync/           sync.routes.ts, sync.service.ts, sync.repository.ts, sync.schema.ts
   devices/          TCP sockets to the weighbridge controllers (2 per weighbridge): RFID taps, sensors/radar, commands
   realtime/         lane state pushed to the kiosk screens (to add)
-  config/ routes/ middlewares/ helpers/ lib/ constants/ types/ jobs/
+  jobs/             background workers (sync.worker.ts): timers that call module services
+  config/ routes/ middlewares/ lib/ constants/ types/
 ```
 
 ## Shared packages
@@ -92,6 +93,8 @@ A full explanation in Indonesian, covering the weighbridge steps (`wbSessionPhas
 Each API has its own Prisma setup: one `prisma/schema.prisma` (all models of that app in one file), `prisma/migrations/`, `prisma.config.ts`, and the single client in `src/config/prisma.ts`. Only `*.repository.ts` files use the client (enforced by the boundary check). The generated client lives in `src/generated/` and is not committed; Turborepo regenerates it before dev, typecheck, test and build.
 
 SQL Server has no enum type, so enum-like columns are strings validated in the app with the schemas in `@awb/contracts`.
+
+`prereg/api` also writes staging tables in SAP's Oracle schema (SAPBRIDGE), which Prisma does not manage. Their DDL lives in `apps/prereg/api/oracle/migrations/` as plain SQL applied by hand; the status columns and their values are described in [apps/prereg/api/oracle/README.md](apps/prereg/api/oracle/README.md).
 
 Table names start with `mst_` for master data and `awb_` for transactions; columns are English `snake_case`. The short guide with examples (Indonesian) is `docs/design/penamaan-tabel.md`.
 
@@ -158,10 +161,12 @@ One folder per module, one file per layer.
 <module>/<module>.routes.ts       wiring only: parse input → call service → success()
 <module>/<module>.service.ts      business flow; no req/res, no direct data access
 <module>/<module>.repository.ts   data access only
-<module>/<module>.schema.ts       zod schemas + inferred types
+<module>/<module>.schema.ts       zod schemas
+src/jobs/<name>.worker.ts         background timer that calls a module service
+src/types/<domain>.ts             every type and interface, including z.infer of module schemas
 ```
 
-Both `site/api` and `prereg/api` keep features under `modules/<module>/`, without module barrels or repeated nested feature directories. Add repositories and schemas when the feature needs them; route-only placeholders do not need empty companion files. Workers stay with the feature they process. Hardware I/O remains in `devices/`. Express 5 forwards rejected promises to the error handler, so route handlers don't need try/catch.
+Both `site/api` and `prereg/api` keep features under `modules/<module>/`, without module barrels or repeated nested feature directories. Add repositories and schemas when the feature needs them; route-only placeholders do not need empty companion files. Background workers live in `src/jobs/<name>.worker.ts`: they own only the timer, start/stop and overlap guard, and call a module service for the work, so they can be enabled, moved or run separately without touching the module. Shared helpers that are not a feature (password hashing, file storage, quantity maths) live in `src/lib/`; there is no separate `helpers/` folder. Hardware I/O remains in `devices/`. Express 5 forwards rejected promises to the error handler, so route handlers don't need try/catch.
 
 ## Comments
 
@@ -169,6 +174,12 @@ Use Zod 4 top-level format validators (`z.uuid()`, `z.email()`, `z.url()`,
 `z.iso.datetime()`) and `z.int()` for integer schemas. Keep string length/trim
 checks on `z.string()`. ESLint rejects deprecated chained format validators;
 Prettier supplies consistent spacing and line breaks.
+
+ESLint also enforces readability (auto-fixed by `npm run lint:fix`): a blank line
+around functions, routes, blocks, `if` statements, variable declarations and before
+`return`; objects with two or more properties, or a call, function, object/array,
+`??` or ternary value, put one property per line (`scripts/eslint-rules/expand-objects.mjs`);
+types and interfaces live only in `src/types/<domain>.ts`.
 
 - Write a comment only when the code can't explain itself: a non-obvious reason, a workaround or a business rule.
 - **At most 2 lines per comment**, and keep them few. Don't restate what the code already says.
