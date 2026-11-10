@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react'
+import type { BadgeVariant } from '@/types/ui'
 
-type Variant = 'default' | 'active' | 'inactive' | 'internal' | 'partner' | 'admin' | 'info'
-
-const styles: Record<Variant, string> = {
+const styles: Record<BadgeVariant, string> = {
   default: 'bg-stone-100 text-stone-700',
   active: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
   inactive: 'bg-stone-100 text-stone-500',
@@ -10,6 +9,8 @@ const styles: Record<Variant, string> = {
   partner: 'bg-violet-50 text-violet-700 ring-1 ring-violet-200',
   admin: 'bg-brand-50 text-brand-700 ring-1 ring-brand-200',
   info: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
+  warning: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+  danger: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200',
 }
 
 export function Badge({
@@ -18,7 +19,7 @@ export function Badge({
   className = '',
 }: {
   children: ReactNode
-  variant?: Variant
+  variant?: BadgeVariant
   className?: string
 }) {
   return (

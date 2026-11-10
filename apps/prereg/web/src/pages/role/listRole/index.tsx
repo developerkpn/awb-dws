@@ -19,6 +19,7 @@ export default function ListRole() {
   const pagination = usePagination()
   const { sortBy, sortDirection, sorting } = useSorting(roleSortFields, 'code')
   const search = useDebounce(pagination.q)
+
   const roles = useRolePermissions({
     page: pagination.page,
     limit: pagination.limit,
@@ -26,6 +27,7 @@ export default function ListRole() {
     sortBy,
     sortDirection,
   })
+
   const error = roles.error
 
   return (
@@ -51,8 +53,15 @@ export default function ListRole() {
         />
       ) : (
         <Table<RoleSummary>
-          sorting={{ ...sorting, isLoading: roles.isFetching }}
-          pagination={{ ...pagination, total: roles.data?.total ?? 0, isLoading: roles.isFetching }}
+          sorting={{
+            ...sorting,
+            isLoading: roles.isFetching,
+          }}
+          pagination={{
+            ...pagination,
+            total: roles.data?.total ?? 0,
+            isLoading: roles.isFetching,
+          }}
           isLoading={roles.isPending}
           aria-label="Roles"
           data={roles.data?.items ?? []}

@@ -38,6 +38,7 @@ export interface TableProps<T> extends TableHTMLAttributes<HTMLTableElement> {
   isLoading?: boolean
   groupBy?: (item: T) => string
   renderGroupHeader?: (group: string, items: T[]) => ReactNode
+  onRowClick?: (item: T) => void
 }
 
 export function Table<T>({
@@ -52,6 +53,7 @@ export function Table<T>({
   isLoading = false,
   groupBy,
   renderGroupHeader,
+  onRowClick,
   className = '',
   style,
   ...props
@@ -66,7 +68,11 @@ export function Table<T>({
       <div className="ui-table-scroll">
         <table
           {...props}
-          style={{ tableLayout: 'fixed', minWidth, ...style }}
+          style={{
+            tableLayout: 'fixed',
+            minWidth,
+            ...style,
+          }}
           aria-busy={isLoading || pagination.isLoading}
           className={`ui-table ${className}`}
         >
@@ -76,11 +82,13 @@ export function Table<T>({
                 const sortable = !!column.sortKey && !!sorting
                 const active = sortable && sorting.sortBy === column.sortKey
                 const direction = active && sorting.direction === 'asc' ? 'desc' : 'asc'
+
                 const SortIcon = !active
                   ? UnfoldMoreOutlined
                   : sorting.direction === 'asc'
                     ? ArrowUpwardOutlined
                     : ArrowDownwardOutlined
+
                 return (
                   <th
                     key={column.key}
@@ -95,7 +103,10 @@ export function Table<T>({
                           : 'none'
                         : undefined
                     }
-                    style={{ width: column.width, textAlign: column.align }}
+                    style={{
+                      width: column.width,
+                      textAlign: column.align,
+                    }}
                   >
                     {sortable ? (
                       <button
@@ -130,15 +141,20 @@ export function Table<T>({
                     </td>
                   </tr>
                 )}
-                {Array.from({ length: Math.min(pagination.limit ?? 20, 6) }, (_, row) => (
-                  <tr key={row} aria-hidden="true">
-                    {columns.map((column, index) => (
-                      <td key={column.key}>
-                        {column.skeleton ?? <SkeletonCell lines={index === 0 ? 2 : 1} />}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                {Array.from(
+                  {
+                    length: Math.min(pagination.limit ?? 20, 6),
+                  },
+                  (_, row) => (
+                    <tr key={row} aria-hidden="true">
+                      {columns.map((column, index) => (
+                        <td key={column.key}>
+                          {column.skeleton ?? <SkeletonCell lines={index === 0 ? 2 : 1} />}
+                        </td>
+                      ))}
+                    </tr>
+                  ),
+                )}
               </>
             ) : data.length === 0 ? (
               <tr>
@@ -152,8 +168,10 @@ export function Table<T>({
             ) : (
               data.map((item, index) => {
                 const group = groupBy?.(item)
+
                 const firstInGroup =
                   group !== undefined && (index === 0 || groupBy?.(data[index - 1]!) !== group)
+
                 return (
                   <Fragment key={keyExtractor(item, index)}>
                     {firstInGroup && renderGroupHeader && (
@@ -166,7 +184,22 @@ export function Table<T>({
                         </td>
                       </tr>
                     )}
-                    <tr>
+                    <tr
+                      data-clickable={onRowClick ? true : undefined}
+                      onClick={
+                        onRowClick
+                          ? (event) => {
+                              // Buttons, links and inputs inside the row keep their own action.
+                              if (
+                                !(event.target as HTMLElement).closest(
+                                  'button, a, input, select, textarea, label',
+                                )
+                              )
+                                onRowClick(item)
+                            }
+                          : undefined
+                      }
+                    >
                       {columns.map((column) => (
                         <td
                           key={column.key}

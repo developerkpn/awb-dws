@@ -11,14 +11,20 @@ import { ThemeControl } from '@awb/ui'
 export default function Login() {
   const navigate = useNavigate()
   const { loginMutation } = useAuth()
+
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { username: '', password: '', rememberMe: false },
+    defaultValues: {
+      username: '',
+      password: '',
+      rememberMe: false,
+    },
   })
 
   const submit = async (data: LoginFormData) => {
     try {
       const response = await loginMutation.mutateAsync(data)
+
       navigate(response.user.role === 'ADMIN' ? '/users' : '/', { replace: true })
     } catch {
       return

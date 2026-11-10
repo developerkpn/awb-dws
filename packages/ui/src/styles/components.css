@@ -175,6 +175,9 @@
 .ui-table tbody tr:hover {
   background: var(--ui-subtle);
 }
+.ui-table tbody tr[data-clickable] {
+  cursor: pointer;
+}
 .ui-table-state {
   display: flex;
   min-height: 10rem;

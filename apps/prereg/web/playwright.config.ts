@@ -4,13 +4,20 @@ export default defineConfig({
   testDir: './tests',
   fullyParallel: false,
   workers: 1,
-  use: { baseURL: 'http://127.0.0.1:5176', headless: true },
+  use: {
+    baseURL: 'http://127.0.0.1:5176',
+    headless: true,
+  },
   webServer: [
     {
       command: 'npm run test:browser-server -w @awb/prereg-api',
       cwd: '../../..',
       url: 'http://127.0.0.1:3001/health',
-      env: { NODE_ENV: 'test', BCRYPT_ROUNDS: '4', APP_ORIGIN: 'http://127.0.0.1:5176' },
+      env: {
+        NODE_ENV: 'test',
+        BCRYPT_ROUNDS: '4',
+        APP_ORIGIN: 'http://127.0.0.1:5176',
+      },
       reuseExistingServer: false,
     },
     {

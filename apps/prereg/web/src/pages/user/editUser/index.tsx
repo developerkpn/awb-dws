@@ -13,14 +13,22 @@ export default function EditUser() {
   const update = useUpdateUser()
 
   if (user.isPending) return <LoadingState message="Loading account…" />
+
   if (user.error)
     return <ErrorState message={getErrorMessage(user.error)} onRetry={() => void user.refetch()} />
+
   if (!user.data) return <ErrorState message="Account not found." />
 
   const submit = async (data: UserFormData) => {
     try {
-      await update.mutateAsync({ id, data })
-      navigate('/users', { state: { notice: 'Account updated.' } })
+      await update.mutateAsync({
+        id,
+        data,
+      })
+
+      navigate('/users', {
+        state: { notice: 'Account updated.' },
+      })
     } catch {
       // error shown by form
     }

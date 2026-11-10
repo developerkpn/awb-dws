@@ -1,7 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { CheckCircle, XCircle } from '@/ui/icons'
-
-type ToastType = 'success' | 'error'
+import type { ToastType } from '@/types/ui'
 
 export function Toast({
   message,
@@ -14,6 +13,7 @@ export function Toast({
 }) {
   useEffect(() => {
     const t = setTimeout(onDismiss, 4000)
+
     return () => clearTimeout(t)
   }, [onDismiss])
 

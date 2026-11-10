@@ -2,6 +2,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useMediaQuery } from '@awb/ui'
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { useAuth } from '@/hooks/auth'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import LoadingState from '@/components/LoadingState'
 import { Button } from '@/ui/Button'
 import { AlertTriangle } from '@/ui/icons'
@@ -15,17 +16,23 @@ const PAGE_TITLES: Record<string, string> = {
   '/users/new': 'Add account',
   '/roles/permissions': 'Role permissions',
   '/roles': 'Roles & permissions',
-  '/pre-registration': 'Pre-registration',
-  '/approval': 'Approval queue',
+  '/sap-master': 'SAP drivers & trucks',
+  '/driver-requests/new': 'New request',
+  '/driver-requests': 'Drivers & vehicles',
+  '/jul/review': 'JUL review',
+  '/jul': 'JUL registrations',
 }
 
 function usePageTitle() {
   const { pathname } = useLocation()
+
   // exact match first, then prefix
   if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname]
+
   const prefix = Object.keys(PAGE_TITLES)
     .filter((k) => k !== '/' && pathname.startsWith(k))
     .sort((a, b) => b.length - a.length)[0]
+
   return prefix ? (PAGE_TITLES[prefix] ?? '') : ''
 }
 
@@ -33,8 +40,11 @@ export default function BaseLayout() {
   const { user, isLoading, error, refresh } = useAuth()
   const narrow = useMediaQuery('(max-width: 767px)')
   const [collapsed, setCollapsed] = useState(narrow)
+
   useEffect(() => setCollapsed(narrow), [narrow])
   const title = usePageTitle()
+
+  useDocumentTitle(title)
 
   if (isLoading) return <LoadingState message="Checking your session…" shell />
 

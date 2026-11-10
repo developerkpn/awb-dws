@@ -7,6 +7,7 @@ describe('Account master simplification migration', () => {
   it('preserves city names, primary partner location and account IDs before dropping master tables', async () => {
     const schema = `migration_test_${randomUUID().replaceAll('-', '')}`
     const ids = Array.from({ length: 9 }, () => randomUUID())
+
     const migration = readFileSync(
       new URL(
         '../prisma/migrations/20261106110000_simplify_account_masters/migration.sql',
@@ -14,6 +15,7 @@ describe('Account master simplification migration', () => {
       ),
       'utf8',
     )
+
     await prisma.$transaction(async (tx) => {
       await tx.$executeRawUnsafe(`CREATE SCHEMA "${schema}"`)
       await tx.$executeRawUnsafe(`SET LOCAL search_path TO "${schema}"`)
@@ -39,26 +41,48 @@ describe('Account master simplification migration', () => {
         .map((value) => value.trim())
         .filter((value) => value && !['BEGIN', 'COMMIT'].includes(value)))
         await tx.$executeRawUnsafe(statement)
+
       expect(
         await tx.$queryRawUnsafe('SELECT id, city FROM mst_transporter ORDER BY city NULLS LAST'),
       ).toEqual([
-        { id: ids[1], city: 'Preserved city' },
-        { id: ids[2], city: null },
+        {
+          id: ids[1],
+          city: 'Preserved city',
+        },
+        {
+          id: ids[2],
+          city: null,
+        },
       ])
+
       expect(await tx.$queryRawUnsafe('SELECT city FROM mst_driver')).toEqual([
         { city: 'Preserved city' },
       ])
+
       expect(await tx.$queryRawUnsafe('SELECT driver_city FROM awb_driver_request')).toEqual([
         { driver_city: 'Preserved city' },
       ])
+
       expect(await tx.$queryRawUnsafe('SELECT id, city, country FROM mst_user')).toEqual([
-        { id: ids[5], city: 'Primary city', country: 'ID' },
+        {
+          id: ids[5],
+          city: 'Primary city',
+          country: 'ID',
+        },
       ])
+
       expect(
         await tx.$queryRawUnsafe(
           "SELECT to_regclass('mst_city')::text AS city, to_regclass('mst_partner')::text AS partner, to_regclass('mst_user_partner')::text AS link",
         ),
-      ).toEqual([{ city: null, partner: null, link: null }])
+      ).toEqual([
+        {
+          city: null,
+          partner: null,
+          link: null,
+        },
+      ])
+
       await tx.$executeRawUnsafe(`DROP SCHEMA "${schema}" CASCADE`)
     })
   })

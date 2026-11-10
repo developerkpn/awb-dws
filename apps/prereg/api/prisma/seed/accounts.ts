@@ -8,10 +8,13 @@ export async function seedAccounts(
 ) {
   if (env.NODE_ENV !== 'development')
     throw new Error('Account seeding is disabled outside development')
+
   const adminRoleId = rolesByCode.get('ADMIN')!
+
   console.log('👤 Seeding default admin account...')
   const defaultPassword = 'password123'
   const defaultPasswordHash = await hashPassword(defaultPassword)
+
   const adminUser = await prisma.user.upsert({
     where: { username: 'admin' },
     update: {
@@ -31,7 +34,9 @@ export async function seedAccounts(
       isActive: true,
     },
   })
+
   console.log(`✅ Admin account seeded: ${adminUser.username}`)
+
   const fixtures = [
     {
       role: 'LOGISTIC',
@@ -51,8 +56,20 @@ export async function seedAccounts(
       name: 'Development customer',
       accountType: 'PARTNER',
     },
-    { role: 'VENDOR', username: 'AT11000001', name: 'Development vendor', accountType: 'PARTNER' },
+    {
+      role: 'CUSTOMER',
+      username: 'CU00010000',
+      name: 'PT. JUJUR SENTOSA',
+      accountType: 'PARTNER',
+    },
+    {
+      role: 'VENDOR',
+      username: 'AT11000001',
+      name: 'Development vendor',
+      accountType: 'PARTNER',
+    },
   ]
+
   for (const fixture of fixtures) {
     const fields = {
       passwordHash: await hashPassword(defaultPassword),
@@ -60,19 +77,37 @@ export async function seedAccounts(
       roleId: rolesByCode.get(fixture.role)!,
       isActive: true,
     }
+
     const account = await prisma.user.upsert({
       where: { username: fixture.username },
-      update: { ...fields, sessions: { deleteMany: {} } },
-      create: { ...fields, username: fixture.username, name: fixture.name },
+      update: {
+        ...fields,
+        sessions: { deleteMany: {} },
+      },
+      create: {
+        ...fields,
+        username: fixture.username,
+        name: fixture.name,
+      },
     })
+
     await prisma.$transaction(async (tx) => {
-      await tx.userPlant.deleteMany({ where: { userId: account.id } })
+      await tx.userPlant.deleteMany({
+        where: { userId: account.id },
+      })
+
       await tx.userPlant.createMany({
         data: [...plantsByCode.values()]
-          .slice(0, fixture.accountType === 'PARTNER' ? 2 : 4)
-          .map((plantId) => ({ userId: account.id, plantId })),
+          .slice(0, fixture.accountType === 'PARTNER' ? 3 : 5)
+          .map((plantId) => ({
+            userId: account.id,
+            plantId,
+          })),
       })
     })
   }
-  console.log('Development accounts ready: admin, logistic, commercial, CU00001000, AT11000001')
+
+  console.log(
+    'Development accounts ready: admin, logistic, commercial, CU00001000, CU00010000, AT11000001',
+  )
 }

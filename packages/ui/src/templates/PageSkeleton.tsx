@@ -4,6 +4,7 @@ import { Table, type TableColumn } from '../organisms/Table'
 
 export type SkeletonView = 'table' | 'form' | 'auth' | 'recovery' | 'cards' | 'message'
 export interface PageSkeletonProps {
+  children?: ReactNode
   message?: string
   view?: SkeletonView
   columns?: TableColumn<never>[]
@@ -20,7 +21,16 @@ export interface PageSkeletonProps {
   heroImage?: string
   logo?: string
 }
-const shape = (width: string, height = '0.875rem') => <Skeleton style={{ width, height }} />
+
+const shape = (width: string, height = '0.875rem') => (
+  <Skeleton
+    style={{
+      width,
+      height,
+    }}
+  />
+)
+
 function FieldShape({ full = false }: { full?: boolean }) {
   return (
     <div className={full ? 'ui-loading-field ui-loading-full' : 'ui-loading-field'}>
@@ -29,6 +39,7 @@ function FieldShape({ full = false }: { full?: boolean }) {
     </div>
   )
 }
+
 function SaveBar() {
   return (
     <div className="ui-loading-save">
@@ -40,6 +51,7 @@ function SaveBar() {
     </div>
   )
 }
+
 function FormView({ partner }: { partner?: boolean }) {
   return (
     <>
@@ -99,6 +111,7 @@ function FormView({ partner }: { partner?: boolean }) {
     </>
   )
 }
+
 function AuthView({ heroImage, logo }: Pick<PageSkeletonProps, 'heroImage' | 'logo'>) {
   return (
     <div className="ui-loading-auth">
@@ -136,6 +149,7 @@ function AuthView({ heroImage, logo }: Pick<PageSkeletonProps, 'heroImage' | 'lo
     </div>
   )
 }
+
 function Frame({ children }: { children: ReactNode }) {
   return (
     <div className="ui-loading-shell">
@@ -155,7 +169,13 @@ function Frame({ children }: { children: ReactNode }) {
           ))}
         </div>
         <div className="ui-loading-profile">
-          <Skeleton style={{ width: '2.25rem', height: '2.25rem', borderRadius: '50%' }} />
+          <Skeleton
+            style={{
+              width: '2.25rem',
+              height: '2.25rem',
+              borderRadius: '50%',
+            }}
+          />
           {shape('5rem')}
         </div>
       </aside>
@@ -169,7 +189,9 @@ function Frame({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
 export function PageSkeleton({
+  children,
   message = 'Loading content…',
   view = 'message',
   columns = [],
@@ -187,7 +209,8 @@ export function PageSkeleton({
   logo,
 }: PageSkeletonProps) {
   const content =
-    view === 'auth' ? (
+    children ??
+    (view === 'auth' ? (
       <AuthView heroImage={heroImage} logo={logo} />
     ) : view === 'recovery' ? (
       <div className="ui-loading-recovery">
@@ -263,7 +286,8 @@ export function PageSkeleton({
           </div>
         )}
       </div>
-    )
+    ))
+
   return (
     <div role="status" aria-label={message} aria-busy="true" data-skeleton-view={view}>
       <span className="ui-sr-only">{message}</span>

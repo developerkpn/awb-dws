@@ -128,6 +128,70 @@ trigram indexes and account date indexes supplement existing search/relation ind
 Large negative/empty/OR searches may still scan many rows; inspect their plans with
 representative data before making a capacity claim.
 
+## Driver and vehicle requests and plant synchronization
+
+The merged request UI supports submission, private uploads, rejected-request revision
+and server pagination/sorting (20 rows by default). Active SIM and plate reservations
+are enforced by partial unique PostgreSQL indexes, including case-insensitive license
+comparison and plate comparison without whitespace. A migration fails if existing
+active requests conflict; resolve those records explicitly before applying it. The
+indexes must be preserved when reviewing future Prisma schema changes.
+
+Approval requires an explicit active destination plant code, records the decision
+and writes an outbox event in one transaction. A per-site transaction lock orders
+outbox sequence allocation; a conditional state update prevents duplicate approvals.
+The full Logistics rejection/review UI is still unfinished (AWB-13).
+
+The plant initiates synchronization. Its worker polls the HO outbox and commits
+driver/vehicle upserts, the received event and its watermark together in SQL Server.
+Only the successfully processed prefix may be acknowledged. Invalid, unsupported,
+misaddressed or failed events stop progress; acknowledgement failures are retried
+even on empty polls. Worker and manual pulls share a single in-flight cycle, and
+network calls have a bounded timeout. Stalled events require diagnosis/correction;
+they are not silently discarded.
+
+HO production configuration uses `INTERNAL_SERVICE_KEYS`, a JSON object mapping
+each plant code to a different secret with at least 32 characters. Credentials bind
+the request to that site; a client cannot select another site's outbox or acknowledge
+it. The legacy shared development key is never accepted in production. A development
+client using the shared key must supply its site explicitly.
+
+The plant uses its matching `INTERNAL_SERVICE_KEY` and `SITE_ID`. `SYNC_ENABLED=false`
+by default; enable it explicitly after setting the intended HO URL and site identity.
+Production requires HTTPS and a non-development key. `SYNC_REQUEST_TIMEOUT_MS`
+defaults to 10000 and `SYNC_POLL_INTERVAL_MS` to 60000. Local servers bind to loopback.
+No production credentials are seeded or supplied in examples.
+
+This transfer is for approved driver/vehicle master data, independently of JUL SAP
+loading-note creation. Document fields currently contain private references; file
+bytes are not replicated to the plant.
+
+## Downstream JUL and SAP
+
+`JUL_SAP_MODE` selects the SAP integration: `disabled` (default; JUL lookups and approval
+fail closed), `fixture` (simulated documents, staging and loading-note numbers; rejected
+when `NODE_ENV=production`) or `live`. Live mode requires `SAP_ODATA_BASE_URL` to be an
+HTTPS `erpdev` host without embedded credentials, plus `SAP_SERVICE_USERNAME`,
+`SAP_SERVICE_PASSWORD` and the `SAP_ORACLE_*` staging connection. `erpprd` is never
+used as a fallback. `SAP_REQUEST_TIMEOUT_MS` defaults to 8000.
+
+For local fixture testing, set `JUL_SAP_MODE=fixture` and give the customer and
+Logistics accounts access to the `PRISCOLIN_KARAWANG` plant. Approval in live mode asks
+the approving operator for their SAP password; it is used only to trigger `DOTRXSet`
+and is not stored. `JUL_WORKER_ENABLED=true` starts a 30-second reconciliation and
+expiry loop; without it, results are reconciled from the request page. A timed-out
+trigger is marked uncertain and is reconciled from staging, never re-triggered blindly.
+The live `erpdev` path has not been verified yet; follow
+[the erpdev verification procedure](../../docs/plan/2026-11-06-jul-preregistration/erpdev-verification.md).
+
+Live mode also needs reference data that fixture mode does not: each SAP plant mapped
+through `mst_plant.sap_plant_code` with `company_group = 'DOWNSTREAM'`, and
+`mst_jul_plant_rule` rows (factory/other-party storage and valuation per plant, material
+and incoterm) imported from the legacy `mst_sloc_plant` and `mst_valtype_plant` tables.
+Transport modes come from `mst_jul_transport_mode`; the migration seeds the legacy codes
+with only Truck active. Logistics usernames must equal their SAP user IDs, because
+approval triggers SAP with that username and the password entered at approval.
+
 ## Checks
 
 ```sh

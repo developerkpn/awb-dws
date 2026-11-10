@@ -1,9 +1,34 @@
 import { PageSkeleton } from '@awb/ui'
 import { useLocation } from 'react-router'
 import { loadingColumnsFor } from '@/ui/loadingLayouts'
+import { RequestFormSkeleton, RequestListSkeleton } from './DriverRequestSkeleton'
+import { JulSkeleton } from '@/pages/jul/_components/JulSkeleton'
 
 export default function LoadingState({ message, shell }: { message?: string; shell?: boolean }) {
   const { pathname } = useLocation()
+
+  if (pathname === '/jul/new' || /^\/jul\/[^/]+\/edit$/.test(pathname))
+    return <JulSkeleton view="form" shell={shell} />
+
+  if (pathname === '/jul' || pathname === '/jul/review')
+    return (
+      <PageSkeleton
+        view="table"
+        columns={loadingColumnsFor('jul')}
+        toolbar="search"
+        action
+        subtitle
+        shell={shell}
+      />
+    )
+
+  if (pathname.startsWith('/jul/')) return <JulSkeleton view="detail" shell={shell} />
+
+  if (pathname === '/driver-requests/new' || /^\/driver-requests\/[^/]+\/edit$/.test(pathname))
+    return <RequestFormSkeleton shell={shell} />
+
+  if (pathname === '/driver-requests') return <RequestListSkeleton shell={shell} />
+
   if (pathname === '/login')
     return (
       <PageSkeleton
@@ -13,9 +38,12 @@ export default function LoadingState({ message, shell }: { message?: string; she
         logo="/kpn-corp.png"
       />
     )
+
   if (pathname === '/forgot-password') return <PageSkeleton message={message} view="recovery" />
+
   if (pathname === '/users/new' || /^\/users\/[^/]+\/edit$/.test(pathname))
     return <PageSkeleton message={message} view="form" back shell={shell} />
+
   if (pathname === '/users')
     return (
       <PageSkeleton
@@ -29,6 +57,7 @@ export default function LoadingState({ message, shell }: { message?: string; she
         shell={shell}
       />
     )
+
   if (/^\/roles\/[^/]+\/permissions$/.test(pathname))
     return (
       <PageSkeleton
@@ -41,6 +70,7 @@ export default function LoadingState({ message, shell }: { message?: string; she
         shell={shell}
       />
     )
+
   if (pathname.startsWith('/roles'))
     return (
       <PageSkeleton
@@ -51,6 +81,7 @@ export default function LoadingState({ message, shell }: { message?: string; she
         shell={shell}
       />
     )
+
   return (
     <PageSkeleton message={message} view={pathname === '/' ? 'cards' : 'message'} shell={shell} />
   )

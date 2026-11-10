@@ -27,7 +27,12 @@ export default function ListUser() {
   const locationState = location.state as { notice?: string } | null
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(
-    locationState?.notice ? { message: locationState.notice, type: 'success' } : null,
+    locationState?.notice
+      ? {
+          message: locationState.notice,
+          type: 'success',
+        }
+      : null,
   )
 
   const filters: Filters = {
@@ -41,7 +46,12 @@ export default function ListUser() {
   }
 
   const debouncedQ = useDebounce(filters.q)
-  const users = useUsers({ ...filters, q: debouncedQ })
+
+  const users = useUsers({
+    ...filters,
+    q: debouncedQ,
+  })
+
   const options = useUserOptions()
   const statusMutation = useUpdateUserStatus()
   const resetMutation = useResetUserPassword()
@@ -49,8 +59,10 @@ export default function ListUser() {
 
   const changeFilters = (changes: Partial<Filters>) => {
     const next = new URLSearchParams(parameters)
+
     for (const legacy of ['filters', 'role', 'plantId', 'accountType']) next.delete(legacy)
     next.set('page', '1')
+
     for (const [key, value] of Object.entries(changes)) {
       if (Array.isArray(value)) {
         next.delete(key)
@@ -58,6 +70,7 @@ export default function ListUser() {
       } else if (value === '' || value === undefined) next.delete(key)
       else next.set(key, String(value))
     }
+
     setParameters(next, { replace: true })
   }
 
@@ -72,11 +85,22 @@ export default function ListUser() {
       }))
     )
       return
+
     try {
-      await statusMutation.mutateAsync({ id: user.id, isActive: !user.isActive })
-      setToast({ message: 'Account status updated.', type: 'success' })
+      await statusMutation.mutateAsync({
+        id: user.id,
+        isActive: !user.isActive,
+      })
+
+      setToast({
+        message: 'Account status updated.',
+        type: 'success',
+      })
     } catch (err) {
-      setToast({ message: getErrorMessage(err), type: 'error' })
+      setToast({
+        message: getErrorMessage(err),
+        type: 'error',
+      })
     }
   }
 
@@ -91,11 +115,19 @@ export default function ListUser() {
       }))
     )
       return
+
     try {
       const response = await resetMutation.mutateAsync(user.id)
-      setToast({ message: response.message, type: 'success' })
+
+      setToast({
+        message: response.message,
+        type: 'success',
+      })
     } catch (err) {
-      setToast({ message: getErrorMessage(err), type: 'error' })
+      setToast({
+        message: getErrorMessage(err),
+        type: 'error',
+      })
     }
   }
 
@@ -125,7 +157,10 @@ export default function ListUser() {
       ) : (
         <>
           <UsersTable
-            sorting={{ ...sorting, isLoading: users.isFetching }}
+            sorting={{
+              ...sorting,
+              isLoading: users.isFetching,
+            }}
             pagination={{
               ...pagination,
               total: users.data?.total ?? 0,

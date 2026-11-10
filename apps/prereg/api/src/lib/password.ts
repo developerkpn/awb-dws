@@ -11,15 +11,19 @@ export function validatePassword(password: string) {
 
 export async function hashPassword(password: string) {
   validatePassword(password)
+
   return bcrypt.hash(password, env.BCRYPT_ROUNDS)
 }
 
 export async function verifyPassword(password: string, hash: string) {
   validatePassword(password)
+
   if (/^\$2[aby]\$/.test(hash)) return bcrypt.compare(password, hash)
+
   if (env.ALLOW_LEGACY_PASSWORDS === 'true' && /^[a-f0-9]{64}$/.test(hash)) {
     return timingSafeEqual(createHash('sha256').update(password).digest(), Buffer.from(hash, 'hex'))
   }
+
   return false
 }
 

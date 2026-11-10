@@ -1,6 +1,6 @@
 import { basename } from 'node:path'
 import { CustomError } from '@awb/server-core'
-import { detectFileType, getFilePath, removeFile, storeFile } from '../../helpers/storage'
+import { detectFileType, getFilePath, removeFile, storeFile } from '../../lib/storage'
 import repository from './document.repository'
 import type { SessionUser } from '../auth/auth.schema'
 
@@ -16,6 +16,7 @@ export default {
       }
 
       const fileKey = await storeFile(file.path, category, detected.extension)
+
       storedPath = getFilePath(fileKey)
 
       const document = await repository.create({
@@ -55,6 +56,9 @@ export default {
       throw new CustomError('Document not found', 404)
     }
 
-    return { document, path: getFilePath(document.fileKey) }
+    return {
+      document,
+      path: getFilePath(document.fileKey),
+    }
   },
 }

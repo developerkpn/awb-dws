@@ -9,10 +9,13 @@ import { seedAccounts } from './accounts'
 async function main() {
   if (env.NODE_ENV !== 'development')
     throw new Error('Development seed is disabled outside development')
+
   await seedTransporters()
   const roles = await seedRoles()
+
   await seedPermissions(roles)
   const plants = await seedPlants()
+
   await seedAccounts(roles, plants)
   console.log('Development database seeding completed')
 }

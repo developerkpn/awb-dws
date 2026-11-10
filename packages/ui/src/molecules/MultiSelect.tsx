@@ -30,20 +30,29 @@ export function MultiSelect({
 }: MultiSelectProps) {
   const id = useId()
   const [selection, setSelection] = useOptimistic(values)
+
   const change = (next: string[]) =>
     startTransition(() => {
       setSelection(next)
       onChange(next)
     })
+
   const searchRef = useRef<HTMLInputElement>(null)
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
-  const [position, setPosition] = useState({ top: 0, left: 0, width: 288 })
+
+  const [position, setPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 288,
+  })
+
   const matches = options.filter((option) =>
     `${option.label} ${option.description ?? ''}`
       .toLowerCase()
       .includes(query.trim().toLowerCase()),
   )
+
   const selected = new Set(selection)
 
   return (
@@ -61,6 +70,7 @@ export function MultiSelect({
         onClick={(event) => {
           const rect = event.currentTarget.getBoundingClientRect()
           const width = Math.min(304, innerWidth - 16)
+
           setPosition({
             width,
             left: Math.max(8, Math.min(rect.left, innerWidth - width - 8)),
@@ -81,7 +91,9 @@ export function MultiSelect({
         style={position}
         onToggle={(event) => {
           const expanded = event.newState === 'open'
+
           setOpen(expanded)
+
           if (expanded) searchRef.current?.focus()
           else setQuery('')
         }}

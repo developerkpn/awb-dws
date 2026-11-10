@@ -32,20 +32,33 @@ export class ValidationError extends CustomError {
 /** Error body: { error, details? }. Mount last. */
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   if (err instanceof z.ZodError) {
-    res.status(422).json({ error: 'Validation failed', details: z.flattenError(err).fieldErrors })
+    res.status(422).json({
+      error: 'Validation failed',
+      details: z.flattenError(err).fieldErrors,
+    })
+
     return
   }
+
   if (err instanceof ValidationError) {
-    res.status(err.statusCode).json({ error: err.message, details: err.details })
+    res.status(err.statusCode).json({
+      error: err.message,
+      details: err.details,
+    })
+
     return
   }
+
   if (err instanceof CustomError) {
     res.status(err.statusCode).json({ error: err.message })
+
     return
   }
+
   console.error('Unhandled request error', {
     name: err instanceof Error ? err.name : 'UnknownError',
     code: typeof err === 'object' && err && 'code' in err ? String(err.code) : undefined,
   })
+
   res.status(500).json({ error: 'Internal server error' })
 }

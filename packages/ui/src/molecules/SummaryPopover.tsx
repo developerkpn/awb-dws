@@ -19,7 +19,13 @@ export function SummaryPopover({
 }: SummaryPopoverProps) {
   const id = useId()
   const [open, setOpen] = useState(false)
-  const [position, setPosition] = useState({ top: 0, left: 0, width: 320 })
+
+  const [position, setPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 320,
+  })
+
   return (
     <div className="ui-summary-popover">
       <button
@@ -33,6 +39,7 @@ export function SummaryPopover({
         onClick={(event) => {
           const rect = event.currentTarget.getBoundingClientRect()
           const width = Math.min(352, innerWidth - 16)
+
           setPosition({
             width,
             left: Math.max(8, Math.min(rect.left, innerWidth - width - 8)),
@@ -55,6 +62,7 @@ export function SummaryPopover({
         style={position}
         onToggle={(event) => {
           const expanded = event.newState === 'open'
+
           setOpen(expanded)
           onOpenChange?.(expanded)
         }}

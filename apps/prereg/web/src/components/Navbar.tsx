@@ -1,11 +1,6 @@
 import { PanelLeft, ChevronRight } from '@/ui/icons'
 import { IconButton } from '@/ui/Button'
-
-interface NavbarProps {
-  title: string
-  collapsed: boolean
-  onToggle: () => void
-}
+import type { NavbarProps } from '@/types/layout'
 
 export default function Navbar({ title, collapsed, onToggle }: NavbarProps) {
   return (

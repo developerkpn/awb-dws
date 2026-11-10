@@ -9,9 +9,21 @@ export default function App() {
     <AppShell
       title="AWB Kiosk"
       pages={[
-        { key: 'registration', label: 'Registrasi', element: <RegistrationScreen /> },
-        { key: 'weighing', label: 'Timbang', element: <WeighingScreen /> },
-        { key: 'exit', label: 'Keluar', element: <ExitScreen /> },
+        {
+          key: 'registration',
+          label: 'Registrasi',
+          element: <RegistrationScreen />,
+        },
+        {
+          key: 'weighing',
+          label: 'Timbang',
+          element: <WeighingScreen />,
+        },
+        {
+          key: 'exit',
+          label: 'Keluar',
+          element: <ExitScreen />,
+        },
       ]}
     />
   )

@@ -9,13 +9,17 @@ export default function PlantAccess({ user }: { user: AccountListItem }) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const details = useUser(user.id, open)
+
   if (user.plantCount === 0)
     return <span className="text-xs text-stone-500">No assigned plants</span>
+
   const plants =
     details.data?.plantAccess.filter((plant) =>
       `${plant.name} ${plant.code}`.toLowerCase().includes(search.toLowerCase()),
     ) ?? []
+
   const first = user.plantPreview[0]?.name ?? ''
+
   return (
     <SummaryPopover
       label={`Plant access for ${user.username}`}
@@ -23,6 +27,7 @@ export default function PlantAccess({ user }: { user: AccountListItem }) {
       preview={`${first}${user.plantCount > 1 ? ` · +${user.plantCount - 1} more` : ''}`}
       onOpenChange={(expanded) => {
         setOpen(expanded)
+
         if (!expanded) setSearch('')
       }}
     >

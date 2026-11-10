@@ -7,7 +7,10 @@ import {
 } from '@awb/contracts'
 
 export const INTERNAL_ROLES = ['ADMIN', 'LOGISTIC', 'COMMERCIAL'] as const
-export const userIdParam = z.object({ id: z.uuid() })
+export const userIdParam = z.object({
+  id: z.uuid(),
+})
+
 const optionalText = (max: number) =>
   z
     .string()
@@ -15,6 +18,7 @@ const optionalText = (max: number) =>
     .max(max)
     .nullish()
     .transform((value) => value || null)
+
 export const accountSchema = z
   .strictObject({
     name: z.string().trim().min(1).max(150),
@@ -37,13 +41,24 @@ export const accountSchema = z
   })
   .superRefine((value, ctx) => {
     const partnerRole = ['CUSTOMER', 'VENDOR', 'INTERCO'].includes(value.role)
+
     if ((value.accountType === 'PARTNER') !== partnerRole)
-      ctx.addIssue({ code: 'custom', path: ['role'], message: 'Role does not match account type' })
+      ctx.addIssue({
+        code: 'custom',
+        path: ['role'],
+        message: 'Role does not match account type',
+      })
+
     if (new Set(value.plantIds).size !== value.plantIds.length)
-      ctx.addIssue({ code: 'custom', path: ['plantIds'], message: 'Duplicate selection' })
+      ctx.addIssue({
+        code: 'custom',
+        path: ['plantIds'],
+        message: 'Duplicate selection',
+      })
   })
-export type AccountInput = z.infer<typeof accountSchema>
-export const updateStatusSchema = z.object({ isActive: z.boolean() })
+export const updateStatusSchema = z.object({
+  isActive: z.boolean(),
+})
 export const listUsersSchema = z.object({
   ...accountSelectionFilters.shape,
   ...accountSortingQuery.shape,
@@ -54,7 +69,11 @@ export const listUsersSchema = z.object({
       try {
         return JSON.parse(value) as unknown
       } catch {
-        ctx.addIssue({ code: 'custom', message: 'Filters must contain valid JSON' })
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Filters must contain valid JSON',
+        })
+
         return z.NEVER
       }
     })

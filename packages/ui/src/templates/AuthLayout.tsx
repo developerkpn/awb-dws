@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import '../styles/forms.css'
+
 export interface AuthLayoutProps {
   badge?: string
   heroTitle?: string

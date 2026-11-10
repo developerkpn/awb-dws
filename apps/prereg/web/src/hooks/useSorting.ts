@@ -10,6 +10,7 @@ export function useSorting<K extends string>(
   const [parameters, setParameters] = useSearchParams()
   const sortBy = fields.find((field) => field === parameters.get('sortBy')) ?? defaultSortBy
   const rawDirection = parameters.get('sortDirection')
+
   const sortDirection =
     rawDirection === 'asc' || rawDirection === 'desc' ? rawDirection : defaultDirection
 
@@ -18,7 +19,9 @@ export function useSorting<K extends string>(
     direction: sortDirection,
     onSortChange: (key, direction) => {
       if (!fields.some((field) => field === key)) return
+
       const next = new URLSearchParams(parameters)
+
       next.set('sortBy', key)
       next.set('sortDirection', direction)
       next.set('page', '1')
@@ -26,5 +29,9 @@ export function useSorting<K extends string>(
     },
   }
 
-  return { sortBy, sortDirection, sorting }
+  return {
+    sortBy,
+    sortDirection,
+    sorting,
+  }
 }

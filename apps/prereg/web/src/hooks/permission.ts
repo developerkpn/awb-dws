@@ -22,7 +22,10 @@ export function usePermissions(filters: AccessListFilters<PermissionSortField>) 
   return useQuery({
     queryKey: permissionKeys.catalogue(filters),
     queryFn: ({ signal }) =>
-      fetchApi<PaginatedResponse<Permission>>('/access/permissions', { params: filters, signal }),
+      fetchApi<PaginatedResponse<Permission>>('/access/permissions', {
+        params: filters,
+        signal,
+      }),
   })
 }
 
@@ -30,7 +33,10 @@ export function useRolePermissions(filters: AccessListFilters<RoleSortField>) {
   return useQuery({
     queryKey: permissionKeys.roles(filters),
     queryFn: ({ signal }) =>
-      fetchApi<PaginatedResponse<RoleSummary>>('/access/roles', { params: filters, signal }),
+      fetchApi<PaginatedResponse<RoleSummary>>('/access/roles', {
+        params: filters,
+        signal,
+      }),
   })
 }
 
@@ -45,6 +51,7 @@ export function useRole(id: string) {
 
 export function useUpdateRolePermissions() {
   const queryClient = useQueryClient()
+
   return useMutation({
     mutationFn: ({ id, permissionCodes }: UpdatePermissionsInput) =>
       fetchApi<RolePermissions>(`/access/roles/${id}/permissions`, {
@@ -53,8 +60,11 @@ export function useUpdateRolePermissions() {
       }),
     onSuccess: async (updated) => {
       queryClient.setQueryData(permissionKeys.role(updated.id), updated)
+
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['permissions', 'roles'] }),
+        queryClient.invalidateQueries({
+          queryKey: ['permissions', 'roles'],
+        }),
         queryClient.invalidateQueries({ queryKey: authKeys.session }),
       ])
     },

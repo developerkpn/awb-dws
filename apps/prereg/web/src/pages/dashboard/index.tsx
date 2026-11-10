@@ -7,6 +7,7 @@ import { hasPermission } from '@/utils/permission'
 export default function Dashboard() {
   const { user } = useAuth()
   const firstName = user?.name.split(' ')[0] ?? 'there'
+
   const day = new Date().toLocaleDateString('id-ID', {
     weekday: 'long',
     day: 'numeric',

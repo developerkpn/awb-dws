@@ -11,12 +11,8 @@ import { Input } from '@/ui/Field'
 import { PageHeader } from '@/ui/Card'
 import ErrorState from '@/components/ErrorState'
 import { getErrorMessage } from '@/utils/errorHandler'
-import type { Permission, RolePermissions } from '@/types/permission'
-
-interface PermissionEditorProps {
-  role: RolePermissions
-  onSave: (id: string, codes: string[]) => Promise<void>
-}
+import type { Permission } from '@/types/permission'
+import type { PermissionEditorProps } from '@/types/permission'
 
 const moduleLabel = (module: string) =>
   ({
@@ -32,6 +28,7 @@ export default function PermissionEditor({ role, onSave }: PermissionEditorProps
   const pagination = usePagination()
   const { sortBy, sortDirection, sorting } = useSorting(permissionSortFields, 'module')
   const q = useDebounce(pagination.q)
+
   const permissions = usePermissions({
     page: pagination.page,
     limit: pagination.limit,
@@ -39,16 +36,19 @@ export default function PermissionEditor({ role, onSave }: PermissionEditorProps
     sortBy,
     sortDirection,
   })
+
   const [draft, setDraft] = useState<string[] | null>(null)
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const admin = role.code === 'ADMIN'
   const selected = draft ?? role.permissionCodes
+
   const dirty =
     !admin &&
     (selected.length !== role.permissionCodes.length ||
       selected.some((code) => !role.permissionCodes.includes(code)))
+
   const disabled = admin || !role.isActive || saving
 
   const toggle = (codes: string[], checked: boolean) => {
@@ -57,6 +57,7 @@ export default function PermissionEditor({ role, onSave }: PermissionEditorProps
         ? [...new Set([...selected, ...codes])]
         : selected.filter((code) => !codes.includes(code)),
     )
+
     setNotice('')
     setError('')
   }
@@ -64,6 +65,7 @@ export default function PermissionEditor({ role, onSave }: PermissionEditorProps
   const save = async () => {
     setSaving(true)
     setError('')
+
     try {
       await onSave(role.id, selected)
       setDraft(null)
@@ -132,7 +134,10 @@ export default function PermissionEditor({ role, onSave }: PermissionEditorProps
         />
       ) : (
         <Table<Permission>
-          sorting={{ ...sorting, isLoading: permissions.isFetching }}
+          sorting={{
+            ...sorting,
+            isLoading: permissions.isFetching,
+          }}
           aria-label="Role permissions"
           data={permissions.data?.items ?? []}
           keyExtractor={(permission) => permission.code}
@@ -147,6 +152,7 @@ export default function PermissionEditor({ role, onSave }: PermissionEditorProps
             const count = admin
               ? items.length
               : items.filter((permission) => selected.includes(permission.code)).length
+
             return (
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="flex items-center gap-2 text-xs font-semibold text-stone-700">

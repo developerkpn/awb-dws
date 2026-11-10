@@ -11,8 +11,15 @@ app.use(cors())
 app.use(express.json())
 
 app.get('/health', (_req, res) => {
-  res.json(success({ service: 'site-api', siteId: env.SITE_ID, controllers: controllerStatuses() }))
+  res.json(
+    success({
+      service: 'site-api',
+      siteId: env.SITE_ID,
+      controllers: controllerStatuses(),
+    }),
+  )
 })
+
 app.use('/api', apiRoutes)
 app.use(errorHandler)
 

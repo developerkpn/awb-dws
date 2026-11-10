@@ -28,20 +28,20 @@ docs/            BRD/PRD and the source that builds them
 infra/           deployment (ECS for prereg, on-prem compose for site)
 ```
 
-`site/api` is one backend for the whole plant. WB.NET and TCS are domains inside it because they share one plant database and one truck journey, and steps such as "save weight + advance stage + queue sync" must commit together:
+`site/api` is one backend for the whole plant. WB.NET and TCS share one plant database and truck journey; steps such as "save weight + advance stage + queue sync" must commit together. Both APIs use the same module structure:
 
 ```
 apps/site/api/src/
-  domains/
-    journey/        journey, card binding, audit
-    registration/   Reg IN/OUT, prereg cache, QR fallback, registration without prereg
-    weighbridge/    WB.NET replacement: tap 1/2, weighing, OCR, AI checks, tolerance, ticket
-    tcs/            flow, stages, station submissions, QC decisions
-    sync/           outbox/inbox with HO, reconciliation, prereg client
-    erp/            SAP posting
+  modules/
+    journey/        journey.routes.ts, journey.service.ts, journey.repository.ts, journey.schema.ts
+    registration/   registration.routes.ts (workflow pending)
+    weighbridge/    weighbridge.routes.ts (workflow pending)
+    tcs/            tcs.routes.ts (workflow pending)
+    sync/           sync.routes.ts, sync.service.ts, sync.repository.ts, sync.schema.ts
   devices/          TCP sockets to the weighbridge controllers (2 per weighbridge): RFID taps, sensors/radar, commands
   realtime/         lane state pushed to the kiosk screens (to add)
-  config/ routes/ middlewares/ helpers/ lib/ constants/ types/ jobs/
+  jobs/             background workers (sync.worker.ts): timers that call module services
+  config/ routes/ middlewares/ lib/ constants/ types/
 ```
 
 ## Shared packages
@@ -94,6 +94,8 @@ Each API has its own Prisma setup: one `prisma/schema.prisma` (all models of tha
 
 SQL Server has no enum type, so enum-like columns are strings validated in the app with the schemas in `@awb/contracts`.
 
+`prereg/api` also writes staging tables in SAP's Oracle schema (SAPBRIDGE), which Prisma does not manage. Their DDL lives in `apps/prereg/api/oracle/migrations/` as plain SQL applied by hand; the status columns and their values are described in [apps/prereg/api/oracle/README.md](apps/prereg/api/oracle/README.md).
+
 Table names start with `mst_` for master data and `awb_` for transactions; columns are English `snake_case`. The short guide with examples (Indonesian) is `docs/design/penamaan-tabel.md`.
 
 Local development databases run in Docker (`infra/dev/compose.yaml`): Postgres on host port **5450** (5432–5445 are taken by other local project databases) and SQL Server on 1433. Tests use separate `*_test` databases from `.env.test` and refuse to run against anything else.
@@ -134,9 +136,9 @@ npm run blueprint:pdf         BLUEPRINT.md → docs/documents/Blueprint-AWB-DWS-
 Enforced by `npm run check:boundaries` (dependency-cruiser, `.dependency-cruiser.cjs`):
 
 1. An app never imports another app. Shared code goes in `packages/`.
-2. In `site/api`, files inside one domain import each other freely. Another domain is used only through its `index.ts`.
+2. Both APIs use `src/modules/<feature>/<feature>.*.ts` with explicit imports. Module `index.ts` files and `src/domains` are rejected by the architecture check.
 3. `site` and `prereg` talk over HTTP and sync events defined in `@awb/contracts`, never through code imports. The plant must keep working when the link to HO is down, so routine data (approved pre-registrations, HO-staff registrations) arrives by sync into the plant database.
-4. `site/api/src/devices` never imports a domain; domains use devices.
+4. `site/api/src/devices` never imports a business module; modules use devices.
 5. Only `*.repository.ts` files use the Prisma client. Services and routes may import Prisma types, not the client.
 
 ## Frontend convention
@@ -159,10 +161,12 @@ One folder per module, one file per layer.
 <module>/<module>.routes.ts       wiring only: parse input → call service → success()
 <module>/<module>.service.ts      business flow; no req/res, no direct data access
 <module>/<module>.repository.ts   data access only
-<module>/<module>.schema.ts       zod schemas + inferred types
+<module>/<module>.schema.ts       zod schemas
+src/jobs/<name>.worker.ts         background timer that calls a module service
+src/types/<domain>.ts             every type and interface, including z.infer of module schemas
 ```
 
-`site/api` keeps modules under `domains/<domain>/<module>/`; `prereg/api` uses `modules/<module>/`. Express 5 forwards rejected promises to the error handler, so route handlers don't need try/catch.
+Both `site/api` and `prereg/api` keep features under `modules/<module>/`, without module barrels or repeated nested feature directories. Add repositories and schemas when the feature needs them; route-only placeholders do not need empty companion files. Background workers live in `src/jobs/<name>.worker.ts`: they own only the timer, start/stop and overlap guard, and call a module service for the work, so they can be enabled, moved or run separately without touching the module. Shared helpers that are not a feature (password hashing, file storage, quantity maths) live in `src/lib/`; there is no separate `helpers/` folder. Hardware I/O remains in `devices/`. Express 5 forwards rejected promises to the error handler, so route handlers don't need try/catch.
 
 ## Comments
 
@@ -170,6 +174,12 @@ Use Zod 4 top-level format validators (`z.uuid()`, `z.email()`, `z.url()`,
 `z.iso.datetime()`) and `z.int()` for integer schemas. Keep string length/trim
 checks on `z.string()`. ESLint rejects deprecated chained format validators;
 Prettier supplies consistent spacing and line breaks.
+
+ESLint also enforces readability (auto-fixed by `npm run lint:fix`): a blank line
+around functions, routes, blocks, `if` statements, variable declarations and before
+`return`; objects with two or more properties, or a call, function, object/array,
+`??` or ternary value, put one property per line (`scripts/eslint-rules/expand-objects.mjs`);
+types and interfaces live only in `src/types/<domain>.ts`.
 
 - Write a comment only when the code can't explain itself: a non-obvious reason, a workaround or a business rule.
 - **At most 2 lines per comment**, and keep them few. Don't restate what the code already says.

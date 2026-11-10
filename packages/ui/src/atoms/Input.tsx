@@ -1,8 +1,10 @@
 import type { ComponentPropsWithRef, ReactNode } from 'react'
 import '../styles/forms.css'
+
 export type InputProps = ComponentPropsWithRef<'input'> & { leadingIcon?: ReactNode }
 export function Input({ className = '', leadingIcon, ...props }: InputProps) {
   const input = <input {...props} className={`ui-input ${className}`} />
+
   if (!leadingIcon) return input
 
   return (

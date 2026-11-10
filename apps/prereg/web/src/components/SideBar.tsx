@@ -8,24 +8,14 @@ import {
   CheckSquare,
   LogOut,
   Profile,
+  Download,
+  Truck,
 } from '@/ui/icons'
 import { PERMISSION } from '@/constant/PERMISSION'
 import { useAuth } from '@/hooks/auth'
 import { hasPermission } from '@/utils/permission'
 import { getErrorMessage } from '@/utils/errorHandler'
-
-type NavGroup = {
-  label: string
-  items: NavItem[]
-}
-
-type NavItem = {
-  to: string
-  label: string
-  icon: React.ReactNode
-  end?: boolean
-  show: boolean
-}
+import type { NavGroup, NavItem } from '@/types/layout'
 
 function NavItemLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
   return (
@@ -80,22 +70,37 @@ export default function SideBar({ collapsed }: { collapsed: boolean }) {
           icon: <ShieldCheck className="size-4.5" />,
           show: user?.role === 'ADMIN' && hasPermission(user, PERMISSION.ROLE.READ),
         },
+        {
+          to: '/sap-master',
+          label: 'SAP drivers & trucks',
+          icon: <Download className="size-4.5" />,
+          show: user?.role === 'ADMIN',
+        },
       ],
     },
     {
       label: 'Operations',
       items: [
         {
-          to: '/pre-registration',
-          label: 'Pre-registration',
+          to: '/jul',
+          label: 'JUL registrations',
           icon: <ClipboardList className="size-4.5" />,
+          end: true,
           show: hasPermission(user, PERMISSION.PREREG.READ),
         },
         {
-          to: '/approval',
-          label: 'Approval queue',
+          to: '/jul/review',
+          label: 'JUL review',
           icon: <CheckSquare className="size-4.5" />,
-          show: hasPermission(user, PERMISSION.PREREG.APPROVE),
+          show:
+            hasPermission(user, PERMISSION.PREREG.APPROVE) &&
+            ['ADMIN', 'LOGISTIC'].includes(user?.role ?? ''),
+        },
+        {
+          to: '/driver-requests',
+          label: 'Drivers & vehicles',
+          icon: <Truck className="size-4.5" />,
+          show: hasPermission(user, PERMISSION.PREREG.READ),
         },
       ],
     },
@@ -131,7 +136,9 @@ export default function SideBar({ collapsed }: { collapsed: boolean }) {
       <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-4">
         {groups.map((group) => {
           const visible = group.items.filter((i) => i.show)
+
           if (visible.length === 0) return null
+
           return (
             <div key={group.label}>
               {!collapsed && (

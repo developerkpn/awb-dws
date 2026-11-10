@@ -1,16 +1,7 @@
-import type { UseFormReturn } from 'react-hook-form'
 import { Input } from '@/ui/Field'
 import { Button } from '@/ui/Button'
 import { FormError } from '@/ui/Field'
-import type { LoginFormData } from '@/types/auth'
-
-interface LoginFormProps {
-  form: UseFormReturn<LoginFormData>
-  error?: string
-  isLoading: boolean
-  onSubmit: (data: LoginFormData) => Promise<void>
-  onForgotPassword: () => void
-}
+import type { LoginFormProps } from '@/types/auth'
 
 export function LoginForm({ form, error, isLoading, onSubmit, onForgotPassword }: LoginFormProps) {
   return (

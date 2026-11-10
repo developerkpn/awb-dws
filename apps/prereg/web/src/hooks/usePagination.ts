@@ -8,20 +8,35 @@ export function usePagination() {
   const raw = Number(parameters.get('limit'))
   const limit = Number.isInteger(raw) && raw >= 1 && raw <= 100 ? raw : DEFAULT_PAGE_SIZE
   const q = parameters.get('q') ?? ''
+
   const update = (changes: Record<string, string>) => {
     const next = new URLSearchParams(parameters)
+
     for (const [key, value] of Object.entries(changes)) {
       if (value) next.set(key, value)
       else next.delete(key)
     }
+
     setParameters(next, { replace: true })
   }
+
   return {
     page,
     limit,
     q,
-    onPageChange: (value: number) => update({ page: String(value) }),
-    onPageSizeChange: (value: number) => update({ page: '1', limit: String(value) }),
-    onSearchChange: (value: string) => update({ page: '1', q: value }),
+    onPageChange: (value: number) =>
+      update({
+        page: String(value),
+      }),
+    onPageSizeChange: (value: number) =>
+      update({
+        page: '1',
+        limit: String(value),
+      }),
+    onSearchChange: (value: string) =>
+      update({
+        page: '1',
+        q: value,
+      }),
   }
 }

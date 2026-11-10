@@ -1,0 +1,147 @@
+import type { DriverVehicleApprovedEvent } from '@awb/contracts'
+import { prisma } from '../../config/prisma'
+
+export default {
+  async getLastSequence(key = 'prereg_outbox'): Promise<number> {
+    const state = await prisma.syncState.findUnique({
+      where: { key },
+    })
+
+    if (state) return state.lastSequence
+
+    const lastInbox = await prisma.syncInbox.findFirst({
+      orderBy: { sequenceNumber: 'desc' },
+    })
+
+    return lastInbox?.sequenceNumber ?? 0
+  },
+
+  async hasProcessedEvent(eventId: string): Promise<boolean> {
+    const inbox = await prisma.syncInbox.findUnique({
+      where: { eventId },
+    })
+
+    return inbox !== null
+  },
+
+  async upsertDriverAndVehicleFromApprovedEvent(params: {
+    sequenceNumber: number
+    event: DriverVehicleApprovedEvent
+  }): Promise<{ applied: boolean }> {
+    const { sequenceNumber, event } = params
+    const { payload } = event
+
+    return prisma.$transaction(async (tx) => {
+      const existing = await tx.syncInbox.findUnique({
+        where: { eventId: event.eventId },
+      })
+
+      if (existing) {
+        if (existing.sequenceNumber !== sequenceNumber) throw new Error('Event sequence mismatch')
+
+        return { applied: false }
+      }
+
+      const { driver, vehicle } = payload
+
+      if (driver)
+        await tx.driver.upsert({
+          where: { licenseNumber: driver.licenseNumber },
+          create: {
+            licenseNumber: driver.licenseNumber,
+            name: driver.name,
+            address: driver.address,
+            birthPlace: driver.birthPlace,
+            birthDate: new Date(driver.birthDate),
+            phone: driver.phone,
+            city: driver.city ?? null,
+            licensePhotoUrl: driver.licensePhotoUrl ?? null,
+            driverPhotoUrl: driver.driverPhotoUrl ?? null,
+            isActive: true,
+          },
+          update: {
+            name: driver.name,
+            address: driver.address,
+            birthPlace: driver.birthPlace,
+            birthDate: new Date(driver.birthDate),
+            phone: driver.phone,
+            city: driver.city ?? null,
+            licensePhotoUrl: driver.licensePhotoUrl ?? null,
+            driverPhotoUrl: driver.driverPhotoUrl ?? null,
+            isActive: true,
+          },
+        })
+
+      if (vehicle)
+        await tx.vehicle.upsert({
+          where: { plateNumber: vehicle.plateNumber },
+          create: {
+            plateNumber: vehicle.plateNumber,
+            transporterId: vehicle.transporterId ?? null,
+            transporterName: vehicle.transporterName ?? null,
+            transporterCode: vehicle.transporterCode ?? null,
+            stnkPhotoUrl: vehicle.stnkPhotoUrl ?? null,
+            isActive: true,
+          },
+          update: {
+            transporterId: vehicle.transporterId ?? null,
+            transporterName: vehicle.transporterName ?? null,
+            transporterCode: vehicle.transporterCode ?? null,
+            stnkPhotoUrl: vehicle.stnkPhotoUrl ?? null,
+            isActive: true,
+          },
+        })
+
+      await tx.syncInbox.create({
+        data: {
+          sequenceNumber,
+          eventId: event.eventId,
+          eventType: event.eventType,
+          aggregateId: event.aggregateId,
+          payload: JSON.stringify(event),
+        },
+      })
+
+      const currentState = await tx.syncState.findUnique({
+        where: { key: 'prereg_outbox' },
+      })
+
+      const nextSequence = Math.max(currentState?.lastSequence ?? 0, sequenceNumber)
+
+      await tx.syncState.upsert({
+        where: { key: 'prereg_outbox' },
+        create: {
+          key: 'prereg_outbox',
+          lastSequence: nextSequence,
+        },
+        update: {
+          lastSequence: nextSequence,
+        },
+      })
+
+      return { applied: true }
+    })
+  },
+
+  async findDriverByLicense(licenseNumber: string) {
+    return prisma.driver.findUnique({
+      where: { licenseNumber },
+    })
+  },
+
+  async findVehicleByPlate(plateNumber: string) {
+    return prisma.vehicle.findUnique({
+      where: { plateNumber },
+    })
+  },
+
+  async findInboxByEventId(eventId: string) {
+    return prisma.syncInbox.findUnique({
+      where: { eventId },
+    })
+  },
+
+  async countInbox() {
+    return prisma.syncInbox.count()
+  },
+}

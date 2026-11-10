@@ -1,0 +1,54 @@
+{
+  "d": {
+    "results": [
+      {
+        "Lifnr": "AT00000001",
+        "Bsart": "EU10",
+        "Ebeln": "4500000001",
+        "Ebelp": "00010",
+        "Matnr": "8000000001",
+        "Elikz": "",
+        "Mblnr": "5000000001",
+        "Mjahr": "2026",
+        "Zeile": "0001",
+        "Bwart": "101",
+        "Erfmg": "1000.000",
+        "Erfme": "KG",
+        "Lsmng": "1100.000",
+        "Lsmeh": "KG"
+      },
+      {
+        "Lifnr": "AT00000001",
+        "Bsart": "EU10",
+        "Ebeln": "4500000001",
+        "Ebelp": "00010",
+        "Matnr": "8000000001",
+        "Elikz": "",
+        "Mblnr": "5000000002",
+        "Mjahr": "2026",
+        "Zeile": "0001",
+        "Bwart": "102",
+        "Erfmg": "100.000",
+        "Erfme": "KG",
+        "Lsmng": "150.000",
+        "Lsmeh": "KG"
+      },
+      {
+        "Lifnr": "AT00000001",
+        "Bsart": "EU10",
+        "Ebeln": "4500000001",
+        "Ebelp": "00010",
+        "Matnr": "8000000001",
+        "Elikz": "",
+        "Mblnr": "5000000003",
+        "Mjahr": "2026",
+        "Zeile": "0001",
+        "Bwart": "122",
+        "Erfmg": "50.000",
+        "Erfme": "KG",
+        "Lsmng": "50.000",
+        "Lsmeh": "KG"
+      }
+    ]
+  }
+}

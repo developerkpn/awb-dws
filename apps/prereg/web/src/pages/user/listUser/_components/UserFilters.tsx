@@ -1,12 +1,6 @@
 import { Button, Input, MultiSelect } from '@awb/ui'
 import { Search } from '@/ui/icons'
-import type { UserFilters as Filters, UserOptions } from '@/types/user'
-
-interface UserFiltersProps {
-  filters: Filters
-  options: UserOptions | undefined
-  onChange: (changes: Partial<Filters>) => void
-}
+import type { UserFiltersProps } from '@/types/user'
 
 export default function UserFilters({ filters, options, onChange }: UserFiltersProps) {
   return (
@@ -52,7 +46,13 @@ export default function UserFilters({ filters, options, onChange }: UserFiltersP
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => onChange({ q: '', roles: [], plantIds: [] })}
+          onClick={() =>
+            onChange({
+              q: '',
+              roles: [],
+              plantIds: [],
+            })
+          }
         >
           Clear filters
         </Button>

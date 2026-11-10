@@ -34,7 +34,11 @@ export type AccountProfile = z.infer<typeof accountProfile>
 export type AccountChoice = z.infer<typeof accountChoice>
 
 export const accountListItem = accountProfile
-  .omit({ plantAccess: true, city: true, country: true })
+  .omit({
+    plantAccess: true,
+    city: true,
+    country: true,
+  })
   .extend({
     roleName: z.string(),
     plantCount: z.number().int().nonnegative(),
