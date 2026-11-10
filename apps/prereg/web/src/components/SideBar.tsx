@@ -86,13 +86,30 @@ export default function SideBar({ collapsed }: { collapsed: boolean }) {
           label: 'JUL registrations',
           icon: <ClipboardList className="size-4.5" />,
           end: true,
-          show: hasPermission(user, PERMISSION.PREREG.READ),
+          show: user?.role !== 'VENDOR' && hasPermission(user, PERMISSION.PREREG.READ),
         },
         {
           to: '/jul/review',
           label: 'JUL review',
           icon: <CheckSquare className="size-4.5" />,
           show:
+            user?.role !== 'VENDOR' &&
+            hasPermission(user, PERMISSION.PREREG.APPROVE) &&
+            ['ADMIN', 'LOGISTIC'].includes(user?.role ?? ''),
+        },
+        {
+          to: '/bel',
+          label: 'BEL registrations',
+          icon: <ClipboardList className="size-4.5" />,
+          end: true,
+          show: user?.role !== 'CUSTOMER' && hasPermission(user, PERMISSION.PREREG.READ),
+        },
+        {
+          to: '/bel/review',
+          label: 'BEL review',
+          icon: <CheckSquare className="size-4.5" />,
+          show:
+            user?.role !== 'CUSTOMER' &&
             hasPermission(user, PERMISSION.PREREG.APPROVE) &&
             ['ADMIN', 'LOGISTIC'].includes(user?.role ?? ''),
         },

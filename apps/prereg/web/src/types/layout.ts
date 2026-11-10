@@ -20,4 +20,7 @@ export type NavItem = {
 export interface RBACLayoutProps {
   permission?: string
   adminOnly?: boolean
+  allowedRoles?: string[]
+  disallowedRoles?: string[]
 }
+
