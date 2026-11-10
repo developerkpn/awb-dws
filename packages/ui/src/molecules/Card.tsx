@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import '../styles/forms.css'
+
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <section className={`ui-card ${className}`}>{children}</section>
 }

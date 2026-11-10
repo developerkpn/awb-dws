@@ -27,4 +27,10 @@ export interface UpdatePermissionsInput {
   id: string
   permissionCodes: string[]
 }
+
 import type { PermissionSortField, RoleSortField, SortDirection } from '@awb/contracts'
+
+export interface PermissionEditorProps {
+  role: RolePermissions
+  onSave: (id: string, codes: string[]) => Promise<void>
+}

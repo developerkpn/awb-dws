@@ -7,7 +7,10 @@ module.exports = {
         'An app never imports another app. Share code through packages/ (contracts, server-core, ui).',
       severity: 'error',
       from: { path: '^apps/([^/]+/[^/]+)/' },
-      to: { path: '^apps/', pathNot: '^apps/$1/' },
+      to: {
+        path: '^apps/',
+        pathNot: '^apps/$1/',
+      },
     },
     {
       name: 'packages-do-not-import-apps',
@@ -60,7 +63,9 @@ module.exports = {
     },
   ],
   options: {
-    doNotFollow: { path: ['node_modules', '/src/generated/'] },
+    doNotFollow: {
+      path: ['node_modules', '/src/generated/'],
+    },
     exclude: { path: '(^|/)(dist|node_modules)/' },
     enhancedResolveOptions: {
       exportsFields: ['exports'],

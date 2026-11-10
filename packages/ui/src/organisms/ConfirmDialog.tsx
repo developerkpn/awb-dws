@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { Button } from '../atoms/Button'
+
 export interface ConfirmOptions {
   title: string
   description: ReactNode
@@ -17,11 +18,15 @@ export function ConfirmDialog({
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
   const descriptionId = useId()
+
   useEffect(() => {
     const dialog = ref.current
+
     if (dialog && !dialog.open) dialog.showModal()
+
     return () => dialog?.close()
   }, [])
+
   return (
     <dialog
       ref={ref}

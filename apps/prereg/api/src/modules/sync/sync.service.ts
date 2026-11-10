@@ -4,6 +4,7 @@ export default {
   async getOutboxMessages(after: number, limit: number, siteId: string) {
     const messages = await repository.listOutbox(after, limit, siteId)
     const last = messages.at(-1)
+
     return {
       messages: messages.map((m) => ({
         id: m.id,
@@ -21,6 +22,7 @@ export default {
 
   async acknowledge(upTo: number, siteId: string) {
     const result = await repository.acknowledge(upTo, siteId)
+
     return {
       acknowledgedCount: result.count,
       upTo,

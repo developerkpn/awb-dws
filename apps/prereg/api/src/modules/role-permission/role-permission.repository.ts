@@ -1,7 +1,7 @@
 import { prisma } from '../../config/prisma'
 import { permissionCatalogue } from './permissions'
-import type { PermissionListQuery, RoleListQuery } from './role-permission.schema'
 import { Prisma } from '../../generated/prisma/client'
+import type { PermissionListQuery, RoleListQuery } from '../../types/rolePermission'
 
 export default {
   /**
@@ -9,27 +9,52 @@ export default {
    */
   async findAllPermissions({ page, limit, q, module, sortBy, sortDirection }: PermissionListQuery) {
     const literal = q.replace(/[\\%_]/g, '\\$&')
+
     const where: Prisma.PermissionWhereInput = {
-      code: { in: permissionCatalogue.map((p) => p[0]) },
+      code: {
+        in: permissionCatalogue.map((p) => p[0]),
+      },
       module,
       ...(q
         ? {
             OR: [
-              { name: { contains: literal, mode: 'insensitive' } },
-              { code: { contains: literal, mode: 'insensitive' } },
-              { module: { contains: literal, mode: 'insensitive' } },
+              {
+                name: {
+                  contains: literal,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                code: {
+                  contains: literal,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                module: {
+                  contains: literal,
+                  mode: 'insensitive',
+                },
+              },
             ],
           }
         : {}),
     }
+
     const orderBy: Prisma.PermissionOrderByWithRelationInput[] = [
-      { module: sortBy === 'module' ? sortDirection : 'asc' },
+      {
+        module: sortBy === 'module' ? sortDirection : 'asc',
+      },
       ...(sortBy === 'name' ? [{ name: sortDirection }] : []),
-      { code: sortBy === 'code' ? sortDirection : 'asc' },
+      {
+        code: sortBy === 'code' ? sortDirection : 'asc',
+      },
       { id: 'asc' },
     ]
+
     const direction = sortDirection === 'asc' ? Prisma.sql`ASC` : Prisma.sql`DESC`
     const pattern = `%${literal}%`
+
     const rows =
       sortBy === 'action'
         ? prisma.$queryRaw<{ id: string; code: string; name: string; module: string }[]>(Prisma.sql`
@@ -45,12 +70,24 @@ export default {
             orderBy,
             skip: (page - 1) * limit,
             take: limit,
-            select: { id: true, code: true, name: true, module: true },
+            select: {
+              id: true,
+              code: true,
+              name: true,
+              module: true,
+            },
           })
+
     const [items, total] = await prisma.$transaction([rows, prisma.permission.count({ where })], {
       isolationLevel: 'RepeatableRead',
     })
-    return { items, total, page, limit }
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    }
   },
 
   /**
@@ -58,25 +95,50 @@ export default {
    */
   async findAllRolesWithPermissions({ page, limit, q, sortBy, sortDirection }: RoleListQuery) {
     const literal = q.replace(/[\\%_]/g, '\\$&')
+
     const where: Prisma.RoleWhereInput = {
       isActive: true,
       ...(q
         ? {
             OR: [
-              { name: { contains: literal, mode: 'insensitive' } },
-              { code: { contains: literal, mode: 'insensitive' } },
-              { description: { contains: literal, mode: 'insensitive' } },
+              {
+                name: {
+                  contains: literal,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                code: {
+                  contains: literal,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                description: {
+                  contains: literal,
+                  mode: 'insensitive',
+                },
+              },
             ],
           }
         : {}),
     }
+
     const order: Record<RoleListQuery['sortBy'], Prisma.RoleOrderByWithRelationInput> = {
       code: { code: sortDirection },
       name: { name: sortDirection },
-      description: { description: { sort: sortDirection, nulls: 'last' } },
-      permissionCount: { permissions: { _count: sortDirection } },
+      description: {
+        description: {
+          sort: sortDirection,
+          nulls: 'last',
+        },
+      },
+      permissionCount: {
+        permissions: { _count: sortDirection },
+      },
       isActive: { isActive: sortDirection },
     }
+
     const [roles, total] = await prisma.$transaction(
       [
         prisma.role.findMany({
@@ -87,7 +149,9 @@ export default {
             name: true,
             description: true,
             isActive: true,
-            _count: { select: { permissions: true } },
+            _count: {
+              select: { permissions: true },
+            },
           },
           orderBy: [order[sortBy], { id: sortDirection }],
           skip: (page - 1) * limit,
@@ -97,8 +161,12 @@ export default {
       ],
       { isolationLevel: 'RepeatableRead' },
     )
+
     return {
-      items: roles.map(({ _count, ...role }) => ({ ...role, permissionCount: _count.permissions })),
+      items: roles.map(({ _count, ...role }) => ({
+        ...role,
+        permissionCount: _count.permissions,
+      })),
       total,
       page,
       limit,
@@ -154,6 +222,7 @@ export default {
   async updateRolePermissions(roleId: string, permissionIds: string[], actorId: string) {
     return prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtext(${roleId}))`
+
       // 1. Remove existing permissions for this role
       await tx.rolePermission.deleteMany({
         where: { roleId },
@@ -170,8 +239,13 @@ export default {
       }
 
       await tx.accountAudit.create({
-        data: { actorId, subjectId: roleId, action: 'role.permissions_updated' },
+        data: {
+          actorId,
+          subjectId: roleId,
+          action: 'role.permissions_updated',
+        },
       })
+
       // Each authenticated request reloads permissions, so revocations take effect immediately.
       return tx.role.findUnique({
         where: { id: roleId },

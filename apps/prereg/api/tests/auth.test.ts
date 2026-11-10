@@ -32,11 +32,17 @@ describe('Authenticated sessions', () => {
     expect(String(response.headers['set-cookie'])).toContain('HttpOnly')
     expect(String(response.headers['set-cookie'])).toContain('SameSite=Lax')
     expect(String(response.headers['set-cookie'])).toContain('Path=/api')
+
     expect(
-      await prisma.authSession.findUnique({ where: { tokenHash: tokenHash(token) } }),
+      await prisma.authSession.findUnique({
+        where: {
+          tokenHash: tokenHash(token),
+        },
+      }),
     ).not.toBeNull()
 
     const restored = await request(app).get('/api/auth/me').set('Cookie', cookie)
+
     expect(restored.body.data.user.id).toBe(user.id)
   })
 
@@ -44,6 +50,7 @@ describe('Authenticated sessions', () => {
     for (const path of ['/api/auth/me', '/api/users', '/api/access/roles']) {
       expect((await request(app).get(path).set('x-user-role', 'ADMIN')).status).toBe(401)
       expect((await request(app).get(path).set('Cookie', 'awb_session=forged')).status).toBe(401)
+
       expect(
         (
           await request(app)
@@ -56,9 +63,14 @@ describe('Authenticated sessions', () => {
 
   it('rejects cross-origin writes and missing origin, including login', async () => {
     const user = await createTestUser()
-    const body = { username: user.username, password }
+
+    const body = {
+      username: user.username,
+      password,
+    }
 
     expect((await request(app).post('/api/auth/login').send(body)).status).toBe(403)
+
     expect(
       (
         await request(app)
@@ -71,6 +83,7 @@ describe('Authenticated sessions', () => {
 
   it('revokes a copied token on logout', async () => {
     const { cookie } = await sessionFor()
+
     const result = await request(app)
       .post('/api/auth/logout')
       .set('Origin', origin)
@@ -82,38 +95,69 @@ describe('Authenticated sessions', () => {
 
   it('rejects expired and idle sessions', async () => {
     for (const data of [
-      { expiresAt: new Date(Date.now() - 1000) },
-      { lastSeenAt: new Date(Date.now() - (env.SESSION_IDLE_MINUTES + 1) * 60_000) },
+      {
+        expiresAt: new Date(Date.now() - 1000),
+      },
+      {
+        lastSeenAt: new Date(Date.now() - (env.SESSION_IDLE_MINUTES + 1) * 60_000),
+      },
     ]) {
       const { user, cookie } = await sessionFor()
-      await prisma.authSession.updateMany({ where: { userId: user.id }, data })
+
+      await prisma.authSession.updateMany({
+        where: { userId: user.id },
+        data,
+      })
+
       expect((await request(app).get('/api/auth/me').set('Cookie', cookie)).status).toBe(401)
     }
   })
 
   it('rejects inactive accounts and disabled roles even with an existing session', async () => {
     const { user, cookie } = await sessionFor('TEST_DISABLED')
-    await prisma.user.update({ where: { id: user.id }, data: { isActive: false } })
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { isActive: false },
+    })
+
     expect((await login(user.username)).status).toBe(401)
     expect((await request(app).get('/api/auth/me').set('Cookie', cookie)).status).toBe(401)
 
-    await prisma.user.update({ where: { id: user.id }, data: { isActive: true } })
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { isActive: true },
+    })
+
     const next = cookieFrom(await login(user.username))
-    await prisma.role.update({ where: { id: user.roleId }, data: { isActive: false } })
+
+    await prisma.role.update({
+      where: { id: user.roleId },
+      data: { isActive: false },
+    })
+
     expect((await request(app).get('/api/auth/me').set('Cookie', next)).status).toBe(401)
   })
 
   it('supports an explicit transition from SHA-256 to bcrypt, disabled by default', async () => {
     const user = await createTestUser()
     const legacy = createHash('sha256').update(password).digest('hex')
-    await prisma.user.update({ where: { id: user.id }, data: { passwordHash: legacy } })
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: legacy },
+    })
 
     expect((await login(user.username)).status).toBe(401)
     env.ALLOW_LEGACY_PASSWORDS = 'true'
 
     try {
       expect((await login(user.username)).status).toBe(200)
-      const updated = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
+
+      const updated = await prisma.user.findUniqueOrThrow({
+        where: { id: user.id },
+      })
+
       expect(updated.passwordHash).toMatch(/^\$2/)
     } finally {
       env.ALLOW_LEGACY_PASSWORDS = 'false'
@@ -135,6 +179,7 @@ describe('Authenticated sessions', () => {
       .post('/api/auth/forgot-password')
       .set('Origin', origin)
       .send({ username: 'unknown' })
+
     expect(response.status).toBe(404)
   })
 })

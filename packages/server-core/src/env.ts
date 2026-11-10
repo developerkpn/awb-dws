@@ -7,9 +7,12 @@ export function loadEnv<S extends z.ZodType>(
   file = process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
 ): z.output<S> {
   if (existsSync(file)) process.loadEnvFile(file)
+
   const parsed = schema.safeParse(process.env)
+
   if (!parsed.success) {
     throw new Error(`Invalid environment:\n${z.prettifyError(parsed.error)}`)
   }
+
   return parsed.data
 }

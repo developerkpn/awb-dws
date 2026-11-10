@@ -1,6 +1,6 @@
-import type { ControllerConfig } from '../../config/controllers'
-import { ControllerConnection, type ControllerStatus } from './controller.connection'
-import { parseControllerData, type ControllerEvent } from './controller.protocol'
+import { ControllerConnection } from './controller.connection'
+import { parseControllerData } from './controller.protocol'
+import type { ControllerConfig, ControllerEvent, ControllerStatus } from '../../types/controller'
 
 const connections = new Map<string, ControllerConnection>()
 
@@ -11,10 +11,12 @@ export function startControllers(
 ): () => void {
   for (const config of configs) {
     const connection = new ControllerConnection(config)
+
     connection.on('data', (data) => parseControllerData(config.id, data).forEach(onEvent))
     connection.start()
     connections.set(config.id, connection)
   }
+
   return () => {
     for (const connection of connections.values()) connection.stop()
     connections.clear()

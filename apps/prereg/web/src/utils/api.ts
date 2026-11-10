@@ -18,7 +18,11 @@ export async function fetchApi<T>(path: string, options: AxiosRequestConfig = {}
   if (!path.startsWith('/') || path.startsWith('//')) throw new Error('API paths must be local')
 
   try {
-    const response = await axiosInstance.request<ApiResponse<T>>({ ...options, url: path })
+    const response = await axiosInstance.request<ApiResponse<T>>({
+      ...options,
+      url: path,
+    })
+
     if (response.status === 204) return undefined as T
 
     if (!response.data?.success || !('data' in response.data)) {
@@ -27,6 +31,7 @@ export async function fetchApi<T>(path: string, options: AxiosRequestConfig = {}
 
     if (path === '/auth/login' || path === '/auth/me') {
       const data = response.data.data as AuthResponse
+
       data.user = sessionUser.parse(data.user)
     }
 

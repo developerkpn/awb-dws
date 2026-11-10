@@ -4,18 +4,7 @@ import { env } from '../../config/env'
 import repository from './sync.repository'
 
 import { syncOutboxResponse as outboxResponse } from './sync.schema'
-
-interface PullResult {
-  success: boolean
-  disconnected: boolean
-  processedCount: number
-  lastSequence: number
-  totalMessages?: number
-  error?: string
-  ackPending?: boolean
-  blockedSequence?: number
-  status?: number
-}
+import type { PullResult } from '../../types/sync'
 
 let activePull: Promise<PullResult> | undefined
 
@@ -23,11 +12,13 @@ async function performPull(limit: number): Promise<PullResult> {
   const siteId = env.SITE_ID
   const currentSeq = await repository.getLastSequence()
   const url = new URL('/api/internal/sync/outbox', env.PREREG_API_URL)
+
   url.searchParams.set('after', String(currentSeq))
   url.searchParams.set('limit', String(limit))
   url.searchParams.set('siteId', siteId)
 
   let response: Response
+
   try {
     response = await fetch(url.toString(), {
       headers: { 'x-service-key': env.INTERNAL_SERVICE_KEY },
@@ -54,6 +45,7 @@ async function performPull(limit: number): Promise<PullResult> {
   }
 
   let body: z.infer<typeof outboxResponse>
+
   try {
     body = outboxResponse.parse(await response.json())
   } catch {
@@ -73,12 +65,14 @@ async function performPull(limit: number): Promise<PullResult> {
 
   for (const message of body.data.messages) {
     const parsed = driverVehicleApprovedEvent.safeParse(message.payload)
+
     if (!parsed.success) {
       blockedSequence = message.id
       break
     }
 
     const event = parsed.data
+
     if (
       message.id <= previousId ||
       message.eventType !== event.eventType ||
@@ -97,6 +91,7 @@ async function performPull(limit: number): Promise<PullResult> {
     }
 
     previousId = message.id
+
     try {
       if (message.id <= currentSeq && !(await repository.hasProcessedEvent(event.eventId))) {
         blockedSequence = message.id
@@ -107,7 +102,9 @@ async function performPull(limit: number): Promise<PullResult> {
         sequenceNumber: message.id,
         event,
       })
+
       if (result.applied) processedCount++
+
       highestSeq = Math.max(highestSeq, message.id)
     } catch {
       blockedSequence = message.id
@@ -116,15 +113,23 @@ async function performPull(limit: number): Promise<PullResult> {
   }
 
   let ackPending = false
+
   // Retry the durable watermark even after an empty poll or a previously lost acknowledgement.
   if (highestSeq > 0) {
     try {
       const ack = await fetch(new URL('/api/internal/sync/ack', env.PREREG_API_URL).toString(), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-service-key': env.INTERNAL_SERVICE_KEY },
-        body: JSON.stringify({ upTo: highestSeq, siteId }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-service-key': env.INTERNAL_SERVICE_KEY,
+        },
+        body: JSON.stringify({
+          upTo: highestSeq,
+          siteId,
+        }),
         signal: AbortSignal.timeout(env.SYNC_REQUEST_TIMEOUT_MS),
       })
+
       ackPending = !ack.ok
     } catch {
       ackPending = true
@@ -147,18 +152,24 @@ export default {
     if (options?.siteId && options.siteId !== env.SITE_ID) {
       throw new Error('Synchronization is restricted to the configured site')
     }
+
     const limit = z
       .int()
       .min(1)
       .max(100)
       .parse(options?.limit ?? 50)
+
     activePull ??= performPull(limit).finally(() => {
       activePull = undefined
     })
+
     return activePull
   },
 
   async getStatus() {
-    return { siteId: env.SITE_ID, lastSequence: await repository.getLastSequence() }
+    return {
+      siteId: env.SITE_ID,
+      lastSequence: await repository.getLastSequence(),
+    }
   },
 }

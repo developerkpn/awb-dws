@@ -1,3 +1,4 @@
+import type { ServerPagination, ServerSorting } from '@awb/ui'
 import type {
   AccountChoice,
   AccountProfile,
@@ -50,4 +51,29 @@ export interface UpdateUserInput {
 export interface UpdateStatusInput {
   id: string
   isActive: boolean
+}
+
+export interface UsersTableProps {
+  sorting: ServerSorting
+  pagination: ServerPagination
+  users: AccountListItem[]
+  isLoading: boolean
+  isSaving: boolean
+  onEdit: (id: string) => void
+  onStatusChange: (user: AccountListItem) => void
+  onResetPassword: (user: AccountListItem) => void
+}
+
+export interface UserFiltersProps {
+  filters: UserFilters
+  options: UserOptions | undefined
+  onChange: (changes: Partial<UserFilters>) => void
+}
+
+export interface UserFormProps {
+  user?: User
+  isSubmitting: boolean
+  error?: string
+  onSubmit: (data: UserFormData) => Promise<void>
+  onCancel: () => void
 }

@@ -14,17 +14,11 @@ import {
 import { ArrowLeft, Users, ShieldCheck, Save } from '@/ui/icons'
 import { useUserOptions } from '@/hooks/user'
 import { getErrorMessage } from '@/utils/errorHandler'
-import type { User, UserFormData } from '@/types/user'
+import type { UserFormData } from '@/types/user'
 import { userFormSchema } from './schema'
+import type { UserFormProps } from '@/types/user'
 import './account-form.css'
 
-interface UserFormProps {
-  user?: User
-  isSubmitting: boolean
-  error?: string
-  onSubmit: (data: UserFormData) => Promise<void>
-  onCancel: () => void
-}
 const defaults: UserFormData = {
   name: '',
   username: '',
@@ -37,6 +31,7 @@ const defaults: UserFormData = {
 
 export default function UserForm({ user, isSubmitting, error, onSubmit, onCancel }: UserFormProps) {
   const confirm = useConfirm()
+
   const form = useForm<UserFormData>({
     resolver: zodResolver(userFormSchema),
     defaultValues: user
@@ -51,14 +46,17 @@ export default function UserForm({ user, isSubmitting, error, onSubmit, onCancel
         }
       : defaults,
   })
+
   const values = form.watch()
   const errors = form.formState.errors
   const partnerAccount = values.accountType === 'PARTNER'
   const options = useUserOptions()
+
   const roles =
     options.data?.roles.filter(
       (role) => partnerAccount === ['CUSTOMER', 'VENDOR'].includes(role.code),
     ) ?? []
+
   const flags = { shouldDirty: true }
 
   const cancel = async () => {
@@ -73,6 +71,7 @@ export default function UserForm({ user, isSubmitting, error, onSubmit, onCancel
     )
       onCancel()
   }
+
   const changeType = (type: UserFormData['accountType']) => {
     form.setValue('accountType', type, flags)
     form.setValue('role', type === 'PARTNER' ? 'CUSTOMER' : 'LOGISTIC', flags)
@@ -179,6 +178,7 @@ export default function UserForm({ user, isSubmitting, error, onSubmit, onCancel
                         ...flags,
                         shouldValidate: form.formState.isSubmitted,
                       })
+
                       if (!user && partnerAccount) form.resetField('username', { defaultValue: '' })
                     }}
                   >

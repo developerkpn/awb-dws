@@ -4,6 +4,7 @@ import { prisma } from '../src/config/prisma'
 describe('AWB-2 Schema & Database Models', () => {
   it('creates and retrieves roles and permissions', async () => {
     const roleCode = `TEST_ROLE_${Date.now()}`
+
     const role = await prisma.role.create({
       data: {
         code: roleCode,
@@ -11,10 +12,12 @@ describe('AWB-2 Schema & Database Models', () => {
         description: 'Role for test suite',
       },
     })
+
     expect(role.id).toBeDefined()
     expect(role.code).toBe(roleCode)
 
     const permCode = `test:perm_${Date.now()}`
+
     const perm = await prisma.permission.create({
       data: {
         code: permCode,
@@ -22,6 +25,7 @@ describe('AWB-2 Schema & Database Models', () => {
         module: 'test',
       },
     })
+
     expect(perm.id).toBeDefined()
 
     const rolePerm = await prisma.rolePermission.create({
@@ -30,6 +34,7 @@ describe('AWB-2 Schema & Database Models', () => {
         permissionId: perm.id,
       },
     })
+
     expect(rolePerm.id).toBeDefined()
   })
 
@@ -37,8 +42,12 @@ describe('AWB-2 Schema & Database Models', () => {
     const role = await prisma.role.upsert({
       where: { code: 'CUSTOMER' },
       update: {},
-      create: { code: 'CUSTOMER', name: 'Customer' },
+      create: {
+        code: 'CUSTOMER',
+        name: 'Customer',
+      },
     })
+
     const account = await prisma.user.create({
       data: {
         name: 'Partner account',
@@ -50,7 +59,11 @@ describe('AWB-2 Schema & Database Models', () => {
         country: 'ID',
       },
     })
-    const stored = await prisma.user.findUniqueOrThrow({ where: { id: account.id } })
+
+    const stored = await prisma.user.findUniqueOrThrow({
+      where: { id: account.id },
+    })
+
     expect(stored).toMatchObject({
       accountType: 'PARTNER',
       username: account.username,
@@ -63,7 +76,10 @@ describe('AWB-2 Schema & Database Models', () => {
     const role = await prisma.role.upsert({
       where: { code: 'LOGISTIC' },
       update: {},
-      create: { code: 'LOGISTIC', name: 'Logistic' },
+      create: {
+        code: 'LOGISTIC',
+        name: 'Logistic',
+      },
     })
 
     const plant = await prisma.plant.create({

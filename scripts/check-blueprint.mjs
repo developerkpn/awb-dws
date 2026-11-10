@@ -22,6 +22,7 @@ const dirs = (path) =>
 
 const files = (path, ext) => {
   if (!existsSync(path)) return []
+
   return readdirSync(path, { recursive: true })
     .map(String)
     .filter((name) => name.endsWith(ext))
@@ -33,23 +34,33 @@ const read = (name) =>
   existsSync(join(ROOT, name))
     ? readFileSync(join(ROOT, name), 'utf8').replace(/\r\n/g, '\n')
     : null
+
 const current = Object.fromEntries(DOCS.map((name) => [name, read(name)]))
+
 for (const name of DOCS) {
   if (current[name] === null) {
     console.error(`✘ ${name} tidak ditemukan.`)
     process.exit(1)
   }
 }
+
 let failed = false
 
 // ---------------------------------------------------------------- 1. coverage
 /** @type {{ section: string, id: string, source: string }[]} */
 const items = []
-const add = (section, id, source) => items.push({ section, id, source: relative(ROOT, source) })
+
+const add = (section, id, source) =>
+  items.push({
+    section,
+    id,
+    source: relative(ROOT, source),
+  })
 
 for (const system of dirs(join(ROOT, 'apps'))) {
   for (const role of dirs(join(ROOT, 'apps', system))) {
     const app = join(ROOT, 'apps', system, role)
+
     add('A. Aplikasi', `${system}/${role}`, app)
 
     for (const module of dirs(join(app, 'src/modules'))) {
@@ -65,6 +76,7 @@ for (const system of dirs(join(ROOT, 'apps'))) {
         add('D. Model data dan migrasi', model, file)
       }
     }
+
     for (const migration of dirs(join(app, 'prisma/migrations'))) {
       add('D. Model data dan migrasi', migration, join(app, 'prisma/migrations', migration))
     }
@@ -76,6 +88,7 @@ for (const system of dirs(join(ROOT, 'apps'))) {
         join(app, 'src/devices', device),
       )
     }
+
     for (const feature of dirs(join(app, 'src/features'))) {
       add(
         'F. Fitur frontend',
@@ -83,18 +96,23 @@ for (const system of dirs(join(ROOT, 'apps'))) {
         join(app, 'src/features', feature),
       )
     }
+
     for (const file of files(join(app, 'src/pages'), '.tsx')) {
       if (!file.endsWith('/index.tsx')) continue
+
       const page = relative(join(app, 'src/pages'), file)
         .replace(/\\/g, '/')
         .replace(/\/index\.tsx$/, '')
+
       add('F. Fitur frontend', `${system}/${role}/pages/${page}`, file)
     }
   }
 }
+
 for (const pkg of dirs(join(ROOT, 'packages'))) {
   add('H. Paket bersama', `packages/${pkg}`, join(ROOT, 'packages', pkg))
 }
+
 for (const file of files(join(ROOT, 'packages/contracts/src'), '.ts')) {
   for (const [, name] of readFileSync(file, 'utf8').matchAll(/^export const (\w+)/gm)) {
     add('E. Contract', name, file)
@@ -102,16 +120,19 @@ for (const file of files(join(ROOT, 'packages/contracts/src'), '.ts')) {
 }
 
 const missing = items.filter(({ id }) => !current[COVERAGE_DOC].includes(`\`${id}\``))
+
 if (missing.length === 0) {
   console.log(`✔ ${COVERAGE_DOC} mencakup ${items.length} item yang ada di kode.`)
 } else {
   failed = true
   console.error(`✘ ${COVERAGE_DOC} belum mencantumkan ${missing.length} item yang ada di kode:\n`)
+
   for (const section of [...new Set(missing.map((m) => m.section))]) {
     console.error(`  ${section}`)
     for (const m of missing.filter((x) => x.section === section))
       console.error(`    \`${m.id}\`   (${m.source})`)
   }
+
   console.error(
     `\n  Tambahkan ke bagian yang sesuai di ${COVERAGE_DOC} (sebagai inline code) dan catat di riwayat.\n`,
   )
@@ -123,6 +144,7 @@ function tableRows(markdown, prefix) {
   const rows = []
   let inSection = false
   let seenHeader = false
+
   for (const line of markdown.split('\n')) {
     if (line.startsWith('## ')) {
       inSection = line
@@ -130,15 +152,20 @@ function tableRows(markdown, prefix) {
         .trim()
         .replace(/^\d+\.\s+/, '')
         .startsWith(prefix)
+
       seenHeader = false
       continue
     }
+
     const trimmed = line.trim()
+
     if (!inSection || !trimmed.startsWith('|') || /^\|\s*:?-/.test(trimmed)) continue
+
     if (!seenHeader) {
       seenHeader = true
       continue
     }
+
     rows.push(
       trimmed
         .slice(1, -1)
@@ -146,12 +173,15 @@ function tableRows(markdown, prefix) {
         .map((cell) => cell.trim()),
     )
   }
+
   return rows
 }
+
 const allRows = (docs, prefix) =>
   Object.values(docs).flatMap((markdown) => (markdown ? tableRows(markdown, prefix) : []))
 
 const base = process.env.BLUEPRINT_BASE || 'HEAD'
+
 const showAtBase = (name) => {
   try {
     return execFileSync('git', ['show', `${base}:${name}`], {
@@ -163,6 +193,7 @@ const showAtBase = (name) => {
     return null
   }
 }
+
 const previous = Object.fromEntries(DOCS.map((name) => [name, showAtBase(name)]))
 
 if (Object.values(previous).every((markdown) => markdown === null)) {
@@ -172,6 +203,7 @@ if (Object.values(previous).every((markdown) => markdown === null)) {
   const oldHistory = allRows(previous, 'Riwayat')
   const newHistory = allRows(current, 'Riwayat')
   const newHistoryRows = new Set(newHistory.map((row) => row.join(' | ')))
+
   for (const row of oldHistory) {
     if (!newHistoryRows.has(row.join(' | '))) {
       problems.push(
@@ -181,8 +213,10 @@ if (Object.values(previous).every((markdown) => markdown === null)) {
   }
 
   const newDecisions = new Map(allRows(current, 'Keputusan').map((row) => [row[0], row]))
+
   for (const row of allRows(previous, 'Keputusan')) {
     const now = newDecisions.get(row[0])
+
     if (!now) {
       problems.push(
         `Keputusan ${row[0]} dihapus. Jangan dihapus; ubah statusnya menjadi "digantikan oleh K-xx".`,
@@ -195,6 +229,7 @@ if (Object.values(previous).every((markdown) => markdown === null)) {
   }
 
   const changed = DOCS.some((name) => previous[name] !== current[name])
+
   if (changed && newHistory.length <= oldHistory.length) {
     problems.push(
       'BLUEPRINT.md atau TECHNICAL.md berubah tetapi belum ada baris riwayat baru (isi Sebelumnya, Sekarang dan Alasan).',
@@ -214,6 +249,7 @@ if (Object.values(previous).every((markdown) => markdown === null)) {
 const sourceHash = createHash('sha256')
   .update(readFileSync(join(ROOT, PDF_SOURCE)))
   .digest('hex')
+
 if (!existsSync(PDF_BUILD_INFO)) {
   console.warn('⚠ PDF blueprint belum pernah dibuat: jalankan npm run blueprint:pdf.')
 } else if (JSON.parse(readFileSync(PDF_BUILD_INFO, 'utf8')).source_sha256 !== sourceHash) {

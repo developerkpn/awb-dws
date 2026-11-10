@@ -4,18 +4,7 @@ import { IconButton } from '@/ui/Button'
 import { Pencil, PowerOff, Power, KeyRound } from '@/ui/icons'
 import PlantAccess from './PlantAccess'
 import type { AccountListItem } from '@/types/user'
-import type { ServerPagination, ServerSorting } from '@awb/ui'
-
-interface UsersTableProps {
-  sorting: ServerSorting
-  pagination: ServerPagination
-  users: AccountListItem[]
-  isLoading: boolean
-  isSaving: boolean
-  onEdit: (id: string) => void
-  onStatusChange: (user: AccountListItem) => void
-  onResetPassword: (user: AccountListItem) => void
-}
+import type { UsersTableProps } from '@/types/user'
 
 export default function UsersTable({
   sorting,

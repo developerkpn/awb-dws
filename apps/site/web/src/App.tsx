@@ -9,10 +9,26 @@ export default function App() {
     <AppShell
       title="AWB Plant Console"
       pages={[
-        { key: 'weighbridge', label: 'Timbangan', element: <WeighbridgePage /> },
-        { key: 'tcs', label: 'TCS', element: <TcsPage /> },
-        { key: 'dashboard', label: 'Dashboard', element: <DashboardPage /> },
-        { key: 'admin', label: 'Admin', element: <AdminPage /> },
+        {
+          key: 'weighbridge',
+          label: 'Timbangan',
+          element: <WeighbridgePage />,
+        },
+        {
+          key: 'tcs',
+          label: 'TCS',
+          element: <TcsPage />,
+        },
+        {
+          key: 'dashboard',
+          label: 'Dashboard',
+          element: <DashboardPage />,
+        },
+        {
+          key: 'admin',
+          label: 'Admin',
+          element: <AdminPage />,
+        },
       ]}
     />
   )

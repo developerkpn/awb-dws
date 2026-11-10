@@ -7,18 +7,25 @@ export default function SessionEvents() {
   const { user } = useAuth({ poll: true })
 
   useEffect(() => {
-    if (!user) queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' })
+    if (!user)
+      queryClient.removeQueries({
+        predicate: (query) => query.queryKey[0] !== 'auth',
+      })
   }, [user, queryClient])
 
   useEffect(() => {
     const expire = () => {
       void queryClient.cancelQueries().then(() => {
-        queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' })
+        queryClient.removeQueries({
+          predicate: (query) => query.queryKey[0] !== 'auth',
+        })
+
         queryClient.setQueryData(authKeys.session, null)
       })
     }
 
     window.addEventListener('awb-session-expired', expire)
+
     return () => window.removeEventListener('awb-session-expired', expire)
   }, [queryClient])
 

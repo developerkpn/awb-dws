@@ -11,7 +11,10 @@ export default function AddUser() {
   const submit = async (data: UserFormData) => {
     try {
       const response = await create.mutateAsync(data)
-      navigate('/users', { state: { notice: response.message } })
+
+      navigate('/users', {
+        state: { notice: response.message },
+      })
     } catch {
       // error shown by form
     }

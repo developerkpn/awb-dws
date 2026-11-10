@@ -10,19 +10,25 @@ import {
 } from './internal-user.schema'
 
 const router = Router()
+
 router.use(requireAdmin, requirePermission('admin:users:read'))
+
 router.get('/', async (req, res) =>
   res.json(success(await service.list(listUsersSchema.parse(req.query)))),
 )
+
 router.get('/options', async (_req, res) => res.json(success(await service.options())))
+
 router.get('/:id', async (req, res) =>
   res.json(success(await service.getById(userIdParam.parse(req.params).id))),
 )
+
 router.post('/', requirePermission('admin:users:create'), async (req, res) => {
   res
     .status(201)
     .json(success(await service.create(accountSchema.parse(req.body), currentUser(req).id)))
 })
+
 router.put('/:id', requirePermission('admin:users:update'), async (req, res) => {
   res.json(
     success(
@@ -34,6 +40,7 @@ router.put('/:id', requirePermission('admin:users:update'), async (req, res) => 
     ),
   )
 })
+
 router.patch('/:id/status', requirePermission('admin:users:update'), async (req, res) => {
   res.json(
     success(
@@ -45,6 +52,7 @@ router.patch('/:id/status', requirePermission('admin:users:update'), async (req,
     ),
   )
 })
+
 router.post(
   '/:id/reset-password',
   requirePermission('admin:users:reset-password'),
@@ -54,4 +62,5 @@ router.post(
     )
   },
 )
+
 export default router

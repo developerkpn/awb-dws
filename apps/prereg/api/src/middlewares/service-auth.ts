@@ -28,6 +28,7 @@ export const requireServiceAuth: RequestHandler = (req, _res, next) => {
   const site = Object.entries(env.INTERNAL_SERVICE_KEYS).find(([, key]) =>
     matches(providedKey, key),
   )
+
   if (site) req.serviceSiteId = site[0]
   else if (env.NODE_ENV === 'production' || !matches(providedKey, env.INTERNAL_SERVICE_KEY)) {
     throw new CustomError('Unauthorized internal service request', 401)

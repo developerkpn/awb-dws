@@ -28,6 +28,7 @@ export const environmentSchema = z
         path: ['INTERNAL_SERVICE_KEY'],
       })
     }
+
     if (
       value.NODE_ENV === 'production' &&
       value.SYNC_ENABLED === 'true' &&

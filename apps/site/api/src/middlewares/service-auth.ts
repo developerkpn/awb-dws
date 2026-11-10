@@ -5,6 +5,7 @@ import { env } from '../config/env'
 
 export const requireServiceAuth: RequestHandler = (req, _res, next) => {
   const provided = req.get('x-service-key')
+
   if (
     !provided ||
     !timingSafeEqual(
@@ -13,5 +14,6 @@ export const requireServiceAuth: RequestHandler = (req, _res, next) => {
     )
   )
     throw new CustomError('Unauthorized service request', 401)
+
   next()
 }

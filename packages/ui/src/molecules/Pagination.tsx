@@ -26,11 +26,17 @@ export function Pagination({
   const start = total === 0 || page > pages ? 0 : (page - 1) * limit + 1
   const end = start === 0 ? 0 : Math.min(page * limit, total)
   const sizes = [...new Set([20, 50, 100, limit])].sort((a, b) => a - b)
+
   return (
     <nav className="ui-pagination" aria-label="Table pagination">
       <span className="ui-pagination-summary" aria-live="polite">
         {isLoading ? (
-          <Skeleton style={{ width: '7rem', height: '0.75rem' }} />
+          <Skeleton
+            style={{
+              width: '7rem',
+              height: '0.75rem',
+            }}
+          />
         ) : (
           `${start}–${end} of ${total} results`
         )}
@@ -52,7 +58,12 @@ export function Pagination({
         </select>
         <span className="ui-pagination-page">
           {isLoading ? (
-            <Skeleton style={{ width: '5rem', height: '0.75rem' }} />
+            <Skeleton
+              style={{
+                width: '5rem',
+                height: '0.75rem',
+              }}
+            />
           ) : (
             `Page ${page} of ${pages}`
           )}

@@ -7,6 +7,7 @@ const router = Router()
 
 router.get('/:id', async (req, res) => {
   const { id } = journeyIdParam.parse(req.params)
+
   res.json(success(await journeyService.findByIdOrFail(id)))
 })
 

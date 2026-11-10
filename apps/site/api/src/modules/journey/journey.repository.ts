@@ -1,13 +1,4 @@
-import type { RegistrationOrigin, TransactionType } from '@awb/contracts'
-
-export type Journey = {
-  id: string
-  siteId: string
-  transactionType: TransactionType
-  registrationOrigin: RegistrationOrigin
-  currentStage: string
-  status: string
-}
+import type { Journey } from '../../types/journey'
 
 // Temporary in-memory store until the journey table exists; keep the method signatures.
 const journeys = new Map<string, Journey>()

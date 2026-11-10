@@ -31,12 +31,17 @@ export function useUsers(filters: UserFilters) {
           Array.isArray(value) ? value.length > 0 : value !== '',
         ),
       )
+
       const response = await fetchApi<UsersResponse>('/users', {
         params,
         signal,
         paramsSerializer: { indexes: null },
       })
-      return { ...response, items: accountListItem.array().parse(response.items) }
+
+      return {
+        ...response,
+        items: accountListItem.array().parse(response.items),
+      }
     },
   })
 }
@@ -71,33 +76,46 @@ function useInvalidateUsers() {
 
 export function useCreateUser() {
   const invalidate = useInvalidateUsers()
+
   return useMutation({
     mutationFn: (data: UserFormData) =>
-      fetchApi<CreateUserResponse>('/users', { method: 'POST', data }),
+      fetchApi<CreateUserResponse>('/users', {
+        method: 'POST',
+        data,
+      }),
     onSuccess: invalidate,
   })
 }
 
 export function useUpdateUser() {
   const invalidate = useInvalidateUsers()
+
   return useMutation({
     mutationFn: ({ id, data }: UpdateUserInput) =>
-      fetchApi<User>(`/users/${id}`, { method: 'PUT', data }),
+      fetchApi<User>(`/users/${id}`, {
+        method: 'PUT',
+        data,
+      }),
     onSuccess: invalidate,
   })
 }
 
 export function useUpdateUserStatus() {
   const invalidate = useInvalidateUsers()
+
   return useMutation({
     mutationFn: ({ id, isActive }: UpdateStatusInput) =>
-      fetchApi<User>(`/users/${id}/status`, { method: 'PATCH', data: { isActive } }),
+      fetchApi<User>(`/users/${id}/status`, {
+        method: 'PATCH',
+        data: { isActive },
+      }),
     onSuccess: invalidate,
   })
 }
 
 export function useResetUserPassword() {
   const invalidate = useInvalidateUsers()
+
   return useMutation({
     mutationFn: (id: string) =>
       fetchApi<MutationMessage>(`/users/${id}/reset-password`, { method: 'POST' }),
