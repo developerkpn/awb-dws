@@ -26,22 +26,7 @@ These are selection/calculation requirements. A field used to filter records doe
 
 ## Why the examples use `d.results`
 
-An existing KPN integration already reads PO details from SAP through the service path `/sap/opu/odata/sap/ZGW_REGISTRA_SRV/PODETAILSet`. Hosts and credentials are intentionally omitted. This is evidence of the existing integration pattern, not the URL of the new service.
-
-That integration requests `$format=json` and reads the rows from `d.results`. Each row uses SAP field names with only the first letter capitalised:
-
-| Property | Meaning                        |
-| -------- | ------------------------------ |
-| `Ebeln`  | PO number                      |
-| `Ebelp`  | PO item number                 |
-| `Matnr`  | Material number                |
-| `Lifnr`  | Vendor account                 |
-| `Menge`  | Ordered quantity               |
-| `Wemng`  | Quantity already received (GR) |
-| `Meins`  | Unit of measure                |
-| `Inco1`  | Incoterm                       |
-
-Accordingly, an OData V2 collection and similar property casing are reasonable working assumptions. OData V2 uses `d.results` for collections and represents `Edm.Decimal` values as JSON strings. Optional metadata and paging properties can also appear. See the [official OData V2 JSON format](https://www.odata.org/documentation/odata-version-2-0/json-format/).
+SAP OData V2 services return a collection as an array in `d.results`, so the examples do the same. Decimal values come as JSON strings. Optional metadata and paging properties can also appear. See the [official OData V2 JSON format](https://www.odata.org/documentation/odata-version-2-0/json-format/).
 
 The examples omit optional `__metadata`, `__count`, and `__next`. A client should tolerate them and follow `d.__next` if paging is enabled. Quantity scale `3` is illustrative; precision, scale, nullability, and property names must come from the new service's `$metadata`.
 
@@ -53,9 +38,9 @@ In [expected-po-by-vendor.json](expected-po-by-vendor.json), each object is an o
 | ---------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `Lifnr`                | `EKKO-LIFNR`, vendor account                                  | Vendor selection is explicit; inclusion and spelling are proposed.                                         |
 | `Bsart`                | `EKKO-BSART`, PO document type                                | Filter is explicit; inclusion and spelling are proposed.                                                   |
-| `Ebeln`                | PO number / `EBELN`                                           | Explicit business field; casing follows the existing integration.                                          |
-| `Ebelp`                | PO item / `EBELP`                                             | Explicit business field; casing follows the existing integration.                                          |
-| `Matnr`                | `EKPO-MATNR`, material number                                 | Explicit business field; casing follows the existing integration.                                          |
+| `Ebeln`                | PO number / `EBELN`                                           | Explicit business field.                                                                                   |
+| `Ebelp`                | PO item / `EBELP`                                             | Explicit business field.                                                                                   |
+| `Matnr`                | `EKPO-MATNR`, material number                                 | Explicit business field.                                                                                   |
 | `Elikz`                | `EKPO-ELIKZ`, delivery-completed flag                         | Explicit filter; returning a blank flag is proposed.                                                       |
 | `Erfmg`                | Net received quantity: sum of 101 minus 102 minus 122 `ERFMG` | Net GR is explicit; putting the result in `Erfmg` is proposed. ABAP may choose a name such as `QtyTerima`. |
 | `Lsmng`                | Proposed net shipped quantity from `LSMNG`                    | Source field is explicit; applying the same netting formula is an assumption requiring confirmation.       |
@@ -64,7 +49,7 @@ Identifiers are strings, including the five-digit item number `"00010"`. A flag 
 
 There is no single `Bwart` on an aggregate row combining 101, 102, and 122. If ABAP returns `Bwart`, clarify whether the response is grouped by movement type or contains individual movements instead.
 
-The primary mock deliberately contains no app-specific `success`, `message`, or `materials` wrapper. Applications that read SAP may build their own wrapper (for example a `materials` array) after reading it; that is an application response, not evidence of the raw SAP response.
+The primary mock deliberately contains no app-specific wrapper such as `success` or `message`; it shows the raw SAP response.
 
 ## Quantity example and alternative layout
 
@@ -87,15 +72,15 @@ Normalize units before addition or subtraction. The FSD does not say how mixed u
 
 [proposed-response-with-context.json](proposed-response-with-context.json) extends the aggregate example with the following **proposed additions**:
 
-| Property | Intended source / purpose                                                                                                                  |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Erfme`  | Candidate unit for `Erfmg` (`MSEG-ERFME`); the mock assumes all contributing received movements use `KG`.                                  |
-| `Lsmeh`  | Candidate unit for `Lsmng` (`MSEG-LSMEH`); validate this pairing and its meaning with the functional/ABAP team. The mock assumes `KG`.     |
-| `Menge`  | `EKPO-MENGE`, ordered quantity. Needed if the app calculates remaining quantity.                                                           |
-| `Meins`  | `EKPO-MEINS`, PO order unit. Compare ordered and received quantities only after unit conversion where needed.                              |
-| `Inco1`  | Candidate incoterm property, following the existing integration's naming. `FRC` is an illustrative value, not a code mandated by this FSD. |
+| Property | Intended source / purpose                                                                                                              |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `Erfme`  | Candidate unit for `Erfmg` (`MSEG-ERFME`); the mock assumes all contributing received movements use `KG`.                              |
+| `Lsmeh`  | Candidate unit for `Lsmng` (`MSEG-LSMEH`); validate this pairing and its meaning with the functional/ABAP team. The mock assumes `KG`. |
+| `Menge`  | `EKPO-MENGE`, ordered quantity. Needed if the app calculates remaining quantity.                                                       |
+| `Meins`  | `EKPO-MEINS`, PO order unit. Compare ordered and received quantities only after unit conversion where needed.                          |
+| `Inco1`  | Candidate incoterm property. `FRC` is an illustrative value, not a code mandated by this FSD.                                          |
 
-None of these additions is a confirmed JSON output property in the FSD. In particular, do not map the new `Erfmg` directly to the existing `PODETAILSet` field `Wemng` without confirming scope, units, and calculation. The existing integration derives outstanding quantity as `Menge - Wemng`.
+None of these additions is a confirmed JSON output property in the FSD.
 
 ## Illustrative request
 
