@@ -2,6 +2,7 @@
 -- Patterned after PREREG_DRIVER_SAP. Logistics approval writes approved BEL allocations with
 -- no SAP DP check and no automatic loading-note trigger (DOTRXSet). SAP picks up active approved
 -- rows with ISRETREIVEDBYSAP = 'FALSE', updates pull/post status and records any error messages.
+-- Rejecting or cancelling in prereg updates only the status columns of rows already staged.
 -- NOTE: DDL only in codebase; do not auto-execute against Oracle databases.
 
 CREATE TABLE PREREG_BEL_SAP (

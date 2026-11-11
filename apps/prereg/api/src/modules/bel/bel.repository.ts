@@ -314,6 +314,12 @@ async function findScoped(db: Tx | typeof prisma, id: string, scope: BelScope) {
   })
 }
 
+// Approve, reject and cancel write to Oracle inside the transaction; Prisma's 5 s default is too short.
+const ORACLE_TRANSACTION = {
+  maxWait: 10_000,
+  timeout: 60_000,
+}
+
 async function lockRegistration(tx: Tx, id: string) {
   await tx.$executeRaw`SELECT id FROM awb_bel_registration WHERE id = ${id}::uuid FOR UPDATE`
 }
@@ -332,9 +338,12 @@ export function buildBelStagePayloads(
 ): BelStagePayload[] {
   const timestamp = now.toISOString()
 
+  // A retraction also covers submitted lines: an approval can reach Oracle and still roll back here.
   return row.lines
     .filter((line) =>
-      action === 'APPROVED' ? line.status === 'SUBMITTED' : line.stagedAt !== null,
+      action === 'APPROVED'
+        ? line.status === 'SUBMITTED'
+        : ['SUBMITTED', 'APPROVED'].includes(line.status),
     )
     .map((line) => {
       const snapshot = parseSnapshot(line.documentSnapshot)
@@ -877,15 +886,17 @@ export default {
         },
         include: REQUEST_INCLUDE,
       })
-    })
+    }, ORACLE_TRANSACTION)
   },
 
   async reject(input: {
     id: string
     actorId: string
+    actorUsername: string
     scope: BelScope
     reason: string
     version?: number
+    stage: (payloads: BelStagePayload[]) => Promise<'oracle' | 'local'>
   }): Promise<StoredBelRequest> {
     return prisma.$transaction(async (tx) => {
       await lockRegistration(tx, input.id)
@@ -903,6 +914,11 @@ export default {
       }
 
       const now = new Date()
+      const retracted = buildBelStagePayloads(existing, input.actorUsername, now, 'CANCELLED')
+
+      if (retracted.length) {
+        await input.stage(retracted)
+      }
 
       return tx.belRegistration.update({
         where: {
@@ -936,7 +952,7 @@ export default {
         },
         include: REQUEST_INCLUDE,
       })
-    })
+    }, ORACLE_TRANSACTION)
   },
 
   async cancel(input: {
@@ -1005,6 +1021,6 @@ export default {
         },
         include: REQUEST_INCLUDE,
       })
-    })
+    }, ORACLE_TRANSACTION)
   },
 }

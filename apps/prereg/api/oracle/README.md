@@ -57,6 +57,8 @@ One row per approved BEL allocation line (`DET_ID`). Written idempotently when L
 
 The PO data comes from SAP `ZGW_WMS_SRV/VEND_PO_QTYSet`, which has no PO type or incoterm, so the table has no `BSART` or `INCO1`.
 
+Rejecting or cancelling a registration retracts its lines with an update of the status columns only (`PREREG_STATUS`, `FLAG`, `ISACTIVE`, `PREREG_FLAG`, `ISRETREIVEDBYSAP`); the approved data and `CREATE_BY` stay as staged. Submitted lines are retracted too, because an approval can write to Oracle and still fail in prereg. The update does nothing when the row does not exist.
+
 ### Columns
 
 | Column             | Type / Default / Check                                                        | Written by | Meaning & Values                                                               |
@@ -98,6 +100,6 @@ The PO data comes from SAP `ZGW_WMS_SRV/VEND_PO_QTYSet`, which has no PO type or
 | SAP pulls & fails validation | SAP        | `APPROVED`      | `I`    | `TRUE`     | `I`           | `FALSE` / `TRUE`   | `ERRORMSG_PULL` populated |
 | SAP posts BEL & succeeds     | SAP        | `APPROVED`      | `I`    | `TRUE`     | `U`           | `TRUE`             | `NULL`                    |
 | SAP post fails               | SAP        | `APPROVED`      | `I`    | `TRUE`     | `U` / `I`     | `TRUE`             | `ERRORMSG_POST` populated |
-| Registration cancelled       | prereg     | `CANCELLED`     | `U`    | `FALSE`    | `I`           | `FALSE`            | `NULL`                    |
+| Rejected or cancelled        | prereg     | `CANCELLED`     | `U`    | `FALSE`    | `I`           | `FALSE`            | `NULL`                    |
 
 Rollback: `DROP TABLE PREREG_BEL_SAP;`

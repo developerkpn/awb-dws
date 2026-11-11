@@ -53,6 +53,9 @@ function bindExpression(key: string, quantityColumn: string) {
   return ':' + key
 }
 
+// A retraction only changes the status columns, so the approver and approved data stay as staged.
+const BEL_STATUS_COLUMNS = ['PREREG_STATUS', 'FLAG', 'ISACTIVE', 'PREREG_FLAG', 'ISRETREIVEDBYSAP']
+
 export default {
   async stage(payloads: StagePayload[]) {
     await oracle(async (connection) => {
@@ -91,13 +94,22 @@ export default {
         const columns = Object.keys(payload)
         const value = (key: string) => bindExpression(key, 'PLN_MENGE')
 
+        if (payload.FLAG === 'U') {
+          await connection.execute(
+            `UPDATE PREREG_BEL_SAP SET ${BEL_STATUS_COLUMNS.map((key) => key + ' = :' + key).join(',')} WHERE DET_ID = :DET_ID`,
+            Object.fromEntries(
+              ['DET_ID', ...BEL_STATUS_COLUMNS].map((key) => [
+                key,
+                payload[key as keyof BelStagePayload],
+              ]),
+            ),
+          )
+
+          continue
+        }
+
         await connection.execute(
-          payload.FLAG === 'U'
-            ? `UPDATE PREREG_BEL_SAP SET ${columns
-                .filter((key) => key !== 'DET_ID')
-                .map((key) => key + ' = ' + value(key))
-                .join(',')} WHERE DET_ID = :DET_ID`
-            : `INSERT INTO PREREG_BEL_SAP (${columns.join(',')}) SELECT ${columns.map(value).join(',')} FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM PREREG_BEL_SAP WHERE DET_ID = :DET_ID)`,
+          `INSERT INTO PREREG_BEL_SAP (${columns.join(',')}) SELECT ${columns.map(value).join(',')} FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM PREREG_BEL_SAP WHERE DET_ID = :DET_ID)`,
           { ...payload },
         )
       }

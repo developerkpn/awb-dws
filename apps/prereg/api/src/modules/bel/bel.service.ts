@@ -396,9 +396,11 @@ export default {
     const rejected = await repository.reject({
       id,
       actorId: user.id,
+      actorUsername: user.username,
       scope: await scopeFor(user),
       reason: body.reason,
       version: body.version,
+      stage: (payloads: BelStagePayload[]) => staging.stageBel(payloads),
     })
 
     return mapBelDetail(rejected)

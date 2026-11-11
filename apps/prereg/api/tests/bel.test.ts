@@ -586,6 +586,12 @@ describe('vendor BEL pre-registration', () => {
     expect(rejected.status).toBe(200)
     expect(rejected.body.data.status).toBe('REJECTED')
 
+    expect(stagedBelRows.get(rejected.body.data.lines[0].id)).toMatchObject({
+      PREREG_STATUS: 'CANCELLED',
+      FLAG: 'U',
+      ISACTIVE: 'FALSE',
+    })
+
     const listed = await reqAs(vendorACookie).get('?page=1&limit=2&sortBy=number&sortOrder=asc')
 
     expect(listed.status).toBe(200)
