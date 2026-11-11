@@ -19,6 +19,9 @@ __pycache__/
 # Python environment for building the PDF documents (npm run docs:setup)
 docs/.venv/
 
+# Screenshots from the WB.NET reference machine (docs/wbnet/README.md)
+docs/wbnet/shots/
+
 # Uploaded documents storage
 uploads/
 uploads_*/
