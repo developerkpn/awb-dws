@@ -13,7 +13,7 @@ import type {
 } from '../src/types/sap'
 
 export function fixtureReferences(owner: SapOwner) {
-  const known = ['CU00010000', 'AT11000001'].includes(owner.username.toUpperCase())
+  const known = owner.username.toUpperCase() === 'CU00010000'
 
   const base = known
     ? 10000000

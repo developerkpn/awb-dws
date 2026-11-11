@@ -79,8 +79,8 @@ export async function seedAccounts(
     },
     {
       role: 'VENDOR',
-      username: 'AT11000001',
-      name: 'PACIFIC INDOPALM INDUSTRIES PT.',
+      username: 'AT21000006',
+      name: 'JATIMJAYA PERKASA PT.',
       accountType: 'PARTNER',
     },
   ]
@@ -125,6 +125,6 @@ export async function seedAccounts(
   }
 
   console.log(
-    'Development accounts ready: admin, ben, logistic, commercial, CU00010000, AT11000001',
+    'Development accounts ready: admin, ben, logistic, commercial, CU00010000, AT21000006',
   )
 }

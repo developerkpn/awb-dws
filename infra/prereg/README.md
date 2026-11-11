@@ -28,7 +28,8 @@ administrator bootstrap command is provided.
 The development seed keeps ADMIN, LOGISTIC, COMMERCIAL, CUSTOMER and VENDOR. It
 removes unused MANAGER/KRANIWB/INTERCO roles, stopping if one still has accounts.
 Test logins are `admin` and `ben` (admins), `logistic`, `commercial`, `CU00010000`
-(customer with downstream DOs on erpdev) and `AT11000001` (vendor), all with
+(customer with downstream DOs on erpdev) and `AT21000006` (vendor with open POs for
+the Bekasi and Dumai plants on erpdev), all with
 `password123`. Logistics gets operational approval; commercial and partners get
 preregistration/document access. Partners have the three downstream plants and
 internal test staff have all five seeded plants.
