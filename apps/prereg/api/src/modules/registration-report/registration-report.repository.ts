@@ -71,7 +71,8 @@ function orderClause(sortBy: ReportExportQuery['sortBy'], sortDirection: 'asc' |
 }
 
 function commonConditions(query: ReportExportQuery, scope: ReportScope) {
-  const conditions: Prisma.Sql[] = []
+  // Drafts are not registrations yet; partners see them in their own JUL and BEL lists.
+  const conditions: Prisma.Sql[] = [Prisma.sql`l.status <> 'DRAFT'`]
 
   if (scope.plantIds) {
     if (!scope.plantIds.length) {

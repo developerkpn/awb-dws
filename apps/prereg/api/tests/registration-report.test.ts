@@ -512,7 +512,20 @@ describe('registration report API (AWB-24)', () => {
       .set('Cookie', adminCookie)
 
     expect(response.status).toBe(200)
-    expect(response.body.data.total).toBe(6)
+    expect(response.body.data.total).toBe(5)
+
+    expect(
+      (response.body.data.items as { registrationNumber: string }[]).map(
+        (row) => row.registrationNumber,
+      ),
+    ).not.toContain('BEL-RPT-0003')
+
+    const draftFilter = await request(app)
+      .get('/api/registration-reports')
+      .query({ status: 'DRAFT' })
+      .set('Cookie', adminCookie)
+
+    expect(draftFilter.status).toBe(422)
 
     const items = response.body.data.items as {
       registrationNumber: string
@@ -667,7 +680,7 @@ describe('registration report API (AWB-24)', () => {
         (internalList.body.data.items as { registrationNumber: string }[])
           .map((row) => row.registrationNumber)
           .sort(),
-      ).toEqual(['BEL-RPT-0001', 'BEL-RPT-0003', 'JUL-RPT-0001', 'JUL-RPT-0003'])
+      ).toEqual(['BEL-RPT-0001', 'JUL-RPT-0001', 'JUL-RPT-0003'])
 
       const unassignedPlant = await request(app)
         .get('/api/registration-reports')
@@ -806,7 +819,7 @@ describe('registration report API (AWB-24)', () => {
 
     expect(
       (sortedPage2.body.data.items as { plannedQuantity: string }[]).map((r) => r.plannedQuantity),
-    ).toEqual(['90', '150.25'])
+    ).toEqual(['150.25', '200'])
   })
 
   it('exports Excel (.xlsx) honoring the exact same RBAC and filter rules', async () => {
@@ -830,7 +843,7 @@ describe('registration report API (AWB-24)', () => {
     const sheet = workbook.getWorksheet('Registration Report')!
 
     expect(sheet).toBeDefined()
-    expect(sheet.rowCount).toBe(5)
+    expect(sheet.rowCount).toBe(4)
 
     const headerValues = sheet.getRow(1).values as string[]
 

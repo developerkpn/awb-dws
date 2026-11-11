@@ -24,7 +24,6 @@ export const registrationReportSortFields = [
 ] as const
 
 export const registrationReportStatuses = [
-  'DRAFT',
   'SUBMITTED',
   'APPROVED',
   'REJECTED',
