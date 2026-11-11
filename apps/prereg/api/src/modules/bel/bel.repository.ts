@@ -14,7 +14,7 @@ import { belPoSnapshot } from '../sap/sap.schema'
 import type { BelStagePayload } from '../../types/sap'
 import type { BelListQuery, BelScope, PreparedBelLine, StoredBelRequest, Tx } from '../../types/bel'
 
-const REQUEST_INCLUDE = {
+export const REQUEST_INCLUDE = {
   vendor: {
     select: {
       id: true,

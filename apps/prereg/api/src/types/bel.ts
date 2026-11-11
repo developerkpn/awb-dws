@@ -2,6 +2,7 @@ import type { BelPoItem } from '@awb/contracts'
 import type { Prisma } from '../generated/prisma/client'
 import type { z } from 'zod'
 import type { approveBody, belListQuery, draftBody, reasonBody } from '../modules/bel/bel.schema'
+import type { REQUEST_INCLUDE } from '../modules/bel/bel.repository'
 
 export type DraftBody = z.infer<typeof draftBody>
 
@@ -31,18 +32,4 @@ export type PreparedBelLine = {
   remark: string | null
 }
 
-export type StoredBelRequest = NonNullable<
-  Prisma.BelRegistrationGetPayload<{
-    include: {
-      vendor: { select: { id: true; name: true; username: true } }
-      lines: {
-        include: { document: { include: { plant: true } } }
-        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }]
-      }
-      history: {
-        include: { actor: { select: { name: true; username: true } } }
-        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }]
-      }
-    }
-  }>
->
+export type StoredBelRequest = Prisma.BelRegistrationGetPayload<{ include: typeof REQUEST_INCLUDE }>
