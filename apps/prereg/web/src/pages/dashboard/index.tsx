@@ -1,64 +1,56 @@
-import { Users, ShieldCheck } from '@/ui/icons'
-import { Link } from 'react-router'
+import { Suspense, lazy } from 'react'
 import { useAuth } from '@/hooks/auth'
 import { PERMISSION } from '@/constant/PERMISSION'
 import { hasPermission } from '@/utils/permission'
+
+const RegistrationReport = lazy(() => import('./_components/RegistrationReport'))
 
 export default function Dashboard() {
   const { user } = useAuth()
   const firstName = user?.name.split(' ')[0] ?? 'there'
 
-  const day = new Date().toLocaleDateString('id-ID', {
+  const day = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   })
 
-  const cards = [
-    {
-      icon: <Users className="size-5" />,
-      label: 'User management',
-      description: 'Manage internal and partner accounts.',
-      href: '/users',
-      color: 'bg-brand-50 text-brand-700',
-      show: user?.role === 'ADMIN' && hasPermission(user, PERMISSION.USER.READ),
-    },
-    {
-      icon: <ShieldCheck className="size-5" />,
-      label: 'Role permissions',
-      description: 'Configure what each role can access.',
-      href: '/roles',
-      color: 'bg-sky-50 text-sky-700',
-      show: user?.role === 'ADMIN' && hasPermission(user, PERMISSION.ROLE.READ),
-    },
-  ].filter((card) => card.show)
+  const canReadReport = hasPermission(user, PERMISSION.PREREG.READ)
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm text-stone-500">{day}</p>
-        <h1 className="text-2xl font-semibold text-ink">Overview</h1>
-        <p className="mt-1 text-sm text-stone-500">
-          Welcome back, {firstName}. Use the sidebar to navigate.
-        </p>
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider text-stone-400">{day}</p>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Overview</h1>
+          <p className="text-sm text-stone-500">
+            Welcome back, {firstName}. Monitor and export registration activities.
+          </p>
+        </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {cards.map((c) => (
-          <Link
-            key={c.href}
-            to={c.href}
-            className="flex items-start gap-4 rounded-xl border border-stone-200 bg-white p-5 shadow-xs transition-shadow hover:shadow-md"
-          >
-            <span className={`mt-0.5 rounded-lg p-2.5 ${c.color}`}>{c.icon}</span>
+      {canReadReport && (
+        <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-xs dark:border-stone-800 dark:bg-stone-900">
+          <div className="mb-5 flex items-center justify-between border-b border-stone-100 pb-4 dark:border-stone-800">
             <div>
-              <p className="font-medium text-stone-900">{c.label}</p>
-              <p className="mt-0.5 text-sm text-stone-500">{c.description}</p>
+              <h2 className="text-lg font-semibold text-ink" aria-label="Laporan registrasi">
+                Registration report
+              </h2>
+              <p className="text-xs text-stone-400">
+                Live truck registration allocations across JUL and BEL flows
+              </p>
             </div>
-          </Link>
-        ))}
-      </div>
+          </div>
+          <Suspense
+            fallback={
+              <div className="h-96 animate-pulse rounded-xl bg-stone-100 dark:bg-stone-800" />
+            }
+          >
+            <RegistrationReport />
+          </Suspense>
+        </div>
+      )}
     </div>
   )
 }
