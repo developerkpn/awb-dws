@@ -2,7 +2,7 @@ import type { BelPoItem } from '@awb/contracts'
 import type { Prisma } from '../generated/prisma/client'
 import type { z } from 'zod'
 import type { approveBody, belListQuery, draftBody, reasonBody } from '../modules/bel/bel.schema'
-import type repository from '../modules/bel/bel.repository'
+import type { REQUEST_INCLUDE } from '../modules/bel/bel.repository'
 
 export type DraftBody = z.infer<typeof draftBody>
 
@@ -32,4 +32,4 @@ export type PreparedBelLine = {
   remark: string | null
 }
 
-export type StoredBelRequest = NonNullable<Awaited<ReturnType<typeof repository.find>>>
+export type StoredBelRequest = Prisma.BelRegistrationGetPayload<{ include: typeof REQUEST_INCLUDE }>
