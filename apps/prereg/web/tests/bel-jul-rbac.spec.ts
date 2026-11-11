@@ -46,7 +46,7 @@ test.describe('AWB-20: BEL and JUL role-based menu and route separation', () => 
   test('vendor sees BEL menu, does not see JUL menu, and cannot access /jul routes', async ({
     page,
   }) => {
-    await login(page, 'browser_test_vendor')
+    await login(page, 'browser_test_bel_vendor')
 
     const sidebar = page.getByRole('complementary', { name: 'Sidebar' })
 
