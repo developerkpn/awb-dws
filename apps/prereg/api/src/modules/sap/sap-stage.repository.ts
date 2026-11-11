@@ -1,7 +1,7 @@
 import oracledb from 'oracledb'
 import { CustomError } from '@awb/server-core'
 import { env } from '../../config/env'
-import type { StagePayload, StageResult } from '../../types/sap'
+import type { BelStagePayload, StagePayload, StageResult } from '../../types/sap'
 
 let pool: Promise<oracledb.Pool> | undefined
 
@@ -41,20 +41,27 @@ async function oracle<T>(operation: (connection: oracledb.Connection) => Promise
   }
 }
 
+function bindExpression(key: string, quantityColumn: string) {
+  if (key === 'CREDAT') return "TO_DATE(:CREDAT, 'YYYY-MM-DD')"
+
+  if (key === quantityColumn) {
+    return `TO_NUMBER(:${quantityColumn}, '99999999999999D999999', 'NLS_NUMERIC_CHARACTERS=''.,''')`
+  }
+
+  if (key === 'CREATE_AT') return 'TO_TIMESTAMP(:CREATE_AT, \'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"\')'
+
+  return ':' + key
+}
+
+// A retraction only changes the status columns, so the approver and approved data stay as staged.
+const BEL_STATUS_COLUMNS = ['PREREG_STATUS', 'FLAG', 'ISACTIVE', 'PREREG_FLAG', 'ISRETREIVEDBYSAP']
+
 export default {
   async stage(payloads: StagePayload[]) {
     await oracle(async (connection) => {
       for (const payload of payloads) {
         const columns = Object.keys(payload)
-
-        const value = (key: string) =>
-          key === 'CREDAT'
-            ? "TO_DATE(:CREDAT, 'YYYY-MM-DD')"
-            : key === 'PLN_LFIMG'
-              ? "TO_NUMBER(:PLN_LFIMG, '99999999999999D999999', 'NLS_NUMERIC_CHARACTERS=''.,''')"
-              : key === 'CREATE_AT'
-                ? 'TO_TIMESTAMP(:CREATE_AT, \'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"\')'
-                : ':' + key
+        const value = (key: string) => bindExpression(key, 'PLN_LFIMG')
 
         await connection.execute(
           payload.FLAG === 'U'
@@ -69,6 +76,48 @@ export default {
 
       await connection.commit()
     })
+  },
+
+  async stageBel(payloads: BelStagePayload[]): Promise<'oracle' | 'local'> {
+    if (!payloads.length) return 'local'
+
+    if (!env.SAP_ORACLE_CONNECT_STRING || !env.SAP_ORACLE_USERNAME || !env.SAP_ORACLE_PASSWORD) {
+      if (env.NODE_ENV === 'production') {
+        throw new CustomError('SAP BEL staging credentials are not configured', 503)
+      }
+
+      return 'local'
+    }
+
+    await oracle(async (connection) => {
+      for (const payload of payloads) {
+        const columns = Object.keys(payload)
+        const value = (key: string) => bindExpression(key, 'PLN_MENGE')
+
+        if (payload.FLAG === 'U') {
+          await connection.execute(
+            `UPDATE PREREG_BEL_SAP SET ${BEL_STATUS_COLUMNS.map((key) => key + ' = :' + key).join(',')} WHERE DET_ID = :DET_ID`,
+            Object.fromEntries(
+              ['DET_ID', ...BEL_STATUS_COLUMNS].map((key) => [
+                key,
+                payload[key as keyof BelStagePayload],
+              ]),
+            ),
+          )
+
+          continue
+        }
+
+        await connection.execute(
+          `INSERT INTO PREREG_BEL_SAP (${columns.join(',')}) SELECT ${columns.map(value).join(',')} FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM PREREG_BEL_SAP WHERE DET_ID = :DET_ID)`,
+          { ...payload },
+        )
+      }
+
+      await connection.commit()
+    })
+
+    return 'oracle'
   },
 
   async acknowledge(results: StageResult[]) {

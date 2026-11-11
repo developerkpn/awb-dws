@@ -9,7 +9,6 @@ export const sapEntities = [
   'DOKUNNRSTOSet',
   'SOSTOSet',
   'DOSTOSet',
-  'LIFSTOSet',
   'STOTYPESet',
   'SLOCSet',
   'VALTYPESet',
@@ -48,4 +47,17 @@ export const documentSnapshot = z.object({
   transportType: z.string().nullable(),
   buyerReference: z.string().nullable().default(null),
   buyerName: z.string().nullable().default(null),
+})
+
+export const belPoSnapshot = z.object({
+  vendorCode: z.string(),
+  poNumber: z.string(),
+  poItem: z.string(),
+  material: z.string(),
+  description: z.string(),
+  uom: z.string(),
+  sapPlant: z.string(),
+  orderedQuantity: z.string(),
+  sapReceivedQuantity: z.string(),
+  completed: z.boolean(),
 })

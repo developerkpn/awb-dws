@@ -172,9 +172,7 @@ export default {
       where: {
         isActive: true,
         role: {
-          code: {
-            in: ['CUSTOMER', 'VENDOR'],
-          },
+          code: 'CUSTOMER',
         },
       },
       select: {

@@ -32,27 +32,7 @@ const read = (
 ) => repository.read(entity, '(' + filter + ')', owner, values)
 
 export default {
-  async references(owner: SapOwner, sto?: string): Promise<string[]> {
-    if (owner.role === 'VENDOR') {
-      if (!sto) return []
-
-      const owned = await read(
-        'LIFSTOSet',
-        eq('Lifnr', owner.username) + ' and ' + eq('Ebeln', sto),
-        owner,
-        { sto },
-      )
-
-      if (
-        !owned.some((row) => field(row, 'Ebeln') === sto && field(row, 'Lifnr') === owner.username)
-      )
-        throw new CustomError('STO does not belong to this account', 403)
-
-      return (await read('DOSTOSet', eq('Ebeln', sto), owner, { sto }))
-        .map((row) => field(row, 'ZzvbelnV1'))
-        .filter(Boolean)
-    }
-
+  async references(owner: SapOwner): Promise<string[]> {
     return (await read('DOKUNNRSet', eq('Kunnr', owner.username), owner))
       .map((row) => field(row, 'Vbeln'))
       .filter(Boolean)
@@ -70,12 +50,12 @@ export default {
   },
 
   async document(owner: SapOwner, reference: string, sto?: string): Promise<JulDocument> {
-    const references = await this.references(owner, sto)
+    const references = await this.references(owner)
 
     if (!references.includes(reference))
       throw new CustomError('Document does not belong to this account', 403)
 
-    if (sto && owner.role !== 'VENDOR') {
+    if (sto) {
       const owned = await this.stos(owner, reference)
 
       if (!owned.includes(sto))
@@ -121,7 +101,7 @@ export default {
         ) || null
     }
 
-    if (owner.role !== 'VENDOR' && !stoNumber && field(slip, 'Inco1') === 'FRC') {
+    if (!stoNumber && field(slip, 'Inco1') === 'FRC') {
       const associated = await read('SOSTOSet', eq('Bednr', reference), owner, values)
 
       stoNumber = field(associated[0] ?? {}, 'Ebeln') || null

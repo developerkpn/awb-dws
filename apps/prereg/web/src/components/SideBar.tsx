@@ -6,6 +6,7 @@ import {
   ShieldCheck,
   ClipboardList,
   CheckSquare,
+  PackageOpen,
   LogOut,
   Profile,
   Download,
@@ -82,11 +83,26 @@ export default function SideBar({ collapsed }: { collapsed: boolean }) {
       label: 'Operations',
       items: [
         {
+          to: '/bel',
+          label: 'BEL registrations',
+          icon: <PackageOpen className="size-4.5" />,
+          end: true,
+          show: hasPermission(user, PERMISSION.PREREG.READ) && user?.role !== 'CUSTOMER',
+        },
+        {
+          to: '/bel/review',
+          label: 'BEL review',
+          icon: <CheckSquare className="size-4.5" />,
+          show:
+            hasPermission(user, PERMISSION.PREREG.APPROVE) &&
+            ['ADMIN', 'LOGISTIC'].includes(user?.role ?? ''),
+        },
+        {
           to: '/jul',
           label: 'JUL registrations',
           icon: <ClipboardList className="size-4.5" />,
           end: true,
-          show: hasPermission(user, PERMISSION.PREREG.READ),
+          show: hasPermission(user, PERMISSION.PREREG.READ) && user?.role !== 'VENDOR',
         },
         {
           to: '/jul/review',

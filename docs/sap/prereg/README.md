@@ -1,4 +1,30 @@
-# Expected SAP JSON: PO by vendor and GR quantities
+# SAP PO by vendor and GR quantities
+
+## The service in use
+
+SAP built the FSD as `ZGW_WMS_SRV/VEND_PO_QTYSet`. BEL reads it in `apps/prereg/api/src/modules/bel/bel-po.repository.ts`; it was checked on erpdev on 2026-11-11:
+
+```http
+GET /sap/opu/odata/sap/ZGW_WMS_SRV/VEND_PO_QTYSet?$filter=(Lifnr eq 'AT11000108')&$format=json
+```
+
+| Property                  | Meaning                                         | Use in prereg                                    |
+| ------------------------- | ----------------------------------------------- | ------------------------------------------------ |
+| `Lifnr`                   | Vendor                                          | Filter; rows of any other vendor are dropped     |
+| `Ponum`, `Poitem`         | PO number and item (`EBELN`, `EBELP`)           | PO item key                                      |
+| `Movty`                   | Goods movement type (`101`, `102`, …)           | Sign of `QtyActual`                              |
+| `Materialno`, `Shorttxt`  | Material (e.g. `8030-10.11101`) and description | Shown; only materials starting with `8` are kept |
+| `Plant`                   | Receiving plant (e.g. `EU51`)                   | Matched to a prereg plant by SAP plant code      |
+| `Comcode`                 | Company code                                    | Not used                                         |
+| `QtyAwal`, `UnitAwal`     | Ordered quantity and PO unit                    | Quota                                            |
+| `QtyActual`, `UnitActual` | Quantity of this movement type and its unit     | Received quantity                                |
+
+- The key is `Lifnr`, `Ponum`, `Poitem` and `Movty`: one row per PO item **and movement type**. prereg adds `101` and `123`, subtracts `102` and `122`, and converts to `UnitAwal` (`G`, `KG`, `TO`). An item with another movement type or unit is left out. The remaining quota is ordered minus received minus what prereg has already reserved; fully received items are not offered.
+- The service returns no PO type, delivery-completed flag, incoterm or shipped quantity.
+- `$top` and `$skip` are ignored. Without `$filter` the service returns every vendor, so prereg always filters by the logged-in vendor.
+- Still to confirm with SAP: whether PO items without any goods receipt are returned (every erpdev row has a movement), and whether the PO type `*10` and `ELIKZ` rules are applied by the service.
+
+## Background: proposal written from the FSD
 
 The FSD is sufficient to infer the business data and draft mock JSON. It is **not a finalized API contract**: it contains no service/entity-set name, OData metadata, JSON example, property casing, or definitive response layout. All examples here are synthetic proposals, not responses captured from SAP.
 

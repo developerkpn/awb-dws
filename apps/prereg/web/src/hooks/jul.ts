@@ -50,14 +50,13 @@ export function useJulAction() {
       }),
   })
 }
-export function useJulReferences(customerId: string, sto: string, enabled: boolean) {
+export function useJulReferences(customerId: string, enabled: boolean) {
   return useQuery({
-    queryKey: ['jul', 'references', customerId, sto],
+    queryKey: ['jul', 'references', customerId],
     queryFn: ({ signal }) =>
       fetchApi<string[]>('/jul/references', {
         params: {
           customerId,
-          sto: sto || undefined,
         },
         signal,
       }),
