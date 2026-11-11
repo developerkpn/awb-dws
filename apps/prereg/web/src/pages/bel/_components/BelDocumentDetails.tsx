@@ -19,9 +19,15 @@ export default function BelDocumentDetails({
     ['Material', choice.material],
     ['Description', choice.description],
     ['Ordered quantity', `${unitsText(quantityUnits(choice.orderedQuantity))} ${choice.uom}`],
-    ['SAP GR quantity', `${unitsText(quantityUnits(choice.sapReceivedQuantity))} ${choice.receivedUom}`],
+    [
+      'SAP GR quantity',
+      `${unitsText(quantityUnits(choice.sapReceivedQuantity))} ${choice.receivedUom}`,
+    ],
     ['Reserved in web', `${unitsText(quantityUnits(choice.reservedQuantity))} ${choice.uom}`],
-    ['Remaining PO quota', `${unitsText(effectiveAvailable > 0n ? effectiveAvailable : 0n)} ${choice.uom}`],
+    [
+      'Remaining PO quota',
+      `${unitsText(effectiveAvailable > 0n ? effectiveAvailable : 0n)} ${choice.uom}`,
+    ],
     ['Plant', `${choice.sapPlant} · ${choice.plantName}`],
     ['Incoterms', choice.incoterm1 || 'FRC'],
   ]

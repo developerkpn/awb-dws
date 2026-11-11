@@ -93,9 +93,7 @@ describe('BEL and JUL RBAC role restrictions (AWB-20)', () => {
       .get('/api/jul/configuration')
       .set('Cookie', logisticCookie)
 
-    const logisticBel = await request(app)
-      .get('/api/bel/vendors')
-      .set('Cookie', logisticCookie)
+    const logisticBel = await request(app).get('/api/bel/vendors').set('Cookie', logisticCookie)
 
     expect(logisticJul.status).toBe(200)
     expect(logisticBel.status).toBe(200)

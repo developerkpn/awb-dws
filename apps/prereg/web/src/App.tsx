@@ -64,10 +64,7 @@ export default function App() {
             </Route>
             <Route
               element={
-                <RBACLayout
-                  permission={PERMISSION.PREREG.READ}
-                  disallowedRoles={['CUSTOMER']}
-                />
+                <RBACLayout permission={PERMISSION.PREREG.READ} disallowedRoles={['CUSTOMER']} />
               }
             >
               <Route path="/bel" element={<BelList />} />
@@ -75,10 +72,7 @@ export default function App() {
             </Route>
             <Route
               element={
-                <RBACLayout
-                  permission={PERMISSION.PREREG.READ}
-                  disallowedRoles={['VENDOR']}
-                />
+                <RBACLayout permission={PERMISSION.PREREG.READ} disallowedRoles={['VENDOR']} />
               }
             >
               <Route path="/jul" element={<JulList />} />
@@ -86,40 +80,28 @@ export default function App() {
             </Route>
             <Route
               element={
-                <RBACLayout
-                  permission={PERMISSION.PREREG.CREATE}
-                  disallowedRoles={['CUSTOMER']}
-                />
+                <RBACLayout permission={PERMISSION.PREREG.CREATE} disallowedRoles={['CUSTOMER']} />
               }
             >
               <Route path="/bel/new" element={<BelForm />} />
             </Route>
             <Route
               element={
-                <RBACLayout
-                  permission={PERMISSION.PREREG.CREATE}
-                  disallowedRoles={['VENDOR']}
-                />
+                <RBACLayout permission={PERMISSION.PREREG.CREATE} disallowedRoles={['VENDOR']} />
               }
             >
               <Route path="/jul/new" element={<JulForm />} />
             </Route>
             <Route
               element={
-                <RBACLayout
-                  permission={PERMISSION.PREREG.UPDATE}
-                  disallowedRoles={['CUSTOMER']}
-                />
+                <RBACLayout permission={PERMISSION.PREREG.UPDATE} disallowedRoles={['CUSTOMER']} />
               }
             >
               <Route path="/bel/:id/edit" element={<BelForm />} />
             </Route>
             <Route
               element={
-                <RBACLayout
-                  permission={PERMISSION.PREREG.UPDATE}
-                  disallowedRoles={['VENDOR']}
-                />
+                <RBACLayout permission={PERMISSION.PREREG.UPDATE} disallowedRoles={['VENDOR']} />
               }
             >
               <Route path="/jul/:id/edit" element={<JulForm />} />
@@ -143,20 +125,14 @@ export default function App() {
             </Route>
             <Route
               element={
-                <RBACLayout
-                  permission={PERMISSION.PREREG.APPROVE}
-                  disallowedRoles={['CUSTOMER']}
-                />
+                <RBACLayout permission={PERMISSION.PREREG.APPROVE} disallowedRoles={['CUSTOMER']} />
               }
             >
               <Route path="/bel/review" element={<BelList review />} />
             </Route>
             <Route
               element={
-                <RBACLayout
-                  permission={PERMISSION.PREREG.APPROVE}
-                  disallowedRoles={['VENDOR']}
-                />
+                <RBACLayout permission={PERMISSION.PREREG.APPROVE} disallowedRoles={['VENDOR']} />
               }
             >
               <Route path="/jul/review" element={<JulList review />} />

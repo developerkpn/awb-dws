@@ -324,12 +324,13 @@ export default function BelForm() {
                   <option value="">Type or choose a purchase order</option>
                   {poChoices.map((choice) => {
                     const available =
-                      quantityUnits(choice.availableQuantity) + (editableBonusByDoc[choice.id] ?? 0n)
+                      quantityUnits(choice.availableQuantity) +
+                      (editableBonusByDoc[choice.id] ?? 0n)
 
                     return (
                       <option key={choice.id} value={choice.id}>
-                        {choice.poNumber}/{choice.poItem} · {choice.description} ({choice.plantName}) —
-                        Rem: {unitsText(available > 0n ? available : 0n)} {choice.uom}
+                        {choice.poNumber}/{choice.poItem} · {choice.description} ({choice.plantName}
+                        ) — Rem: {unitsText(available > 0n ? available : 0n)} {choice.uom}
                       </option>
                     )
                   })}
@@ -368,9 +369,7 @@ export default function BelForm() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() =>
-                    setLines((current) => [...current, emptyLine(selectedDocumentId)])
-                  }
+                  onClick={() => setLines((current) => [...current, emptyLine(selectedDocumentId)])}
                 >
                   <Plus className="size-4" />
                   Add allocation
@@ -435,10 +434,7 @@ export default function BelForm() {
           >
             Save draft
           </Button>
-          <Button
-            type="submit"
-            disabled={busy}
-          >
+          <Button type="submit" disabled={busy}>
             Save & submit
           </Button>
         </div>
