@@ -9,7 +9,6 @@ import {
   Combobox,
   Field,
   FormError,
-  Input,
   Select,
   PageHeader,
   Skeleton,
@@ -42,7 +41,6 @@ function JulForm({ config, initial }: { config: JulConfiguration; initial?: JulR
   )
 
   const [isMulti, setIsMulti] = useState(initial?.isMulti ?? false)
-  const [sto, setSto] = useState('')
   const [referenceText, setReferenceText] = useState('')
   const [variant, setVariant] = useState<JulVariant>('LCO')
   const [selected, setSelected] = useState<JulDocumentOption | null>(null)
@@ -78,24 +76,11 @@ function JulForm({ config, initial }: { config: JulConfiguration; initial?: JulR
 
   const action = useJulAction()
 
-  const customerRole =
-    config.customers.find((customer) => customer.id === customerId)?.role.code ?? user?.role
-
-  const [stoToLoad, setStoToLoad] = useState('')
-
-  const references = useJulReferences(
-    customerId,
-    stoToLoad,
-    Boolean(customerId) && (customerRole !== 'VENDOR' || Boolean(stoToLoad)),
-  )
+  const references = useJulReferences(customerId, Boolean(customerId))
 
   const reference = references.data?.includes(referenceText.trim()) ? referenceText.trim() : ''
 
-  const stos = useJulStos(
-    customerId,
-    reference,
-    Boolean(selected?.incoterm1 === 'FRC' && customerRole !== 'VENDOR'),
-  )
+  const stos = useJulStos(customerId, reference, selected?.incoterm1 === 'FRC')
 
   const lookup = useJulDocumentLookup()
 
@@ -108,14 +93,12 @@ function JulForm({ config, initial }: { config: JulConfiguration; initial?: JulR
       const document = await lookup.mutateAsync({
         customerId,
         reference,
-        sto: customerRole === 'VENDOR' ? stoToLoad : chosenSto,
+        sto: chosenSto,
       })
 
       setSelected(document)
 
-      setVariant(
-        customerRole === 'VENDOR' ? 'FRC' : document.incoterm1 === 'FRC' ? 'FRC_TO_LCO' : 'LCO',
-      )
+      setVariant(document.incoterm1 === 'FRC' ? 'FRC_TO_LCO' : 'LCO')
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {
@@ -228,13 +211,11 @@ function JulForm({ config, initial }: { config: JulConfiguration; initial?: JulR
                   onChange={(event) => setIsMulti(event.target.value === 'multi')}
                 >
                   <option value="single">Single DO</option>
-                  <option value="multi" disabled={customerRole === 'VENDOR'}>
-                    Multi-DO (one trip)
-                  </option>
+                  <option value="multi">Multi-DO (one trip)</option>
                 </Select>
               </Field>
               {isInternal && (
-                <Field label="Customer / vendor">
+                <Field label="Customer">
                   <Select
                     value={customerId}
                     disabled={Boolean(initial) || lines.length > 0}
@@ -242,37 +223,15 @@ function JulForm({ config, initial }: { config: JulConfiguration; initial?: JulR
                       setCustomerId(event.target.value)
                       setSelected(null)
                       setReferenceText('')
-                      setStoToLoad('')
                     }}
                   >
-                    <option value="">Choose an account</option>
+                    <option value="">Choose a customer</option>
                     {config.customers.map((customer) => (
                       <option key={customer.id} value={customer.id}>
                         {customer.name} · {customer.username}
                       </option>
                     ))}
                   </Select>
-                </Field>
-              )}
-              {customerRole === 'VENDOR' && (
-                <Field label="STO number">
-                  <div className="flex gap-2">
-                    <Input
-                      value={sto}
-                      onChange={(event) => setSto(event.target.value)}
-                      placeholder="Enter your STO"
-                    />
-                    <Button
-                      variant="secondary"
-                      onClick={() => {
-                        setStoToLoad(sto)
-                        setSelected(null)
-                        setReferenceText('')
-                      }}
-                    >
-                      Find
-                    </Button>
-                  </div>
                 </Field>
               )}
               <Field label="Delivery order">
@@ -345,9 +304,7 @@ function JulForm({ config, initial }: { config: JulConfiguration; initial?: JulR
                       value={variant}
                       onChange={(event) => setVariant(event.target.value as JulVariant)}
                     >
-                      {customerRole === 'VENDOR' ? (
-                        <option value="FRC">FRC · STO {selected.stoNumber ?? 'not found'}</option>
-                      ) : selected.incoterm1 === 'FRC' ? (
+                      {selected.incoterm1 === 'FRC' ? (
                         <option value="FRC_TO_LCO">
                           FRC to LCO · STO {selected.stoNumber ?? 'not found'}
                         </option>
@@ -356,7 +313,7 @@ function JulForm({ config, initial }: { config: JulConfiguration; initial?: JulR
                       )}
                     </Select>
                   </Field>
-                  {selected.incoterm1 === 'FRC' && customerRole !== 'VENDOR' && (
+                  {selected.incoterm1 === 'FRC' && (
                     <Field label="Related STO">
                       <Combobox
                         value={selected.stoNumber ?? ''}

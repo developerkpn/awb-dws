@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const julVariant = z.enum(['LCO', 'FRC', 'FRC_TO_LCO'])
+export const julVariant = z.enum(['LCO', 'FRC_TO_LCO'])
 export const julLineStatus = z.enum([
   'DRAFT',
   'SUBMITTED',

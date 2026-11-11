@@ -27,13 +27,9 @@ router.get('/configuration', async (req, res) => {
 })
 
 router.get('/references', async (req, res) => {
-  const query = customerQuery
-    .extend({
-      sto: z.string().trim().max(30).optional(),
-    })
-    .parse(req.query)
+  const query = customerQuery.parse(req.query)
 
-  res.json(success(await service.references(currentUser(req), query.customerId, query.sto)))
+  res.json(success(await service.references(currentUser(req), query.customerId)))
 })
 
 router.get('/documents', async (req, res) => {

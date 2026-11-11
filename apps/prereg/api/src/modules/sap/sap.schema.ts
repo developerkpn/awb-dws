@@ -9,7 +9,6 @@ export const sapEntities = [
   'DOKUNNRSTOSet',
   'SOSTOSet',
   'DOSTOSet',
-  'LIFSTOSet',
   'STOTYPESet',
   'SLOCSet',
   'VALTYPESet',

@@ -674,7 +674,7 @@ describe('downstream JUL', () => {
     spy.mockRestore()
   })
 
-  it('maps customer FRC to FRC to LCO and vendor STOs to FRC with the T/6A staging override', async () => {
+  it('maps customer FRC to FRC_TO_LCO with the T/6A staging override and keeps vendors out of JUL', async () => {
     const frc = await document(refs[1])
 
     const line = {
@@ -736,9 +736,19 @@ describe('downstream JUL', () => {
 
     const vendorCookie = cookieFrom(await login(vendor.username))
 
-    const listed = await api('/references', vendorCookie).query({ sto: '4500000001' })
+    expect((await api('/references', vendorCookie)).status).toBe(403)
 
-    expect(listed.status).toBe(403)
+    const onBehalf = await api('/references', admin.cookie).query({
+      customerId: vendor.id,
+    })
+
+    expect(onBehalf.status).toBe(422)
+
+    expect(
+      ((await api('/configuration', admin.cookie)).body.data.customers as { id: string }[]).map(
+        (customer) => customer.id,
+      ),
+    ).not.toContain(vendor.id)
   })
 
   it('lists only downstream LCO/FRC delivery orders, as the legacy DO list did', async () => {

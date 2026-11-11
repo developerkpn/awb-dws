@@ -84,16 +84,6 @@ export function fixtureRows(
 
   if (entity === 'DOTRXDELETESet') return [{ PlnLfimg: '1000.000' }]
 
-  if (entity === 'LIFSTOSet')
-    return values.sto === '4500000001'
-      ? [
-          {
-            Ebeln: values.sto,
-            Lifnr: owner.username,
-          },
-        ]
-      : []
-
   if (entity === 'DOSTOSet')
     return values.sto === '4500000001'
       ? [
