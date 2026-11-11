@@ -278,13 +278,9 @@ export default function BelDetail() {
                   className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 text-xs"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 pb-2.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-sm font-semibold text-stone-900">
-                        PO {line.poNumber} / {line.poItem}
-                      </span>
-                      <Badge variant="internal">{line.poType}</Badge>
-                      <Badge variant="default">{line.incoterm1 || 'FRC'}</Badge>
-                    </div>
+                    <span className="font-mono text-sm font-semibold text-stone-900">
+                      PO {line.poNumber} / {line.poItem}
+                    </span>
                     <Badge variant={lineBadge.variant}>{lineBadge.label}</Badge>
                   </div>
 

@@ -15,21 +15,16 @@ export default function BelDocumentDetails({
 
   const fields = [
     ['PO number / item', `PO ${choice.poNumber} / ${choice.poItem}`],
-    ['PO type', choice.poType],
     ['Material', choice.material],
     ['Description', choice.description],
     ['Ordered quantity', `${unitsText(quantityUnits(choice.orderedQuantity))} ${choice.uom}`],
-    [
-      'SAP GR quantity',
-      `${unitsText(quantityUnits(choice.sapReceivedQuantity))} ${choice.receivedUom}`,
-    ],
+    ['SAP GR quantity', `${unitsText(quantityUnits(choice.sapReceivedQuantity))} ${choice.uom}`],
     ['Reserved in web', `${unitsText(quantityUnits(choice.reservedQuantity))} ${choice.uom}`],
     [
       'Remaining PO quota',
       `${unitsText(effectiveAvailable > 0n ? effectiveAvailable : 0n)} ${choice.uom}`,
     ],
     ['Plant', `${choice.sapPlant} · ${choice.plantName}`],
-    ['Incoterms', choice.incoterm1 || 'FRC'],
   ]
 
   return (

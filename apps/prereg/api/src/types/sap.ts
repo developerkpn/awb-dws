@@ -67,12 +67,10 @@ export interface BelStagePayload {
   HEAD_ID: string
   REG_NUMBER: string
   LIFNR: string
-  BSART: string | null
   EBELN: string
   EBELP: string
   MATNR: string
   WERKS: string
-  INCO1: string | null
   PLN_MENGE: string
   MEINS: string
   CREDAT: string | null

@@ -30,19 +30,14 @@ export type BelTransportMode = z.infer<typeof belTransportMode>
 
 export interface BelPoItem {
   vendorCode: string
-  poType: string
   poNumber: string
   poItem: string
   material: string
   description: string
   uom: string
   sapPlant: string
-  incoterm1: string
   orderedQuantity: string
   sapReceivedQuantity: string
-  receivedUom: string
-  sapShippedQuantity: string
-  shippedUom: string
   completed: boolean
 }
 
@@ -60,13 +55,11 @@ export interface BelRequestLine {
   documentId: string
   poNumber: string
   poItem: string
-  poType: string
   material: string
   description: string
   plantName: string
   sapPlant: string
   uom: string
-  incoterm1: string
   orderedQuantity: string
   sapReceivedQuantity: string
   driverLicenseNumber: string | null
