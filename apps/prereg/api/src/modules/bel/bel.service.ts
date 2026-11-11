@@ -5,6 +5,7 @@ import staging from '../sap/sap-stage.repository'
 import sapMaster from '../sap-master/sap-master.service'
 import poRepository from './bel-po.repository'
 import repository, { mapBelDetail } from './bel.repository'
+import type { BelStagePayload } from '../../types/sap'
 import type {
   ApprovalBody,
   BelListQuery,
@@ -383,7 +384,7 @@ export default {
       actorUsername: user.username,
       scope: await scopeFor(user),
       version: body.version,
-      stage: (payloads) => staging.stageBel(payloads),
+      stage: (payloads: BelStagePayload[]) => staging.stageBel(payloads),
     })
 
     return mapBelDetail(approved)
@@ -395,9 +396,11 @@ export default {
     const rejected = await repository.reject({
       id,
       actorId: user.id,
+      actorUsername: user.username,
       scope: await scopeFor(user),
       reason: body.reason,
       version: body.version,
+      stage: (payloads: BelStagePayload[]) => staging.stageBel(payloads),
     })
 
     return mapBelDetail(rejected)
@@ -413,7 +416,7 @@ export default {
       scope: await scopeFor(user),
       reason: body.reason,
       version: body.version,
-      stage: (payloads) => staging.stageBel(payloads),
+      stage: (payloads: BelStagePayload[]) => staging.stageBel(payloads),
     })
 
     return mapBelDetail(cancelled)

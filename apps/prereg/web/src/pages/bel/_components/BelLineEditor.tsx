@@ -6,7 +6,6 @@ import { useDebounce } from '@/hooks/useDebounce'
 import type { BelLineDraft } from '@/types/bel'
 import { X } from '@/ui/icons'
 import { quantityUnits, unitsText } from '@/utils/quantity'
-import BelDocumentDetails from './BelDocumentDetails'
 import { TRANSPORT_OPTIONS } from './belStatus'
 
 export default function BelLineEditor({
@@ -63,7 +62,10 @@ export default function BelLineEditor({
       data-testid={`bel-line-${index}`}
     >
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-stone-900">Allocation line #{index + 1}</h3>
+        <h3 className="text-sm font-semibold text-stone-900">
+          Allocation #{index + 1}
+          {selectedPo ? ` · PO ${selectedPo.poNumber}/${selectedPo.poItem}` : ''}
+        </h3>
         {canRemove && (
           <Button
             type="button"
@@ -78,36 +80,6 @@ export default function BelLineEditor({
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        <Field label="PO item" required>
-          <Select
-            aria-label={`PO item line ${index + 1}`}
-            value={line.documentId}
-            onChange={(event) =>
-              onChange({
-                ...line,
-                documentId: event.target.value,
-              })
-            }
-          >
-            <option value="">Select a PO item...</option>
-            {poChoices.map((choice) => {
-              const available =
-                quantityUnits(choice.availableQuantity) + (editableBonusByDoc[choice.id] ?? 0n)
-
-              return (
-                <option key={choice.id} value={choice.id}>
-                  {choice.poNumber}/{choice.poItem} · {choice.description} ({choice.plantName}) —
-                  Rem: {unitsText(available > 0n ? available : 0n)} {choice.uom}
-                </option>
-              )
-            })}
-          </Select>
-        </Field>
-
-        {selectedPo && (
-          <BelDocumentDetails choice={selectedPo} editableBonus={docBonus - usedByOtherLines} />
-        )}
-
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Field label="Driver (SIM)" hint="Registered SAP master driver" required>
             <Combobox

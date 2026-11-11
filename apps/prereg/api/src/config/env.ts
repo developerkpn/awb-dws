@@ -8,7 +8,6 @@ export const environmentSchema = z
     HOST: z.string().default('127.0.0.1'),
     JUL_WORKER_ENABLED: z.enum(['true', 'false']).default('false'),
     SAP_ODATA_BASE_URL: z.url().default('http://erpdev-gm.gamasap.com:8000'),
-    SAP_PO_API_URL: z.url().optional(),
     SAP_SERVICE_USERNAME: z.string().optional(),
     SAP_SERVICE_PASSWORD: z.string().optional(),
     SAP_ORACLE_CONNECT_STRING: z.string().optional(),

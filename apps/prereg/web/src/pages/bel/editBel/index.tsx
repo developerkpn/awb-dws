@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router'
-import { Button, Card, CardBody, Field, FormSection, PageHeader, Select } from '@awb/ui'
+import { Navigate, useNavigate, useParams } from 'react-router'
+import { Button, Card, CardBody, CardHeader, Field, PageHeader, Select } from '@awb/ui'
 import ErrorState from '@/components/ErrorState'
 import { useAuth } from '@/hooks/auth'
 import {
@@ -13,17 +13,18 @@ import {
 } from '@/hooks/bel'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import type { BelLineDraft } from '@/types/bel'
-import { ArrowLeft, Plus, Save } from '@/ui/icons'
+import { ArrowLeft, Plus } from '@/ui/icons'
 import { today } from '@/utils/date'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { quantityUnits, unitsText } from '@/utils/quantity'
 import BelLineEditor from '../_components/BelLineEditor'
 import { BelSkeleton } from '../_components/BelSkeleton'
+import BelDocumentDetails from '../_components/BelDocumentDetails'
 
-function emptyLine(): BelLineDraft {
+function emptyLine(documentId = ''): BelLineDraft {
   return {
     key: crypto.randomUUID(),
-    documentId: '',
+    documentId,
     driverLicenseNumber: '',
     vehiclePlateNumber: '',
     quantity: '',
@@ -46,6 +47,7 @@ export default function BelForm() {
   const vendorsQuery = useBelVendors(Boolean(user) && !isVendor && !isEdit)
 
   const [selectedVendorId, setSelectedVendorId] = useState('')
+  const [selectedDocumentId, setSelectedDocumentId] = useState('')
   const [lines, setLines] = useState<BelLineDraft[]>(() => [emptyLine()])
   const [initializedFor, setInitializedFor] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
@@ -69,6 +71,10 @@ export default function BelForm() {
 
   useEffect(() => {
     if (!isEdit || !detailQuery.data || initializedFor === detailQuery.data.id) return
+
+    const firstDocId = detailQuery.data.lines[0]?.documentId ?? ''
+
+    setSelectedDocumentId(firstDocId)
 
     setLines(
       detailQuery.data.lines.map((line) => ({
@@ -132,8 +138,24 @@ export default function BelForm() {
     )
   }
 
+  const handleDocumentChange = (docId: string) => {
+    setSelectedDocumentId(docId)
+
+    setLines((prev) =>
+      prev.map((l) => ({
+        ...l,
+        documentId: docId,
+      })),
+    )
+  }
+
+  const selectedPo = poChoices.find((choice) => choice.id === selectedDocumentId)
+  const totalAllocated = selectedDocumentId ? (totalByDoc.get(selectedDocumentId) ?? 0n) : 0n
+
   const validateDraft = (submitImmediately: boolean): string | null => {
     if (!effectiveVendorId) return 'Select a vendor account first.'
+
+    if (!selectedDocumentId) return 'Select a purchase order first.'
 
     if (!lines.length) return 'Add at least one PO allocation line.'
 
@@ -148,24 +170,28 @@ export default function BelForm() {
 
       if (submitImmediately) {
         if (!line.driverLicenseNumber.trim()) {
-          return `Line #${i + 1}: select a registered driver before submitting.`
+          return `Line #${i + 1}: driver SIM number is required.`
         }
 
         if (!line.vehiclePlateNumber.trim()) {
-          return `Line #${i + 1}: select a registered vehicle before submitting.`
+          return `Line #${i + 1}: vehicle plate number is required.`
+        }
+
+        if (!line.loadingDate) {
+          return `Line #${i + 1}: loading date is required.`
         }
       }
-    }
 
-    for (const [docId, requested] of totalByDoc.entries()) {
-      const choice = poChoices.find((item) => item.id === docId)
+      const selected = poChoices.find((choice) => choice.id === line.documentId)
 
-      if (!choice) continue
+      if (selected) {
+        const bonus = editableBonusByDoc[selected.id] ?? 0n
+        const available = quantityUnits(selected.availableQuantity) + bonus
+        const docTotal = totalByDoc.get(selected.id) ?? 0n
 
-      const maxAllowed = quantityUnits(choice.availableQuantity) + (editableBonusByDoc[docId] ?? 0n)
-
-      if (requested > maxAllowed) {
-        return `PO ${choice.poNumber}/${choice.poItem} requested total exceeds remaining quota (${unitsText(maxAllowed > 0n ? maxAllowed : 0n)} ${choice.uom}).`
+        if (docTotal > available) {
+          return `Line #${i + 1}: allocated quantity exceeds remaining PO balance.`
+        }
       }
     }
 
@@ -173,6 +199,8 @@ export default function BelForm() {
   }
 
   const persist = async (submitImmediately: boolean) => {
+    setFormError(null)
+
     const validationError = validateDraft(submitImmediately)
 
     if (validationError) {
@@ -181,11 +209,8 @@ export default function BelForm() {
       return
     }
 
-    setFormError(null)
-
     const payload = {
-      vendorId: isVendor ? undefined : effectiveVendorId,
-      version: isEdit ? detailQuery.data?.version : undefined,
+      vendorId: effectiveVendorId,
       lines: lines.map((line) => ({
         documentId: line.documentId,
         driverLicenseNumber: line.driverLicenseNumber.trim() || undefined,
@@ -218,23 +243,26 @@ export default function BelForm() {
   const busy = createMutation.isPending || updateMutation.isPending || submitMutation.isPending
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <Link
-          to={isEdit ? `/bel/${id}` : '/bel'}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-stone-600 hover:text-stone-900"
-        >
-          <ArrowLeft className="size-4" />
-          Back
-        </Link>
-        <span className="rounded-lg bg-sky-50 px-3 py-1 text-xs font-medium text-sky-800 ring-1 ring-sky-200">
-          No DP check · No automatic loading note
-        </span>
-      </div>
-
+    <form
+      className="mx-auto max-w-5xl space-y-6"
+      onSubmit={(event) => {
+        event.preventDefault()
+        void persist(true)
+      }}
+    >
       <PageHeader
-        title={isEdit ? `Edit ${detailQuery.data?.number ?? 'BEL'}` : 'New BEL registration'}
-        subtitle="Allocate vendor PO items against open remaining SAP quantity."
+        title={isEdit ? 'Edit BEL registration' : 'New BEL registration'}
+        subtitle="Select a purchase order, then allocate quantities to vehicles."
+        action={
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => navigate(isEdit ? `/bel/${id}` : '/bel')}
+          >
+            <ArrowLeft className="size-4" />
+            Back
+          </Button>
+        }
       />
 
       {formError && (
@@ -246,46 +274,69 @@ export default function BelForm() {
         </div>
       )}
 
-      <div className="space-y-6">
-        <FormSection
-          step="1"
-          title="Vendor & PO eligibility"
-          description="PO items from SAP (Bsart *10, trade materials 8*, not completed) without down-payment verification."
-        >
-          <div className="space-y-4">
-            {isVendor ? (
-              <p className="text-sm text-stone-700">
-                Vendor account:{' '}
-                <span className="font-semibold text-stone-900">
-                  {user?.name} ({user?.username})
-                </span>
-              </p>
-            ) : isEdit ? (
-              <p className="text-sm text-stone-700">
-                Vendor account:{' '}
-                <span className="font-semibold text-stone-900">
-                  {detailQuery.data?.vendor.name} ({detailQuery.data?.vendor.username})
-                </span>
-              </p>
-            ) : (
-              <Field label="Vendor account" required>
+      <fieldset disabled={busy} className="space-y-6">
+        <Card>
+          <CardHeader>
+            <h2 className="font-semibold text-stone-900">Purchase order</h2>
+          </CardHeader>
+          <CardBody className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {isVendor ? (
+                <Field label="Vendor">
+                  <p className="mt-2 text-sm font-semibold text-stone-900">
+                    {user?.name} · {user?.username}
+                  </p>
+                </Field>
+              ) : isEdit ? (
+                <Field label="Vendor">
+                  <p className="mt-2 text-sm font-semibold text-stone-900">
+                    {detailQuery.data?.vendor.name} · {detailQuery.data?.vendor.username}
+                  </p>
+                </Field>
+              ) : (
+                <Field label="Vendor account" required>
+                  <Select
+                    aria-label="Vendor account"
+                    value={selectedVendorId}
+                    onChange={(event) => {
+                      setSelectedVendorId(event.target.value)
+                      setSelectedDocumentId('')
+                      setLines([emptyLine()])
+                    }}
+                  >
+                    <option value="">Select vendor...</option>
+                    {(vendorsQuery.data ?? []).map((vendor) => (
+                      <option key={vendor.id} value={vendor.id}>
+                        {vendor.name} · {vendor.username}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              )}
+
+              <Field label="Purchase order" required>
                 <Select
-                  aria-label="Vendor account"
-                  value={selectedVendorId}
-                  onChange={(event) => {
-                    setSelectedVendorId(event.target.value)
-                    setLines([emptyLine()])
-                  }}
+                  aria-label="PO item line 1"
+                  value={selectedDocumentId}
+                  disabled={!effectiveVendorId}
+                  onChange={(event) => handleDocumentChange(event.target.value)}
                 >
-                  <option value="">Select vendor...</option>
-                  {(vendorsQuery.data ?? []).map((vendor) => (
-                    <option key={vendor.id} value={vendor.id}>
-                      {vendor.name} ({vendor.username})
-                    </option>
-                  ))}
+                  <option value="">Type or choose a purchase order</option>
+                  {poChoices.map((choice) => {
+                    const available =
+                      quantityUnits(choice.availableQuantity) +
+                      (editableBonusByDoc[choice.id] ?? 0n)
+
+                    return (
+                      <option key={choice.id} value={choice.id}>
+                        {choice.poNumber}/{choice.poItem} · {choice.description} ({choice.plantName}
+                        ) — Rem: {unitsText(available > 0n ? available : 0n)} {choice.uom}
+                      </option>
+                    )
+                  })}
                 </Select>
               </Field>
-            )}
+            </div>
 
             {effectiveVendorId && poItemsQuery.isError && (
               <ErrorState
@@ -299,86 +350,95 @@ export default function BelForm() {
                 No eligible open trade PO items returned for this vendor.
               </p>
             )}
-          </div>
-        </FormSection>
 
-        <FormSection
-          step="2"
-          title="PO allocations & transport"
-          description="Remaining PO quota = Ordered (Menge) - SAP GR (Erfmg) - Reserved in web."
-        >
-          <div className="space-y-4">
-            {lines.map((line, index) => {
-              const currentUnits =
-                line.documentId && line.quantity ? quantityUnits(line.quantity) : 0n
-
-              const docTotal = line.documentId ? (totalByDoc.get(line.documentId) ?? 0n) : 0n
-              const usedByOthers = docTotal > currentUnits ? docTotal - currentUnits : 0n
-
-              return (
-                <BelLineEditor
-                  key={line.key}
-                  index={index}
-                  line={line}
-                  vendorId={effectiveVendorId || undefined}
-                  poChoices={poChoices}
-                  editableBonusByDoc={editableBonusByDoc}
-                  usedByOtherLines={usedByOthers}
-                  canRemove={lines.length > 1}
-                  onChange={(nextLine) =>
-                    setLines((current) =>
-                      current.map((item) => (item.key === line.key ? nextLine : item)),
-                    )
-                  }
-                  onRemove={() =>
-                    setLines((current) => current.filter((item) => item.key !== line.key))
-                  }
-                />
-              )
-            })}
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              icon={<Plus className="size-4" />}
-              onClick={() => setLines((current) => [...current, emptyLine()])}
-            >
-              Add PO allocation line
-            </Button>
-          </div>
-        </FormSection>
-
-        <Card>
-          <CardBody className="flex flex-wrap items-center justify-end gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={busy}
-              onClick={() => navigate(isEdit ? `/bel/${id}` : '/bel')}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              icon={<Save className="size-4" />}
-              isLoading={busy}
-              onClick={() => void persist(false)}
-            >
-              Save draft
-            </Button>
-            <Button
-              type="button"
-              variant="primary"
-              isLoading={busy}
-              onClick={() => void persist(true)}
-            >
-              Save & submit
-            </Button>
+            {selectedPo && (
+              <BelDocumentDetails
+                choice={selectedPo}
+                allocated={totalAllocated}
+                editableBonus={editableBonusByDoc[selectedPo.id] ?? 0n}
+              />
+            )}
           </CardBody>
         </Card>
-      </div>
-    </div>
+
+        <Card>
+          <CardHeader
+            action={
+              selectedDocumentId ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLines((current) => [...current, emptyLine(selectedDocumentId)])}
+                >
+                  <Plus className="size-4" />
+                  Add allocation
+                </Button>
+              ) : undefined
+            }
+          >
+            <h2 className="font-semibold text-stone-900">Allocations & transport</h2>
+          </CardHeader>
+          <CardBody className="space-y-4">
+            {!selectedDocumentId ? (
+              <p className="py-6 text-center text-sm text-stone-500">
+                Choose a purchase order above to add vehicle allocations.
+              </p>
+            ) : (
+              lines.map((line, index) => {
+                const currentUnits =
+                  line.documentId && line.quantity ? quantityUnits(line.quantity) : 0n
+
+                const docTotal = line.documentId ? (totalByDoc.get(line.documentId) ?? 0n) : 0n
+                const usedByOthers = docTotal > currentUnits ? docTotal - currentUnits : 0n
+
+                return (
+                  <BelLineEditor
+                    key={line.key}
+                    index={index}
+                    line={line}
+                    vendorId={effectiveVendorId || undefined}
+                    poChoices={poChoices}
+                    editableBonusByDoc={editableBonusByDoc}
+                    usedByOtherLines={usedByOthers}
+                    canRemove={lines.length > 1}
+                    onChange={(nextLine) =>
+                      setLines((current) =>
+                        current.map((item) => (item.key === line.key ? nextLine : item)),
+                      )
+                    }
+                    onRemove={() =>
+                      setLines((current) => current.filter((item) => item.key !== line.key))
+                    }
+                  />
+                )
+              })
+            )}
+          </CardBody>
+        </Card>
+
+        <div className="flex justify-end gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={() => navigate(isEdit ? `/bel/${id}` : '/bel')}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={busy}
+            onClick={() => void persist(false)}
+          >
+            Save draft
+          </Button>
+          <Button type="submit" disabled={busy}>
+            Save & submit
+          </Button>
+        </div>
+      </fieldset>
+    </form>
   )
 }

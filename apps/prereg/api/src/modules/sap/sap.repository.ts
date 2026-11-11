@@ -5,8 +5,13 @@ import type { SapEntity, SapMasterEntity, SapOwner, SapPaging, SapRow } from '..
 
 export const odataLiteral = (value: string) => "'" + value.replace(/'/g, "''") + "'"
 
-export function sapUrl(entity: SapEntity | 'DOTRXSet', filter?: string, paging?: SapPaging) {
-  const url = new URL('/sap/opu/odata/sap/ZGW_REGISTRA_SRV/' + entity, env.SAP_ODATA_BASE_URL)
+export function sapUrl(
+  entity: SapEntity | 'DOTRXSet' | 'VEND_PO_QTYSet',
+  filter?: string,
+  paging?: SapPaging,
+  service = 'ZGW_REGISTRA_SRV',
+) {
+  const url = new URL('/sap/opu/odata/sap/' + service + '/' + entity, env.SAP_ODATA_BASE_URL)
 
   url.searchParams.set('$format', 'json')
 
@@ -59,6 +64,17 @@ export default {
 
   page(entity: SapMasterEntity, paging: SapPaging): Promise<SapRow[]> {
     return collection(sapUrl(entity, undefined, paging), true)
+  },
+
+  vendorPurchaseOrders(vendorCode: string): Promise<SapRow[]> {
+    return collection(
+      sapUrl(
+        'VEND_PO_QTYSet',
+        '(Lifnr eq ' + odataLiteral(vendorCode) + ')',
+        undefined,
+        'ZGW_WMS_SRV',
+      ),
+    )
   },
 
   async trigger(operator: string, password?: string) {

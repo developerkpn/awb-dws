@@ -1,120 +1,65 @@
-import { useEffect, useState } from 'react'
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import {
-  belRequestStatus,
   belSortFields,
+  belRequestStatus,
   type BelRequestStatus,
   type BelRequestSummary,
 } from '@awb/contracts'
-import { Button, Input, PageHeader, Select, Table, type TableColumn } from '@awb/ui'
-import ErrorState from '@/components/ErrorState'
-import { PERMISSION } from '@/constant/PERMISSION'
-import { useAuth } from '@/hooks/auth'
+import { Button, Input, Select, PageHeader, SkeletonCell, Table, type TableColumn } from '@awb/ui'
 import { useBelList } from '@/hooks/bel'
-import { useDebounce } from '@/hooks/useDebounce'
-import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { usePagination } from '@/hooks/usePagination'
 import { useSorting } from '@/hooks/useSorting'
-import { Badge } from '@/ui'
-import { Plus, Search } from '@/ui/icons'
-import { tableLayout } from '@/ui/loadingLayouts'
-import { getErrorMessage } from '@/utils/errorHandler'
+import { useDebounce } from '@/hooks/useDebounce'
+import { useAuth } from '@/hooks/auth'
 import { hasPermission } from '@/utils/permission'
-import { BEL_STATUS_BADGE } from '../_components/belStatus'
+import ErrorState from '@/components/ErrorState'
+import { ArrowRight, Plus } from '@/ui/icons'
 
-const STATUS_VALUES = belRequestStatus.options
-
-export default function BelList({ review = false }: { review?: boolean }) {
+export default function ListBel({ review = false }: { review?: boolean }) {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const { page, limit, q, onPageChange, onPageSizeChange, onSearchChange } = usePagination()
+  const [params, setParams] = useSearchParams()
+  const pagination = usePagination()
   const { sortBy, sortDirection, sorting } = useSorting(belSortFields, 'createdAt', 'desc')
+  const status = params.get('status') ?? (review ? 'SUBMITTED' : '')
+  const search = useDebounce(pagination.q, 300)
 
-  const [searchInput, setSearchInput] = useState(q)
-  const debouncedSearch = useDebounce(searchInput, 250)
-
-  useDocumentTitle(review ? 'BEL review' : 'BEL pre-registrations')
-
-  useEffect(() => {
-    setSearchInput(q)
-  }, [q])
-
-  useEffect(() => {
-    if (debouncedSearch !== q) {
-      onSearchChange(debouncedSearch)
-    }
-  }, [debouncedSearch, onSearchChange, q])
-
-  const rawStatus = searchParams.get('status')
-  const parsedStatus = STATUS_VALUES.find((status) => status === rawStatus)
-
-  const effectiveStatus: BelRequestStatus | undefined =
-    rawStatus === 'ALL' ? undefined : (parsedStatus ?? (review ? 'SUBMITTED' : undefined))
-
-  const selectStatusValue = rawStatus === 'ALL' ? 'ALL' : (effectiveStatus ?? 'ALL')
-
-  const listQuery = useBelList({
-    page,
-    limit,
+  const query = useBelList({
+    page: pagination.page,
+    limit: pagination.limit,
     sortBy,
     sortOrder: sortDirection,
-    search: q.trim() || undefined,
-    status: effectiveStatus,
+    status: status ? (status as BelRequestStatus) : undefined,
+    search: search || undefined,
   })
-
-  if (user?.role === 'CUSTOMER') {
-    return <Navigate to="/forbidden" replace />
-  }
-
-  const canCreate = hasPermission(user, PERMISSION.PREREG.CREATE)
-  const canUpdate = hasPermission(user, PERMISSION.PREREG.UPDATE)
-
-  const handleStatusChange = (nextStatus: string) => {
-    const next = new URLSearchParams(searchParams)
-
-    if (nextStatus === 'ALL') {
-      next.set('status', 'ALL')
-    } else {
-      next.set('status', nextStatus)
-    }
-
-    next.set('page', '1')
-
-    setSearchParams(next, {
-      replace: true,
-    })
-  }
 
   const columns: TableColumn<BelRequestSummary>[] = [
     {
       key: 'number',
       header: 'Registration',
       sortKey: 'number',
+      width: '24%',
+      skeleton: <SkeletonCell lines={2} width="80%" />,
       render: (row) => (
-        <div className="space-y-0.5">
-          <Link
-            to={`/bel/${row.id}`}
-            onClick={(event) => event.stopPropagation()}
-            className="font-mono text-xs font-semibold text-brand-700 hover:underline"
-          >
-            {row.number}
-          </Link>
-          <p className="text-xs text-stone-500">
-            {row.lineCount} line{row.lineCount === 1 ? '' : 's'}
-            {row.documents.length ? ` · PO ${row.documents.join(', ')}` : ''}
+        <div>
+          <p className="font-medium text-stone-900">{row.number.slice(0, 16)}</p>
+          <p className="mt-1 text-xs text-stone-500">
+            {row.documents.slice(0, 2).join(', ')}
+            {row.documents.length > 2 ? ` +${row.documents.length - 2}` : ''}
           </p>
         </div>
       ),
     },
     {
       key: 'customer',
-      header: 'Vendor',
+      header: 'Customer / vendor',
       sortKey: 'vendor',
+      width: '24%',
+      skeleton: <SkeletonCell lines={2} width="75%" />,
       render: (row) => (
-        <div className="space-y-0.5">
-          <p className="text-sm font-medium text-stone-900">{row.vendor.name}</p>
-          <p className="font-mono text-xs text-stone-500">{row.vendor.username}</p>
+        <div>
+          <p>{row.vendor.name}</p>
+          <p className="mt-1 text-xs text-stone-500">{row.vendor.username}</p>
         </div>
       ),
     },
@@ -122,59 +67,43 @@ export default function BelList({ review = false }: { review?: boolean }) {
       key: 'status',
       header: 'Status',
       sortKey: 'status',
-      render: (row) => {
-        const badge = BEL_STATUS_BADGE[row.status]
-
-        return (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Badge variant={badge.variant}>{badge.label}</Badge>
-            {row.status === 'APPROVED' && (
-              <span className="text-xs text-stone-500">
-                {row.approvedCount}/{row.lineCount} staged
-              </span>
-            )}
-          </div>
-        )
-      },
+      width: '20%',
+      skeleton: <SkeletonCell lines={2} width="70%" />,
+      render: (row) => (
+        <div>
+          <p>{row.status.replaceAll('_', ' ')}</p>
+          <p className="mt-1 text-xs text-stone-500">
+            {row.approvedCount} / {row.lineCount} lines
+          </p>
+        </div>
+      ),
     },
     {
       key: 'createdAt',
       header: 'Created',
       sortKey: 'createdAt',
-      render: (row) => (
-        <span className="text-xs text-stone-600">
-          {new Date(row.createdAt).toLocaleString('en-GB', {
-            timeZone: 'Asia/Jakarta',
-            dateStyle: 'medium',
-            timeStyle: 'short',
-          })}
-        </span>
-      ),
+      width: '20%',
+      skeleton: <SkeletonCell width="6rem" />,
+      render: (row) => new Date(row.createdAt).toLocaleDateString(),
     },
     {
       key: 'actions',
       header: 'Actions',
       align: 'right',
+      width: '12%',
+      skeleton: <SkeletonCell kind="actions" count={1} />,
       render: (row) => (
-        <div className="flex justify-end gap-2" onClick={(event) => event.stopPropagation()}>
-          {!review && canUpdate && ['DRAFT', 'REJECTED'].includes(row.status) && (
-            <Button size="sm" variant="outline" onClick={() => navigate(`/bel/${row.id}/edit`)}>
-              Edit
-            </Button>
-          )}
-          <Button
-            size="sm"
-            variant={review && row.status === 'SUBMITTED' ? 'primary' : 'secondary'}
-            onClick={() => navigate(`/bel/${row.id}`)}
-          >
-            {review && row.status === 'SUBMITTED' ? 'Review' : 'View'}
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={`Open ${row.number}`}
+          onClick={() => navigate('/bel/' + row.id)}
+        >
+          <ArrowRight className="size-4" />
+        </Button>
       ),
     },
   ]
-
-  const rows = listQuery.data?.items ?? []
 
   return (
     <div className="space-y-6">
@@ -182,77 +111,63 @@ export default function BelList({ review = false }: { review?: boolean }) {
         title={review ? 'BEL review' : 'BEL registrations'}
         subtitle={
           review
-            ? 'Review submitted vendor PO allocations and stage approved lines to PREREG_BEL_SAP (no SAP password or loading note trigger).'
-            : 'Pre-register vendor deliveries against SAP PO items without DP check or automatic loading note creation.'
+            ? 'Review vendor purchase deliveries against SAP purchase orders.'
+            : 'Plan vendor deliveries using your SAP purchase orders.'
         }
         action={
-          !review && canCreate ? (
-            <Button icon={<Plus className="size-4" />} onClick={() => navigate('/bel/new')}>
-              New BEL registration
+          !review && hasPermission(user, 'prereg:create') ? (
+            <Button onClick={() => navigate('/bel/new')}>
+              <Plus className="size-4" />
+              New registration
             </Button>
           ) : undefined
         }
       />
-
-      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex-1 max-w-md">
-          <Input
-            aria-label="Search BEL registrations"
-            leadingIcon={<Search className="size-4" />}
-            placeholder="Search BEL number, PO number, vendor, SIM, or plate..."
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-          />
-        </div>
-
-        <div className="w-full sm:w-52">
-          <Select
-            aria-label="Filter BEL status"
-            value={selectStatusValue}
-            onChange={(event) => handleStatusChange(event.target.value)}
-          >
-            <option value="ALL">All statuses</option>
-            {STATUS_VALUES.map((status) => (
-              <option key={status} value={status}>
-                {BEL_STATUS_BADGE[status].label}
-              </option>
-            ))}
-          </Select>
-        </div>
-      </div>
-
-      {listQuery.isError ? (
-        <ErrorState
-          message={getErrorMessage(listQuery.error, 'Could not load BEL registrations.')}
-          onRetry={() => void listQuery.refetch()}
+      <div className="flex flex-wrap gap-3">
+        <Input
+          aria-label="Search BEL registrations"
+          placeholder="Search registrations or documents…"
+          value={pagination.q}
+          onChange={(event) => pagination.onSearchChange(event.target.value)}
+          className="sm:max-w-sm"
         />
+        <Select
+          aria-label="Registration status"
+          value={status}
+          onChange={(event) => {
+            const next = new URLSearchParams(params)
+
+            next.set('status', event.target.value)
+            next.set('page', '1')
+            setParams(next)
+          }}
+        >
+          <option value="">All statuses</option>
+          {belRequestStatus.options.map((value) => (
+            <option key={value} value={value}>
+              {value.replaceAll('_', ' ')}
+            </option>
+          ))}
+        </Select>
+      </div>
+      {query.isError ? (
+        <ErrorState message="Unable to load BEL registrations." onRetry={() => query.refetch()} />
       ) : (
         <Table
-          columns={tableLayout('jul', columns)}
-          data={rows}
+          columns={columns}
+          data={query.data?.items ?? []}
           keyExtractor={(row) => row.id}
-          isLoading={listQuery.isLoading}
+          isLoading={query.isPending}
           sorting={{
             ...sorting,
-            isLoading: listQuery.isFetching,
+            isLoading: query.isFetching,
           }}
           pagination={{
-            page,
-            limit,
-            total: listQuery.data?.total ?? 0,
-            onPageChange,
-            onPageSizeChange,
-            isLoading: listQuery.isFetching,
+            ...pagination,
+            total: query.data?.total ?? 0,
+            isLoading: query.isFetching,
           }}
-          emptyMessage={
-            review ? 'No BEL registrations waiting in this queue.' : 'No BEL registrations found.'
-          }
-          emptyDescription={
-            review
-              ? 'Submitted vendor PO allocations will appear here once submitted.'
-              : 'Create a BEL pre-registration to allocate deliveries against SAP PO items.'
-          }
-          onRowClick={(row) => navigate(`/bel/${row.id}`)}
+          emptyMessage="No BEL registrations found."
         />
       )}
     </div>

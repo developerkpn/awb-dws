@@ -102,7 +102,7 @@ export default function SideBar({ collapsed }: { collapsed: boolean }) {
           label: 'JUL registrations',
           icon: <ClipboardList className="size-4.5" />,
           end: true,
-          show: hasPermission(user, PERMISSION.PREREG.READ),
+          show: hasPermission(user, PERMISSION.PREREG.READ) && user?.role !== 'VENDOR',
         },
         {
           to: '/jul/review',

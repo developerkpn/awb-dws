@@ -314,6 +314,12 @@ async function findScoped(db: Tx | typeof prisma, id: string, scope: BelScope) {
   })
 }
 
+// Approve, reject and cancel write to Oracle inside the transaction; Prisma's 5 s default is too short.
+const ORACLE_TRANSACTION = {
+  maxWait: 10_000,
+  timeout: 60_000,
+}
+
 async function lockRegistration(tx: Tx, id: string) {
   await tx.$executeRaw`SELECT id FROM awb_bel_registration WHERE id = ${id}::uuid FOR UPDATE`
 }
@@ -332,9 +338,12 @@ export function buildBelStagePayloads(
 ): BelStagePayload[] {
   const timestamp = now.toISOString()
 
+  // A retraction also covers submitted lines: an approval can reach Oracle and still roll back here.
   return row.lines
     .filter((line) =>
-      action === 'APPROVED' ? line.status === 'SUBMITTED' : line.stagedAt !== null,
+      action === 'APPROVED'
+        ? line.status === 'SUBMITTED'
+        : ['SUBMITTED', 'APPROVED'].includes(line.status),
     )
     .map((line) => {
       const snapshot = parseSnapshot(line.documentSnapshot)
@@ -344,12 +353,10 @@ export function buildBelStagePayloads(
         HEAD_ID: row.id,
         REG_NUMBER: row.number,
         LIFNR: row.vendor.username,
-        BSART: snapshot.poType || null,
         EBELN: snapshot.poNumber,
         EBELP: snapshot.poItem,
         MATNR: snapshot.material,
         WERKS: snapshot.sapPlant,
-        INCO1: snapshot.incoterm1 || null,
         PLN_MENGE: dbDecimal(line.quantity),
         MEINS: snapshot.uom,
         CREDAT: line.loadingDate ? line.loadingDate.toISOString().slice(0, 10) : null,
@@ -403,13 +410,11 @@ export function mapBelDetail(row: StoredBelRequest): BelRequestDetail {
       documentId: line.documentId,
       poNumber: snapshot.poNumber,
       poItem: snapshot.poItem,
-      poType: snapshot.poType,
       material: snapshot.material,
       description: snapshot.description,
       plantName: line.document.plant.name,
       sapPlant: snapshot.sapPlant,
       uom: snapshot.uom,
-      incoterm1: snapshot.incoterm1,
       orderedQuantity: snapshot.orderedQuantity,
       sapReceivedQuantity: snapshot.sapReceivedQuantity,
       driverLicenseNumber: line.driverLicenseNumber,
@@ -881,15 +886,17 @@ export default {
         },
         include: REQUEST_INCLUDE,
       })
-    })
+    }, ORACLE_TRANSACTION)
   },
 
   async reject(input: {
     id: string
     actorId: string
+    actorUsername: string
     scope: BelScope
     reason: string
     version?: number
+    stage: (payloads: BelStagePayload[]) => Promise<'oracle' | 'local'>
   }): Promise<StoredBelRequest> {
     return prisma.$transaction(async (tx) => {
       await lockRegistration(tx, input.id)
@@ -907,6 +914,11 @@ export default {
       }
 
       const now = new Date()
+      const retracted = buildBelStagePayloads(existing, input.actorUsername, now, 'CANCELLED')
+
+      if (retracted.length) {
+        await input.stage(retracted)
+      }
 
       return tx.belRegistration.update({
         where: {
@@ -940,7 +952,7 @@ export default {
         },
         include: REQUEST_INCLUDE,
       })
-    })
+    }, ORACLE_TRANSACTION)
   },
 
   async cancel(input: {
@@ -1009,6 +1021,6 @@ export default {
         },
         include: REQUEST_INCLUDE,
       })
-    })
+    }, ORACLE_TRANSACTION)
   },
 }

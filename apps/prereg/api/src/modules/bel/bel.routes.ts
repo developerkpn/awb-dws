@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { success } from '@awb/server-core'
-import { currentUser, requirePermission } from '../../middlewares/auth'
+import { currentUser, disallowRole, requirePermission } from '../../middlewares/auth'
 import {
   approveBody,
   belListQuery,
@@ -14,6 +14,8 @@ import {
 import service from './bel.service'
 
 const router = Router()
+
+router.use(disallowRole(['CUSTOMER']))
 
 router.get('/vendors', requirePermission('prereg:read'), async (req, res) => {
   res.json(success(await service.vendors(currentUser(req))))

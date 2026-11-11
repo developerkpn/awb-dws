@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { success } from '@awb/server-core'
-import { currentUser, requirePermission } from '../../middlewares/auth'
+import { currentUser, requirePermission, disallowRole } from '../../middlewares/auth'
 import {
   idParam,
   customerQuery,
@@ -19,6 +19,7 @@ import service from './jul.service'
 
 const router = Router()
 
+router.use(disallowRole(['VENDOR']))
 router.use(requirePermission('prereg:read'))
 
 router.get('/configuration', async (req, res) => {
@@ -26,13 +27,9 @@ router.get('/configuration', async (req, res) => {
 })
 
 router.get('/references', async (req, res) => {
-  const query = customerQuery
-    .extend({
-      sto: z.string().trim().max(30).optional(),
-    })
-    .parse(req.query)
+  const query = customerQuery.parse(req.query)
 
-  res.json(success(await service.references(currentUser(req), query.customerId, query.sto)))
+  res.json(success(await service.references(currentUser(req), query.customerId)))
 })
 
 router.get('/documents', async (req, res) => {

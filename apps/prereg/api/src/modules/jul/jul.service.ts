@@ -51,12 +51,12 @@ async function owner(user: SessionUser, customerId?: string): Promise<SapOwner> 
 
   const id = internal(user) ? customerId : user.id
 
-  if (!id) throw new CustomError('Choose a customer or vendor', 422)
+  if (!id) throw new CustomError('Choose a customer', 422)
 
   const customer = await repository.user(id)
 
-  if (!customer || !['CUSTOMER', 'VENDOR'].includes(customer.role.code))
-    throw new CustomError('Choose an active customer or vendor', 422)
+  if (!customer || customer.role.code !== 'CUSTOMER')
+    throw new CustomError('Choose an active customer', 422)
 
   return {
     id: customer.id,
@@ -86,11 +86,7 @@ async function freshDocument(id: string, user: SessionUser, customer: SapOwner, 
 
   const prior = documentSnapshot.parse(cached.snapshot)
 
-  const document = await sap.document(
-    customer,
-    cached.referenceDocument,
-    sto ?? (customer.role === 'VENDOR' ? (prior.stoNumber ?? undefined) : undefined),
-  )
+  const document = await sap.document(customer, cached.referenceDocument, sto)
 
   if (document.sapPlant !== prior.sapPlant || document.material !== prior.material)
     throw new CustomError('SAP document changed; refresh the document selection', 409)
@@ -132,8 +128,7 @@ async function prepare(
     if (!document.paid)
       throw new CustomError('Down payment is not sufficient for ' + document.referenceDocument, 422)
 
-    const expected =
-      customer.role === 'VENDOR' ? 'FRC' : document.incoterm1 === 'FRC' ? 'FRC_TO_LCO' : 'LCO'
+    const expected = document.incoterm1 === 'FRC' ? 'FRC_TO_LCO' : 'LCO'
 
     if (input.variant !== expected)
       throw new CustomError('Choose the matching downstream JUL variant', 422)
@@ -170,8 +165,7 @@ async function prepare(
       documentId: input.documentId,
       documentSnapshot: document,
       variant: input.variant,
-      stoNumber:
-        input.variant === 'FRC_TO_LCO' || customer.role === 'VENDOR' ? document.stoNumber : null,
+      stoNumber: input.variant === 'FRC_TO_LCO' ? document.stoNumber : null,
       driverLicenseNumber: input.driverLicenseNumber ? licenseKey(input.driverLicenseNumber) : null,
       driverName,
       vehiclePlateNumber: input.vehiclePlateNumber ? plateKey(input.vehiclePlateNumber) : null,
@@ -192,7 +186,7 @@ async function prepare(
     )
 
   if (body.isMulti) {
-    if (customer.role === 'VENDOR' || lines.some((line) => line.variant !== 'LCO'))
+    if (lines.some((line) => line.variant !== 'LCO'))
       throw new CustomError('Multi-DO trips are for customer LCO delivery orders', 422)
 
     if (lines.length < 2)
@@ -409,9 +403,9 @@ export default {
       canReview: reviewer(user),
     }
   },
-  async references(user: SessionUser, customerId?: string, sto?: string) {
+  async references(user: SessionUser, customerId?: string) {
     const customer = await owner(user, customerId)
-    const references = await sap.references(customer, sto)
+    const references = await sap.references(customer)
     const slips: { reference: string; incoterm1: string; sapPlant: string }[] = []
 
     for (let index = 0; index < references.length; index += 5)
@@ -422,7 +416,7 @@ export default {
             .map((reference) => sap.slip(customer, reference).catch(() => null)),
         )
       ).entries())
-        if (slip && (customer.role === 'VENDOR' || ['LCO', 'FRC'].includes(slip.incoterm1)))
+        if (slip && ['LCO', 'FRC'].includes(slip.incoterm1))
           slips.push({
             ...slip,
             reference: references[index + offset]!,
@@ -459,10 +453,7 @@ export default {
     if (!plant)
       throw new CustomError('Map this SAP plant to an active local plant before continuing', 422)
 
-    if (
-      (customer.role !== 'VENDOR' && !['LCO', 'FRC'].includes(snapshot.incoterm1)) ||
-      plant.companyGroup !== 'DOWNSTREAM'
-    )
+    if (!['LCO', 'FRC'].includes(snapshot.incoterm1) || plant.companyGroup !== 'DOWNSTREAM')
       throw new CustomError('This document is outside downstream JUL', 422)
 
     await checkPlant(user, plant.id)

@@ -73,3 +73,25 @@ export const requirePermission =
 
     next()
   }
+
+export const disallowRole =
+  (disallowedRoles: string[]): RequestHandler =>
+  (req, _res, next) => {
+    const user = currentUser(req)
+
+    if (disallowedRoles.includes(user.role))
+      throw new CustomError('Access denied for role ' + user.role, 403)
+
+    next()
+  }
+
+export const requireRole =
+  (allowedRoles: string[]): RequestHandler =>
+  (req, _res, next) => {
+    const user = currentUser(req)
+
+    if (!allowedRoles.includes(user.role))
+      throw new CustomError('Access denied for role ' + user.role, 403)
+
+    next()
+  }

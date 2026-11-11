@@ -3,7 +3,6 @@ import { CustomError } from '@awb/server-core'
 import { prisma } from '../src/config/prisma'
 import gateway from '../src/modules/sap/sap.repository'
 import staging from '../src/modules/sap/sap-stage.repository'
-import belPoRepository, { mockPoRows, parsePoRows } from '../src/modules/bel/bel-po.repository'
 import type {
   BelStagePayload,
   SapEntity,
@@ -85,16 +84,6 @@ export function fixtureRows(
 
   if (entity === 'DOTRXDELETESet') return [{ PlnLfimg: '1000.000' }]
 
-  if (entity === 'LIFSTOSet')
-    return values.sto === '4500000001'
-      ? [
-          {
-            Ebeln: values.sto,
-            Lifnr: owner.username,
-          },
-        ]
-      : []
-
   if (entity === 'DOSTOSet')
     return values.sto === '4500000001'
       ? [
@@ -168,6 +157,55 @@ export const stagedRows = new Map<
 >()
 
 export const stagedBelRows = new Map<string, BelStagePayload>()
+
+// Shaped like ZGW_WMS_SRV/VEND_PO_QTYSet: one row per PO item and goods movement type.
+export function vendorPurchaseOrderRows(vendorCode: string): SapRow[] {
+  const row = (
+    Ponum: string,
+    Poitem: string,
+    Materialno: string,
+    Shorttxt: string,
+    QtyAwal: string,
+    Movty: string,
+    QtyActual: string,
+    UnitActual = 'KG',
+    Lifnr = vendorCode,
+  ) => ({
+    Lifnr,
+    Ponum,
+    Poitem,
+    Movty,
+    Shorttxt,
+    Materialno,
+    Comcode: 'EU',
+    Plant: '3701',
+    QtyAwal,
+    QtyActual,
+    UnitAwal: 'KG',
+    UnitActual,
+  })
+
+  return [
+    row('4500000001', '00010', '8000001001', 'Crude Palm Oil (CPO)', '1500.000', '101', '1000.000'),
+    row('4500000001', '00010', '8000001001', 'Crude Palm Oil (CPO)', '1500.000', '102', '150.000'),
+    row('4500000001', '00020', '8000001002', 'RBD Palm Olein', '500.000', '', '0.000'),
+    row('4500000002', '00010', '8000002001', 'PFAD', '2000.000', '101', '0.400', 'TO'),
+    row('4500000001', '00030', '8000001003', 'Fully received', '300.000', '101', '300.000'),
+    row('4500000003', '00010', '1000000999', 'Non-trade material', '100.000', '101', '0.000'),
+    row('4500000004', '00010', '8000004001', 'Unknown movement', '250.000', '161', '10.000'),
+    row(
+      '4500000005',
+      '00010',
+      '8000005001',
+      'Other vendor',
+      '900.000',
+      '101',
+      '0.000',
+      'KG',
+      'AT99999999',
+    ),
+  ]
+}
 
 export function setStageError(ids: string[], error: string) {
   for (const id of ids) {
@@ -289,14 +327,7 @@ export function installSapMock() {
     return 'oracle'
   }
 
-  belPoRepository.listByVendor = async (vendorCode: string) =>
-    parsePoRows(
-      mockPoRows(vendorCode).map((row) => ({
-        ...row,
-        Werks: '3701',
-      })),
-      vendorCode,
-    )
+  gateway.vendorPurchaseOrders = async (vendorCode: string) => vendorPurchaseOrderRows(vendorCode)
 
   staging.acknowledge = async () => undefined
 

@@ -278,7 +278,7 @@ afterAll(async () => {
 })
 
 describe('vendor BEL pre-registration', () => {
-  it('filters PO items by FSD rules, skips SAP DP checks, and never calls DOTRXSet', async () => {
+  it('nets SAP goods movements per PO item, keeps only open trade items of the vendor, and skips DP and DOTRXSet', async () => {
     const dpSpy = vi.spyOn(gateway, 'read')
     const triggerSpy = vi.spyOn(gateway, 'trigger')
 
@@ -290,7 +290,6 @@ describe('vendor BEL pre-registration', () => {
       id: string
       poNumber: string
       poItem: string
-      poType: string
       material: string
       orderedQuantity: string
       sapReceivedQuantity: string
@@ -304,7 +303,6 @@ describe('vendor BEL pre-registration', () => {
     ])
 
     expect(items[0]).toMatchObject({
-      poType: 'ZM10',
       material: '8000001001',
       orderedQuantity: '1500',
       sapReceivedQuantity: '850',
@@ -314,7 +312,15 @@ describe('vendor BEL pre-registration', () => {
     expect(items[1]).toMatchObject({
       poNumber: '4500000001',
       poItem: '00020',
+      sapReceivedQuantity: '0',
       availableQuantity: '500',
+    })
+
+    expect(items[2]).toMatchObject({
+      poNumber: '4500000002',
+      uom: 'KG',
+      sapReceivedQuantity: '400',
+      availableQuantity: '1600',
     })
 
     expect(dpSpy.mock.calls.map(([entity]) => entity)).not.toContain('ZPINOSet')
@@ -579,6 +585,12 @@ describe('vendor BEL pre-registration', () => {
 
     expect(rejected.status).toBe(200)
     expect(rejected.body.data.status).toBe('REJECTED')
+
+    expect(stagedBelRows.get(rejected.body.data.lines[0].id)).toMatchObject({
+      PREREG_STATUS: 'CANCELLED',
+      FLAG: 'U',
+      ISACTIVE: 'FALSE',
+    })
 
     const listed = await reqAs(vendorACookie).get('?page=1&limit=2&sortBy=number&sortOrder=asc')
 

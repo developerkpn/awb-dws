@@ -1,0 +1,5 @@
+# Source files use LF everywhere (Prettier enforces endOfLine: lf).
+* text=auto eol=lf
+
+# The review CSVs under docs/ are opened in Excel and keep their CRLF line endings.
+*.csv -text
