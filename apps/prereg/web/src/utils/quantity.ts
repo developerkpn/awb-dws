@@ -1,15 +1,6 @@
-export function parseQuantityInput(value: string) {
-  const [whole = '', ...decimals] = value.replace(/[^\d.]/g, '').split('.')
+import { formatQuantityInput } from '@awb/ui'
 
-  return decimals.length ? `${whole}.${decimals.join('').slice(0, 6)}` : whole
-}
-
-export function formatQuantityInput(value: string) {
-  const [whole = '', decimals] = value.split('.')
-  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-
-  return decimals === undefined ? grouped : `${grouped}.${decimals}`
-}
+export { formatQuantityInput, parseQuantityInput } from '@awb/ui'
 
 const scale = 1_000_000n
 
