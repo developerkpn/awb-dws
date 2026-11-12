@@ -1,0 +1,106 @@
+@import 'tailwindcss';
+
+/* Application brand palette. */
+@theme {
+  --color-stone-50: #f8fafc;
+  --color-stone-100: #f1f3f6;
+  --color-stone-200: #e6e8ed;
+  --color-stone-300: #cdd1da;
+  --color-stone-400: #8b93a3;
+  --color-stone-500: #687183;
+  --color-stone-600: #4c5565;
+  --color-stone-700: #343c4c;
+  --color-stone-800: #252c3a;
+  --color-stone-900: #171d29;
+  --color-brand-50: #fdf3f3;
+  --color-brand-100: #fbe4e5;
+  --color-brand-200: #f6c8ca;
+  --color-brand-500: #d23a43;
+  --color-brand-600: #ba1f28;
+  --color-brand-700: #a32b27;
+  --color-brand-800: #8c2621;
+  --color-ink: #1c2433;
+  --font-sans: var(--ui-font-sans);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-stone-50 text-ink antialiased;
+  font-family: var(--ui-font-sans);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  letter-spacing: normal;
+}
+
+svg.MuiSvgIcon-root {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+}
+button,
+a,
+input,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+:focus-visible {
+  @apply outline-2 outline-offset-2 outline-brand-500;
+}
+:root[data-theme='dark'] {
+  --color-stone-50: #222222;
+  --color-stone-100: #292929;
+  --color-stone-200: #343434;
+  --color-stone-300: #505050;
+  --color-stone-400: #898989;
+  --color-stone-500: #b5b5b5;
+  --color-stone-600: #c8c8c8;
+  --color-stone-700: #dcdcdc;
+  --color-stone-800: #e9e9e9;
+  --color-stone-900: #f5f5f5;
+  --color-ink: #f1f1f1;
+  --color-brand-50: #372126;
+  --color-brand-100: #552b31;
+  --color-brand-700: #ed9691;
+  --color-brand-800: #ffb7b1;
+}
+[data-theme='dark'] [class~='bg-white'],
+[data-theme='dark'] [class~='bg-white/95'] {
+  background-color: var(--ui-surface);
+}
+[data-theme='dark'] [class~='bg-[#f4f5f7]'] {
+  background-color: var(--ui-canvas);
+}
+[data-theme='dark'] [class~='bg-stone-800'] {
+  background-color: #333333;
+}
+[data-theme='dark'] img[src='/kpn-corp.png'] {
+  filter: brightness(0) invert(1);
+}
+[data-theme='dark'] .ui-input {
+  color-scheme: dark;
+}

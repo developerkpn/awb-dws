@@ -3,6 +3,7 @@ import { env } from './config/env'
 import { controllers } from './config/controllers'
 import { prisma } from './config/prisma'
 import { startControllers } from './devices'
+import { startMasterPullWorker, stopMasterPullWorker } from './jobs/master-pull.worker'
 import { startSyncWorker, stopSyncWorker } from './jobs/sync.worker'
 
 const server = app.listen(env.PORT, env.HOST, () => {
@@ -15,6 +16,10 @@ if (env.SYNC_ENABLED !== 'false' && env.NODE_ENV !== 'test') {
   startSyncWorker()
 }
 
+if (env.MASTER_PULL_ENABLED === 'true' && env.NODE_ENV !== 'test') {
+  startMasterPullWorker()
+}
+
 const stopControllers = startControllers(controllers, (event) => {
   // Hand events to the weighbridge domain once the controller protocol is mapped.
   console.log(`[controller ${event.controllerId}] ${event.type}`)
@@ -22,6 +27,7 @@ const stopControllers = startControllers(controllers, (event) => {
 
 const shutdown = () => {
   stopSyncWorker()
+  stopMasterPullWorker()
   stopControllers()
 
   server.close(() => {

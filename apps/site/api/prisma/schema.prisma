@@ -10,35 +10,48 @@ datasource db {
   provider = "sqlserver"
 }
 
+// Masters: rows come from SAP (pull or the WB.NET backfill) or from prereg. Lookups use SAP rows only.
 model Driver {
-  id              String   @id @default(uuid(7))
-  licenseNumber   String   @unique @map("license_number")
-  name            String   @map("name")
-  address         String   @map("address")
-  birthPlace      String   @map("birth_place")
-  birthDate       DateTime @map("birth_date")
-  phone           String   @map("phone")
-  city            String?  @map("city")
-  licensePhotoUrl String?  @map("license_photo_url")
-  driverPhotoUrl  String?  @map("driver_photo_url")
-  isActive        Boolean  @default(true) @map("is_active")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id              String    @id @default(uuid(7))
+  licenseNumber   String    @map("license_number") @db.NVarChar(50)
+  name            String    @map("name") @db.NVarChar(150)
+  address         String?   @map("address") @db.NVarChar(250)
+  birthPlace      String?   @map("birth_place") @db.NVarChar(100)
+  birthDate       DateTime? @map("birth_date")
+  phone           String?   @map("phone") @db.NVarChar(50)
+  city            String?   @map("city") @db.NVarChar(100)
+  licensePhotoUrl String?   @map("license_photo_url") @db.NVarChar(500)
+  driverPhotoUrl  String?   @map("driver_photo_url") @db.NVarChar(500)
+  truckNumber     String?   @map("truck_number") @db.NVarChar(30)
+  isBlacklisted   Boolean   @default(false) @map("is_blacklisted")
+  source          String    @default("PREREG") @db.NVarChar(10)
+  pulledAt        DateTime? @map("pulled_at")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
+  @@unique([licenseNumber, source], map: "mst_driver_license_number_source_key")
   @@map("mst_driver")
 }
 
 model Vehicle {
-  id              String   @id @default(uuid(7))
-  plateNumber     String   @unique @map("plate_number")
-  transporterId   String?  @map("transporter_id")
-  transporterName String?  @map("transporter_name")
-  transporterCode String?  @map("transporter_code")
-  stnkPhotoUrl    String?  @map("stnk_photo_url")
-  isActive        Boolean  @default(true) @map("is_active")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id              String    @id @default(uuid(7))
+  plateNumber     String    @map("plate_number") @db.NVarChar(30)
+  transporterId   String?   @map("transporter_id") @db.NVarChar(50)
+  transporterName String?   @map("transporter_name") @db.NVarChar(150)
+  transporterCode String?   @map("transporter_code") @db.NVarChar(50)
+  tankerNumber    String?   @map("tanker_number") @db.NVarChar(30)
+  tareMinKg       Decimal?  @map("tare_min_kg") @db.Decimal(15, 3)
+  tareMaxKg       Decimal?  @map("tare_max_kg") @db.Decimal(15, 3)
+  stnkPhotoUrl    String?   @map("stnk_photo_url") @db.NVarChar(500)
+  isBlacklisted   Boolean   @default(false) @map("is_blacklisted")
+  source          String    @default("PREREG") @db.NVarChar(10)
+  pulledAt        DateTime? @map("pulled_at")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
+  @@unique([plateNumber, source], map: "mst_vehicle_plate_number_source_key")
   @@map("mst_vehicle")
 }
 
@@ -62,4 +75,421 @@ model SyncState {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("sys_sync_state")
+}
+
+// Plant console accounts. Roles: ADMIN, OPERATOR.
+model User {
+  id           String   @id @default(uuid(7))
+  username     String   @unique @db.NVarChar(100)
+  name         String   @db.NVarChar(150)
+  passwordHash String   @map("password_hash") @db.NVarChar(100)
+  role         String   @default("OPERATOR") @db.NVarChar(20)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  sessions                AuthSession[]
+  createdRegistrations    Registration[] @relation("RegistrationCreatedBy")
+  revisedRegistrations    Registration[] @relation("RegistrationRevisedBy")
+  cancelledRegistrations  Registration[] @relation("RegistrationCancelledBy")
+  checkedOutRegistrations Registration[] @relation("RegistrationCheckedOutBy")
+
+  @@map("mst_user")
+}
+
+model AuthSession {
+  id         String   @id @default(uuid(7))
+  userId     String   @map("user_id")
+  tokenHash  String   @unique @map("token_hash") @db.NVarChar(64)
+  expiresAt  DateTime @map("expires_at")
+  lastSeenAt DateTime @default(now()) @map("last_seen_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sys_auth_session")
+}
+
+// Running numbers, e.g. key "registration" for the GP numbers.
+model Counter {
+  key       String   @id @db.NVarChar(50)
+  value     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("sys_counter")
+}
+
+// Gate registration (gatepass) with every input of the WB.NET "Registrasi Masuk" form.
+// Status: OPEN, CHECKED_OUT, CANCELLED. Weighing type: 2X, NX, NON.
+model Registration {
+  id                     String    @id @default(uuid(7))
+  number                 String    @unique @db.NVarChar(20)
+  registeredAt           DateTime  @default(now()) @map("registered_at")
+  referenceNumber        String?   @map("reference_number") @db.NVarChar(30)
+  status                 String    @default("OPEN") @db.NVarChar(20)
+  cardNumber             String?   @map("card_number") @db.NVarChar(30)
+  weighingType           String    @default("2X") @map("weighing_type") @db.NVarChar(5)
+  plateNumber            String    @map("plate_number") @db.NVarChar(20)
+  transporterCode        String?   @map("transporter_code") @db.NVarChar(20)
+  transporterName        String?   @map("transporter_name") @db.NVarChar(150)
+  licenseNumber          String?   @map("license_number") @db.NVarChar(30)
+  driverName             String?   @map("driver_name") @db.NVarChar(150)
+  tankerNumber           String?   @map("tanker_number") @db.NVarChar(30)
+  passengerCount         Int       @default(0) @map("passenger_count")
+  passengerNames         String?   @map("passenger_names") @db.NVarChar(500)
+  needsLastWeighingCheck Boolean   @default(false) @map("needs_last_weighing_check")
+  deliveryNote           String?   @map("delivery_note") @db.NVarChar(50)
+  isDifferentEstate      Boolean   @default(false) @map("is_different_estate")
+  isReturn               Boolean   @default(false) @map("is_return")
+  sealNumber             String?   @map("seal_number") @db.NVarChar(100)
+  ticketRemark           String?   @map("ticket_remark") @db.NVarChar(250)
+  reportRemark           String?   @map("report_remark") @db.NVarChar(250)
+  additionalInfo         String?   @map("additional_info") @db.NVarChar(250)
+  needsContainerCheck    Boolean   @default(false) @map("needs_container_check")
+  hasOtherPartyWeight    Boolean   @default(false) @map("has_other_party_weight")
+  otherPartyReference    String?   @map("other_party_reference") @db.NVarChar(50)
+  otherPartyWeighedAt    DateTime? @map("other_party_weighed_at")
+  otherPartyGross        Decimal?  @map("other_party_gross") @db.Decimal(15, 3)
+  otherPartyTare         Decimal?  @map("other_party_tare") @db.Decimal(15, 3)
+  otherPartyNet          Decimal?  @map("other_party_net") @db.Decimal(15, 3)
+  createdById            String    @map("created_by")
+  revisedById            String?   @map("revised_by")
+  revisedAt              DateTime? @map("revised_at")
+  cancelledById          String?   @map("cancelled_by")
+  cancelledAt            DateTime? @map("cancelled_at")
+  cancelReason           String?   @map("cancel_reason") @db.NVarChar(500)
+  checkedOutById         String?   @map("checked_out_by")
+  checkedOutAt           DateTime? @map("checked_out_at")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  createdBy    User  @relation("RegistrationCreatedBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  revisedBy    User? @relation("RegistrationRevisedBy", fields: [revisedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cancelledBy  User? @relation("RegistrationCancelledBy", fields: [cancelledById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  checkedOutBy User? @relation("RegistrationCheckedOutBy", fields: [checkedOutById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  destinations RegistrationDestination[]
+  containers   RegistrationContainer[]
+  dos          RegistrationDo[]
+  qualities    RegistrationQuality[]
+
+  @@index([registeredAt])
+  @@index([status, registeredAt])
+  @@index([plateNumber])
+  @@map("awb_registration")
+}
+
+model RegistrationDestination {
+  id             String   @id @default(uuid(7))
+  registrationId String   @map("registration_id")
+  lineNumber     Int      @map("line_number")
+  code           String   @db.NVarChar(20)
+  name           String?  @db.NVarChar(100)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@unique([registrationId, lineNumber])
+  @@map("awb_registration_destination")
+}
+
+model RegistrationContainer {
+  id              String   @id @default(uuid(7))
+  registrationId  String   @map("registration_id")
+  lineNumber      Int      @map("line_number")
+  containerNumber String   @map("container_number") @db.NVarChar(30)
+  sealNumber      String?  @map("seal_number") @db.NVarChar(50)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@unique([registrationId, lineNumber])
+  @@map("awb_registration_container")
+}
+
+// One WB DO (contract/DO line) of a registration, with its SAP DO, loading note and STO.
+model RegistrationDo {
+  id                        String   @id @default(uuid(7))
+  registrationId            String   @map("registration_id")
+  lineNumber                Int      @map("line_number")
+  transactionCode           String   @map("transaction_code") @db.NVarChar(10)
+  transactionName           String?  @map("transaction_name") @db.NVarChar(100)
+  doNumber                  String   @map("do_number") @db.NVarChar(50)
+  piNumber                  String?  @map("pi_number") @db.NVarChar(50)
+  commodityCode             String?  @map("commodity_code") @db.NVarChar(30)
+  commodityName             String?  @map("commodity_name") @db.NVarChar(100)
+  contractNumber            String?  @map("contract_number") @db.NVarChar(50)
+  relationCode              String?  @map("relation_code") @db.NVarChar(20)
+  relationName              String?  @map("relation_name") @db.NVarChar(150)
+  transporterCode           String?  @map("transporter_code") @db.NVarChar(20)
+  estate                    String?  @db.NVarChar(100)
+  otherPartyNet             Decimal? @map("other_party_net") @db.Decimal(15, 3)
+  factoryNet                Decimal? @map("factory_net") @db.Decimal(15, 3)
+  loadingQuantity           Decimal? @map("loading_quantity") @db.Decimal(15, 3)
+  otherPartyLoadingQuantity Decimal? @map("other_party_loading_quantity") @db.Decimal(15, 3)
+  soItem                    String?  @map("so_item") @db.NVarChar(10)
+  doSapNumber               String?  @map("do_sap_number") @db.NVarChar(20)
+  doSapItem                 String?  @map("do_sap_item") @db.NVarChar(10)
+  loadingNoteNumber         String?  @map("loading_note_number") @db.NVarChar(20)
+  loadingNoteItem           String?  @map("loading_note_item") @db.NVarChar(10)
+  quantityKg                Decimal? @map("quantity_kg") @db.Decimal(15, 3)
+  quantity                  Decimal? @db.Decimal(15, 3)
+  quantityUom               String?  @map("quantity_uom") @db.NVarChar(10)
+  baseQuantity              Decimal? @map("base_quantity") @db.Decimal(15, 3)
+  baseUom                   String?  @map("base_uom") @db.NVarChar(10)
+  customerQq                String?  @map("customer_qq") @db.NVarChar(150)
+  stoNumber                 String?  @map("sto_number") @db.NVarChar(20)
+  doStoNumber               String?  @map("do_sto_number") @db.NVarChar(20)
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+
+  registration Registration            @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  deductions   RegistrationDeduction[]
+
+  @@unique([registrationId, lineNumber])
+  @@index([doNumber])
+  @@map("awb_registration_do")
+}
+
+// Deduction (potongan) per WB DO.
+model RegistrationDeduction {
+  id               String   @id @default(uuid(7))
+  registrationDoId String   @map("registration_do_id")
+  lineNumber       Int      @map("line_number")
+  code             String   @db.NVarChar(20)
+  name             String?  @db.NVarChar(100)
+  percent          Decimal? @map("percentage") @db.Decimal(15, 3)
+  deductionKg      Decimal? @map("deduction_kg") @db.Decimal(15, 3)
+  unitQuantity     Decimal? @map("unit_quantity") @db.Decimal(15, 3)
+  isReturn         Boolean  @default(false) @map("is_return")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  registrationDo RegistrationDo @relation(fields: [registrationDoId], references: [id], onDelete: Cascade)
+
+  @@unique([registrationDoId, lineNumber])
+  @@map("awb_registration_deduction")
+}
+
+// Quality control values. Values stay text: a QC item is either a character or a number type.
+model RegistrationQuality {
+  id               String   @id @default(uuid(7))
+  registrationId   String   @map("registration_id")
+  lineNumber       Int      @map("line_number")
+  code             String   @db.NVarChar(20)
+  name             String?  @db.NVarChar(100)
+  sapSpecification String?  @map("sap_specification") @db.NVarChar(50)
+  estateValue      String?  @map("estate_value") @db.NVarChar(30)
+  factoryValue     String?  @map("factory_value") @db.NVarChar(30)
+  netDeduction     String?  @map("net_deduction") @db.NVarChar(30)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@unique([registrationId, lineNumber])
+  @@map("awb_registration_quality")
+}
+
+model Transporter {
+  id            String    @id @default(uuid(7))
+  code          String    @db.NVarChar(50)
+  name          String    @db.NVarChar(150)
+  address       String?   @db.NVarChar(250)
+  phone         String?   @db.NVarChar(50)
+  sapCode       String?   @map("sap_code") @db.NVarChar(50)
+  isBlacklisted Boolean   @default(false) @map("is_blacklisted")
+  source        String    @default("SAP") @db.NVarChar(10)
+  pulledAt      DateTime? @map("pulled_at")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@unique([code, source], map: "mst_transporter_code_source_key")
+  @@map("mst_transporter")
+}
+
+// check_mode as in WB.NET: N = no check, P = tolerance in percent, K = tolerance in kg.
+model Tanker {
+  id               String    @id @default(uuid(7))
+  number           String    @db.NVarChar(30)
+  truckNumber      String?   @map("truck_number") @db.NVarChar(30)
+  capacityKg       Decimal?  @map("capacity_kg") @db.Decimal(15, 3)
+  checkMode        String?   @map("check_mode") @db.NVarChar(1)
+  tolerancePercent Decimal?  @map("tolerance_percent") @db.Decimal(9, 3)
+  toleranceKg      Decimal?  @map("tolerance_kg") @db.Decimal(15, 3)
+  source           String    @default("SAP") @db.NVarChar(10)
+  pulledAt         DateTime? @map("pulled_at")
+  isActive         Boolean   @default(true) @map("is_active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@unique([number, source], map: "mst_tanker_number_source_key")
+  @@map("mst_tanker")
+}
+
+model Destination {
+  id              String    @id @default(uuid(7))
+  code            String    @db.NVarChar(20)
+  name            String?   @db.NVarChar(100)
+  storageLocation String?   @map("storage_location") @db.NVarChar(20)
+  source          String    @default("SAP") @db.NVarChar(10)
+  pulledAt        DateTime? @map("pulled_at")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@unique([code, source], map: "mst_destination_code_source_key")
+  @@map("mst_destination")
+}
+
+// The DO register (WB.NET wb_contract). Names come from the commodity, relation, estate and transaction type masters.
+model Contract {
+  id               String    @id @default(uuid(7))
+  doNumber         String    @map("do_number") @db.NVarChar(100)
+  doDate           DateTime? @map("do_date")
+  contractNumber   String?   @map("contract_number") @db.NVarChar(50)
+  transactionCode  String    @map("transaction_code") @db.NVarChar(10)
+  commodityCode    String?   @map("commodity_code") @db.NVarChar(50)
+  relationCode     String?   @map("relation_code") @db.NVarChar(50)
+  transporterCode  String?   @map("transporter_code") @db.NVarChar(50)
+  estateCode       String?   @map("estate_code") @db.NVarChar(20)
+  piNumber         String?   @map("pi_number") @db.NVarChar(30)
+  quantityKg       Decimal?  @map("quantity_kg") @db.Decimal(18, 3)
+  tolerancePercent Decimal?  @map("tolerance_percent") @db.Decimal(9, 3)
+  incoterm         String?   @db.NVarChar(3)
+  soNumber         String?   @map("so_number") @db.NVarChar(20)
+  soItem           String?   @map("so_item") @db.NVarChar(10)
+  stoNumber        String?   @map("sto_number") @db.NVarChar(20)
+  isClosed         Boolean   @default(false) @map("is_closed")
+  closedAt         DateTime? @map("closed_at")
+  source           String    @default("SAP") @db.NVarChar(10)
+  pulledAt         DateTime? @map("pulled_at")
+  isActive         Boolean   @default(true) @map("is_active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  qualities ContractQuality[]
+
+  @@unique([doNumber, source], map: "mst_contract_do_number_source_key")
+  @@index([contractNumber])
+  @@map("mst_contract")
+}
+
+model ContractQuality {
+  id         String   @id @default(uuid(7))
+  contractId String   @map("contract_id")
+  sapCode    String   @map("sap_code") @db.NVarChar(15)
+  value      String?  @db.NVarChar(20)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@unique([contractId, sapCode])
+  @@map("mst_contract_quality")
+}
+
+model TransactionType {
+  id                  String    @id @default(uuid(7))
+  code                String    @db.NVarChar(10)
+  name                String    @db.NVarChar(100)
+  direction           String?   @db.NVarChar(1)
+  isReturn            Boolean   @default(false) @map("is_return")
+  isVessel            Boolean   @default(false) @map("is_vessel")
+  requiresLoadingNote Boolean   @default(false) @map("requires_loading_note")
+  requiresTanker      Boolean   @default(false) @map("requires_tanker")
+  source              String    @default("SAP") @db.NVarChar(10)
+  pulledAt            DateTime? @map("pulled_at")
+  isActive            Boolean   @default(true) @map("is_active")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@unique([code, source], map: "mst_transaction_type_code_source_key")
+  @@map("mst_transaction_type")
+}
+
+model Commodity {
+  id               String    @id @default(uuid(7))
+  code             String    @db.NVarChar(50)
+  name             String    @db.NVarChar(250)
+  unit             String?   @db.NVarChar(20)
+  tolerancePercent Decimal?  @map("tolerance_percent") @db.Decimal(9, 3)
+  sapMaterialCode  String?   @map("sap_material_code") @db.NVarChar(20)
+  source           String    @default("SAP") @db.NVarChar(10)
+  pulledAt         DateTime? @map("pulled_at")
+  isActive         Boolean   @default(true) @map("is_active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@unique([code, source], map: "mst_commodity_code_source_key")
+  @@map("mst_commodity")
+}
+
+// type as in WB.NET: B = buyer (customer), S = seller (vendor).
+model Relation {
+  id            String    @id @default(uuid(7))
+  code          String    @db.NVarChar(50)
+  name          String    @db.NVarChar(150)
+  type          String?   @db.NVarChar(1)
+  city          String?   @db.NVarChar(100)
+  isBlacklisted Boolean   @default(false) @map("is_blacklisted")
+  source        String    @default("SAP") @db.NVarChar(10)
+  pulledAt      DateTime? @map("pulled_at")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@unique([code, source], map: "mst_relation_code_source_key")
+  @@map("mst_relation")
+}
+
+model Estate {
+  id        String    @id @default(uuid(7))
+  code      String    @db.NVarChar(20)
+  name      String    @db.NVarChar(100)
+  city      String?   @db.NVarChar(100)
+  sapCode   String?   @map("sap_code") @db.NVarChar(30)
+  source    String    @default("SAP") @db.NVarChar(10)
+  pulledAt  DateTime? @map("pulled_at")
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@unique([code, source], map: "mst_estate_code_source_key")
+  @@map("mst_estate")
+}
+
+model QualityItem {
+  id        String    @id @default(uuid(7))
+  code      String    @db.NVarChar(20)
+  name      String    @db.NVarChar(100)
+  sapCode   String?   @map("sap_code") @db.NVarChar(15)
+  source    String    @default("SAP") @db.NVarChar(10)
+  pulledAt  DateTime? @map("pulled_at")
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@unique([code, source], map: "mst_quality_item_code_source_key")
+  @@map("mst_quality_item")
+}
+
+// Last SAP pull and WB.NET backfill per master kind.
+model MasterPull {
+  kind             String    @id @db.NVarChar(30)
+  lastPulledAt     DateTime? @map("last_pulled_at")
+  lastPullStatus   String?   @map("last_pull_status") @db.NVarChar(10)
+  lastPullError    String?   @map("last_pull_error") @db.NVarChar(500)
+  lastPullRowCount Int?      @map("last_pull_row_count")
+  lastBackfilledAt DateTime? @map("last_backfilled_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@map("sys_master_pull")
 }

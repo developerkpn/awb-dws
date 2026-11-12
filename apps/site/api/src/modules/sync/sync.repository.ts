@@ -1,6 +1,9 @@
 import type { DriverVehicleApprovedEvent } from '@awb/contracts'
 import { prisma } from '../../config/prisma'
 
+// Rows from the prereg sync are kept apart from SAP rows; lookups ignore them for now (offline fallback).
+const PREREG = 'PREREG'
+
 export default {
   async getLastSequence(key = 'prereg_outbox'): Promise<number> {
     const state = await prisma.syncState.findUnique({
@@ -46,9 +49,15 @@ export default {
 
       if (driver)
         await tx.driver.upsert({
-          where: { licenseNumber: driver.licenseNumber },
+          where: {
+            licenseNumber_source: {
+              licenseNumber: driver.licenseNumber,
+              source: PREREG,
+            },
+          },
           create: {
             licenseNumber: driver.licenseNumber,
+            source: PREREG,
             name: driver.name,
             address: driver.address,
             birthPlace: driver.birthPlace,
@@ -74,9 +83,15 @@ export default {
 
       if (vehicle)
         await tx.vehicle.upsert({
-          where: { plateNumber: vehicle.plateNumber },
+          where: {
+            plateNumber_source: {
+              plateNumber: vehicle.plateNumber,
+              source: PREREG,
+            },
+          },
           create: {
             plateNumber: vehicle.plateNumber,
+            source: PREREG,
             transporterId: vehicle.transporterId ?? null,
             transporterName: vehicle.transporterName ?? null,
             transporterCode: vehicle.transporterCode ?? null,
@@ -125,13 +140,23 @@ export default {
 
   async findDriverByLicense(licenseNumber: string) {
     return prisma.driver.findUnique({
-      where: { licenseNumber },
+      where: {
+        licenseNumber_source: {
+          licenseNumber,
+          source: PREREG,
+        },
+      },
     })
   },
 
   async findVehicleByPlate(plateNumber: string) {
     return prisma.vehicle.findUnique({
-      where: { plateNumber },
+      where: {
+        plateNumber_source: {
+          plateNumber,
+          source: PREREG,
+        },
+      },
     })
   },
 

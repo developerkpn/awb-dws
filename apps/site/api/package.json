@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Plant backend — on-prem, one instance per plant: WB + TCS + kiosk + controller sockets",
+  "description": "Plant backend \u2014 on-prem, one instance per plant: WB + TCS + kiosk + controller sockets",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsup",
@@ -13,20 +13,27 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:studio": "prisma studio"
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "masters:backfill": "tsx scripts/backfill-wbnet.ts"
   },
   "dependencies": {
     "@awb/contracts": "*",
     "@awb/server-core": "*",
     "@prisma/adapter-mssql": "~7.10.1",
     "@prisma/client": "~7.10.1",
+    "bcrypt": "^6.0.0",
+    "cookie": "^2.0.2",
     "cors": "^2.8.6",
     "express": "^5.3.0",
+    "mssql": "^12.7.14",
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/mssql": "^12.3.0",
     "@types/supertest": "^7.2.1",
     "prisma": "~7.10.1",
     "supertest": "^7.3.1",
