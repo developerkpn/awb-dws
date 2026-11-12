@@ -4,7 +4,7 @@ import { Button, Card, CardBody, CardHeader, Field, Input, PageHeader, useConfir
 import ErrorState from '@/components/ErrorState'
 import { PERMISSION } from '@/constant/PERMISSION'
 import { useAuth } from '@/hooks/auth'
-import { useApproveBel, useBelDetail, useCancelBel, useRejectBel, useSubmitBel } from '@/hooks/bel'
+import { useApproveBel, useBelDetail, useRejectBel, useSubmitBel } from '@/hooks/bel'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { Badge, Modal } from '@/ui'
 import { ArrowLeft, CheckCircle, Pencil, XCircle } from '@/ui/icons'
@@ -12,6 +12,7 @@ import { getErrorMessage } from '@/utils/errorHandler'
 import { hasPermission } from '@/utils/permission'
 import { quantityUnits, unitsText } from '@/utils/quantity'
 import { BelSkeleton } from '../_components/BelSkeleton'
+import CancelBelModal from '../_components/CancelBelModal'
 import { BEL_STATUS_BADGE, transportLabel } from '../_components/belStatus'
 
 export default function BelDetail() {
@@ -24,9 +25,9 @@ export default function BelDetail() {
   const submitMutation = useSubmitBel(id ?? '')
   const approveMutation = useApproveBel(id ?? '')
   const rejectMutation = useRejectBel(id ?? '')
-  const cancelMutation = useCancelBel(id ?? '')
 
-  const [reasonModal, setReasonModal] = useState<'reject' | 'cancel' | null>(null)
+  const [rejectOpen, setRejectOpen] = useState(false)
+  const [cancelOpen, setCancelOpen] = useState(false)
   const [reasonText, setReasonText] = useState('')
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -64,7 +65,7 @@ export default function BelDetail() {
     const ok = await confirm({
       title: `Submit ${detail.number}?`,
       description:
-        'This locks the PO quota allocation and sends the BEL registration to Logistics for approval (no DP check required).',
+        'This reserves the PO quota and sends the registration to Logistics for approval.',
       confirmLabel: 'Submit BEL',
       variant: 'primary',
     })
@@ -83,8 +84,7 @@ export default function BelDetail() {
   const handleApprove = async () => {
     const ok = await confirm({
       title: `Approve ${detail.number}?`,
-      description:
-        'Approved BEL lines are written directly to Oracle staging (PREREG_BEL_SAP). No SAP password, DP check, or automatic loading note trigger is needed.',
+      description: 'The allocations are approved and passed on to SAP for gate processing.',
       confirmLabel: 'Approve & stage',
       variant: 'primary',
     })
@@ -102,7 +102,7 @@ export default function BelDetail() {
     }
   }
 
-  const handleReasonConfirm = async () => {
+  const handleRejectConfirm = async () => {
     const trimmed = reasonText.trim()
 
     if (trimmed.length < 3) {
@@ -114,34 +114,22 @@ export default function BelDetail() {
     setActionError(null)
 
     try {
-      if (reasonModal === 'reject') {
-        await rejectMutation.mutateAsync({
-          reason: trimmed,
-          version: detail.version,
-        })
-      } else {
-        await cancelMutation.mutateAsync({
-          reason: trimmed,
-          version: detail.version,
-        })
-      }
+      await rejectMutation.mutateAsync({
+        reason: trimmed,
+        version: detail.version,
+      })
 
-      setReasonModal(null)
+      setRejectOpen(false)
       setReasonText('')
     } catch (error) {
-      setActionError(getErrorMessage(error, 'Action failed.'))
+      setActionError(getErrorMessage(error, 'Could not reject BEL registration.'))
     }
   }
 
-  const busy =
-    submitMutation.isPending ||
-    approveMutation.isPending ||
-    rejectMutation.isPending ||
-    cancelMutation.isPending
+  const busy = submitMutation.isPending || approveMutation.isPending || rejectMutation.isPending
 
   return (
     <div className="space-y-6">
-      <PageHeader title={detail.number} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           to="/bel"
@@ -192,7 +180,7 @@ export default function BelDetail() {
                 onClick={() => {
                   setActionError(null)
                   setReasonText('')
-                  setReasonModal('reject')
+                  setRejectOpen(true)
                 }}
               >
                 Reject
@@ -207,8 +195,7 @@ export default function BelDetail() {
               disabled={busy}
               onClick={() => {
                 setActionError(null)
-                setReasonText('')
-                setReasonModal('cancel')
+                setCancelOpen(true)
               }}
             >
               Cancel BEL
@@ -229,25 +216,19 @@ export default function BelDetail() {
       <div className="space-y-6">
         <Card>
           <CardHeader action={<Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>}>
-            <div className="space-y-1">
-              <h2 className="font-mono text-lg font-semibold text-stone-900">{detail.number}</h2>
-              <p className="text-xs text-stone-500">
-                Vendor {detail.vendor.name} ({detail.vendor.username}) · Version {detail.version}
-              </p>
-            </div>
+            <h2 className="font-mono text-lg font-semibold text-stone-900">{detail.number}</h2>
           </CardHeader>
           <CardBody>
             <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
               <div>
-                <p className="text-xs text-stone-500">Workflow rules</p>
-                <p className="mt-1 font-medium text-stone-900">
-                  No DP check · No automatic SAP loading note
-                </p>
+                <p className="text-xs text-stone-500">Vendor</p>
+                <p className="mt-1 font-medium text-stone-900">{detail.vendor.name}</p>
+                <p className="text-stone-500">{detail.vendor.username}</p>
               </div>
               <div>
-                <p className="text-xs text-stone-500">Oracle staging target</p>
-                <p className="mt-1 font-mono text-xs font-semibold text-stone-900">
-                  PREREG_BEL_SAP ({detail.approvedCount}/{detail.lineCount} lines staged)
+                <p className="text-xs text-stone-500">Allocations approved</p>
+                <p className="mt-1 font-medium text-stone-900">
+                  {detail.approvedCount} / {detail.lineCount}
                 </p>
               </div>
               <div>
@@ -315,19 +296,10 @@ export default function BelDetail() {
                     </div>
 
                     <div>
-                      <p className="text-stone-500">Schedule & staging</p>
+                      <p className="text-stone-500">Schedule</p>
                       <p className="mt-0.5 font-medium text-stone-900">
                         {line.loadingDate ?? '—'} · {transportLabel(line.mediaTransport)}
                       </p>
-                      {line.stagedAt ? (
-                        <p className="mt-0.5 font-medium text-emerald-700">
-                          Staged to PREREG_BEL_SAP
-                        </p>
-                      ) : line.stageError ? (
-                        <p className="mt-0.5 font-medium text-rose-700">{line.stageError}</p>
-                      ) : (
-                        <p className="text-stone-500">Pending approval staging</p>
-                      )}
                     </div>
                   </div>
 
@@ -374,16 +346,11 @@ export default function BelDetail() {
         </Card>
       </div>
 
-      {reasonModal && (
-        <Modal
-          title={reasonModal === 'reject' ? `Reject ${detail.number}` : `Cancel ${detail.number}`}
-          onClose={() => setReasonModal(null)}
-        >
+      {rejectOpen && (
+        <Modal title={`Reject ${detail.number}`} onClose={() => setRejectOpen(false)}>
           <div className="space-y-4">
             <p className="text-sm text-stone-600">
-              {reasonModal === 'reject'
-                ? 'Rejecting releases reserved PO quota back to the pool so the vendor can revise and resubmit.'
-                : 'Cancelling releases reserved PO quota and updates PREREG_BEL_SAP if lines were already staged.'}
+              Rejecting releases the reserved PO quota so the vendor can revise and resubmit.
             </p>
             <Field label="Reason" required>
               <Input
@@ -394,16 +361,18 @@ export default function BelDetail() {
               />
             </Field>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setReasonModal(null)}>
+              <Button variant="outline" onClick={() => setRejectOpen(false)}>
                 Close
               </Button>
-              <Button variant="danger" isLoading={busy} onClick={() => void handleReasonConfirm()}>
-                {reasonModal === 'reject' ? 'Confirm rejection' : 'Confirm cancellation'}
+              <Button variant="danger" isLoading={busy} onClick={() => void handleRejectConfirm()}>
+                Confirm rejection
               </Button>
             </div>
           </div>
         </Modal>
       )}
+
+      {cancelOpen && <CancelBelModal registration={detail} onClose={() => setCancelOpen(false)} />}
     </div>
   )
 }

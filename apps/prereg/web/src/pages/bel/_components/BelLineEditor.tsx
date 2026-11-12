@@ -79,116 +79,112 @@ export default function BelLineEditor({
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Field label="Driver (SIM)" hint="Registered SAP master driver" required>
-            <Combobox
-              aria-label={`Driver SIM line ${index + 1}`}
-              placeholder="Search license number or driver name..."
-              value={line.driverLicenseNumber}
-              options={driverOptions}
-              isLoading={drivers.isFetching}
-              emptyMessage="No registered SAP driver matched."
-              onInputChange={(nextValue) =>
-                onChange({
-                  ...line,
-                  driverLicenseNumber: nextValue,
-                })
-              }
-              onSelect={(option) =>
-                onChange({
-                  ...line,
-                  driverLicenseNumber: option.value,
-                })
-              }
-            />
-          </Field>
-
-          <Field label="Vehicle (Plate)" hint="Registered SAP master vehicle" required>
-            <Combobox
-              aria-label={`Vehicle plate line ${index + 1}`}
-              placeholder="Search vehicle plate..."
-              value={line.vehiclePlateNumber}
-              options={vehicleOptions}
-              isLoading={vehicles.isFetching}
-              emptyMessage="No registered SAP vehicle matched."
-              onInputChange={(nextValue) =>
-                onChange({
-                  ...line,
-                  vehiclePlateNumber: nextValue,
-                })
-              }
-              onSelect={(option) =>
-                onChange({
-                  ...line,
-                  vehiclePlateNumber: option.value,
-                })
-              }
-            />
-          </Field>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Field
-            label={`Quantity${selectedPo ? ` (${selectedPo.uom})` : ''}`}
-            hint={
-              selectedPo
-                ? `Max ${unitsText(remainingForLine > 0n ? remainingForLine : 0n)} ${selectedPo.uom}`
-                : 'Select a PO item first'
+      <div className="grid gap-5 sm:grid-cols-3">
+        <Field
+          label={`Quantity${selectedPo ? ` (${selectedPo.uom})` : ''}`}
+          hint={
+            selectedPo
+              ? `Max ${unitsText(remainingForLine > 0n ? remainingForLine : 0n)} ${selectedPo.uom}`
+              : 'Select a PO item first'
+          }
+          error={
+            exceedsQuota && selectedPo
+              ? `Exceeds remaining PO quota (${unitsText(remainingForLine > 0n ? remainingForLine : 0n)} ${selectedPo.uom})`
+              : null
+          }
+          required
+        >
+          <QuantityInput
+            aria-label={`Quantity line ${index + 1}`}
+            placeholder="0"
+            value={line.quantity}
+            onValueChange={(nextQuantity) =>
+              onChange({
+                ...line,
+                quantity: nextQuantity,
+              })
             }
-            error={
-              exceedsQuota && selectedPo
-                ? `Exceeds remaining PO quota (${unitsText(remainingForLine > 0n ? remainingForLine : 0n)} ${selectedPo.uom})`
-                : null
+          />
+        </Field>
+
+        <Field label="Planned loading date">
+          <Input
+            aria-label={`Loading date line ${index + 1}`}
+            type="date"
+            value={line.loadingDate}
+            onChange={(event) =>
+              onChange({
+                ...line,
+                loadingDate: event.target.value,
+              })
             }
-            required
+          />
+        </Field>
+
+        <Field label="Transport mode" required>
+          <Select
+            aria-label={`Transport mode line ${index + 1}`}
+            value={line.mediaTransport}
+            onChange={(event) =>
+              onChange({
+                ...line,
+                mediaTransport: event.target.value as BelTransportMode,
+              })
+            }
           >
-            <QuantityInput
-              aria-label={`Quantity line ${index + 1}`}
-              placeholder="0"
-              value={line.quantity}
-              onValueChange={(nextQuantity) =>
-                onChange({
-                  ...line,
-                  quantity: nextQuantity,
-                })
-              }
-            />
-          </Field>
+            {TRANSPORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        </Field>
 
-          <Field label="Planned loading date">
-            <Input
-              aria-label={`Loading date line ${index + 1}`}
-              type="date"
-              value={line.loadingDate}
-              onChange={(event) =>
-                onChange({
-                  ...line,
-                  loadingDate: event.target.value,
-                })
-              }
-            />
-          </Field>
+        <Field label="Driver (SIM)" hint="Registered SAP master driver" required>
+          <Combobox
+            aria-label={`Driver SIM line ${index + 1}`}
+            placeholder="Search license number or driver name..."
+            value={line.driverLicenseNumber}
+            options={driverOptions}
+            isLoading={drivers.isFetching}
+            emptyMessage="No registered SAP driver matched."
+            onInputChange={(nextValue) =>
+              onChange({
+                ...line,
+                driverLicenseNumber: nextValue,
+              })
+            }
+            onSelect={(option) =>
+              onChange({
+                ...line,
+                driverLicenseNumber: option.value,
+              })
+            }
+          />
+        </Field>
 
-          <Field label="Transport mode" required>
-            <Select
-              aria-label={`Transport mode line ${index + 1}`}
-              value={line.mediaTransport}
-              onChange={(event) =>
-                onChange({
-                  ...line,
-                  mediaTransport: event.target.value as BelTransportMode,
-                })
-              }
-            >
-              {TRANSPORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        </div>
+        <Field label="Vehicle (Plate)" hint="Registered SAP master vehicle" required>
+          <Combobox
+            aria-label={`Vehicle plate line ${index + 1}`}
+            placeholder="Search vehicle plate..."
+            value={line.vehiclePlateNumber}
+            options={vehicleOptions}
+            isLoading={vehicles.isFetching}
+            emptyMessage="No registered SAP vehicle matched."
+            onInputChange={(nextValue) =>
+              onChange({
+                ...line,
+                vehiclePlateNumber: nextValue,
+              })
+            }
+            onSelect={(option) =>
+              onChange({
+                ...line,
+                vehiclePlateNumber: option.value,
+              })
+            }
+          />
+        </Field>
 
         <Field label="Remark">
           <Input

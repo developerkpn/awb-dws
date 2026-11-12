@@ -99,13 +99,17 @@ test('vendor submits BEL without DP check, enforces PO quota, Logistics approves
   await login(page, 'browser_test_bel_vendor')
   await page.goto('/bel/new')
 
-  const poSelect = page.locator('select[aria-label="PO item line 1"]')
+  await page
+    .getByRole('combobox', {
+      name: 'Purchase order',
+      exact: true,
+    })
+    .click()
 
-  await expect(poSelect.locator('option')).toHaveCount(4)
+  const poOptions = page.getByRole('listbox').getByRole('option')
 
-  await poSelect.selectOption({
-    index: 1,
-  })
+  await expect(poOptions).toHaveCount(3)
+  await poOptions.first().click()
 
   await expect(page.getByText('PO 4500000001 / 00010').first()).toBeVisible()
   await expect(page.getByText('650 KG', { exact: true }).first()).toBeVisible()
@@ -134,13 +138,19 @@ test('vendor submits BEL without DP check, enforces PO quota, Logistics approves
   const detailUrl = page.url()
 
   await page.goto('/bel/new')
-  const poSelectSecond = page.locator('select[aria-label="PO item line 1"]')
 
-  await expect(poSelectSecond.locator('option')).toHaveCount(4)
+  await page
+    .getByRole('combobox', {
+      name: 'Purchase order',
+      exact: true,
+    })
+    .fill('olein')
 
-  await poSelectSecond.selectOption({
-    index: 2,
-  })
+  const oleinOption = page.getByRole('listbox').getByRole('option')
+
+  await expect(oleinOption).toHaveCount(1)
+  await expect(oleinOption).toContainText('4500000001/00020')
+  await oleinOption.click()
 
   await page
     .getByLabel('Quantity line 1', {
@@ -172,6 +182,39 @@ test('vendor submits BEL without DP check, enforces PO quota, Logistics approves
   await expect(page.getByText('4500000001/00010').first()).toBeVisible()
   await expect(page.getByText('4500000001/00020').first()).toBeVisible()
   await snap(page, 'bel-list.png')
+
+  const draftRow = page.getByRole('row').filter({
+    hasText: '4500000001/00020',
+  })
+
+  await draftRow
+    .getByRole('button', {
+      name: /^Cancel /,
+    })
+    .click()
+
+  const cancelDialog = page.getByRole('dialog')
+
+  await cancelDialog.getByLabel('Cancellation reason').fill('Truck no longer available')
+
+  await cancelDialog
+    .getByRole('button', {
+      name: 'Cancel registration',
+      exact: true,
+    })
+    .click()
+
+  await expect(cancelDialog).toHaveCount(0)
+  await expect(draftRow.getByText('CANCELLED', { exact: true })).toBeVisible()
+
+  await expect(
+    draftRow.getByRole('button', {
+      name: /^Cancel /,
+    }),
+  ).toHaveCount(0)
+
+  await page.getByText('4500000001/00010').first().click()
+  await expect(page).toHaveURL(detailUrl)
 
   await signOut(page)
   await login(page, 'browser_test_logistic')
@@ -207,7 +250,7 @@ test('vendor submits BEL without DP check, enforces PO quota, Logistics approves
     .click()
 
   await expect(page.getByText('Approved', { exact: true }).first()).toBeVisible()
-  await expect(page.getByText('Staged to PREREG_BEL_SAP')).toBeVisible()
+  await expect(page.getByText('PREREG_BEL_SAP')).toHaveCount(0)
   await snap(page, 'bel-approved-detail.png')
 
   await page.goto('/bel')

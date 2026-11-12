@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import {
   belSortFields,
@@ -13,7 +14,8 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { useAuth } from '@/hooks/auth'
 import { hasPermission } from '@/utils/permission'
 import ErrorState from '@/components/ErrorState'
-import { ArrowRight, Plus } from '@/ui/icons'
+import { ArrowRight, Plus, Trash } from '@/ui/icons'
+import CancelBelModal from '../_components/CancelBelModal'
 
 export default function ListBel({ review = false }: { review?: boolean }) {
   const navigate = useNavigate()
@@ -23,6 +25,8 @@ export default function ListBel({ review = false }: { review?: boolean }) {
   const { sortBy, sortDirection, sorting } = useSorting(belSortFields, 'createdAt', 'desc')
   const status = params.get('status') ?? (review ? 'SUBMITTED' : '')
   const search = useDebounce(pagination.q, 300)
+  const canCancel = hasPermission(user, 'prereg:update')
+  const [cancelling, setCancelling] = useState<BelRequestSummary | null>(null)
 
   const query = useBelList({
     page: pagination.page,
@@ -91,16 +95,29 @@ export default function ListBel({ review = false }: { review?: boolean }) {
       header: 'Actions',
       align: 'right',
       width: '12%',
-      skeleton: <SkeletonCell kind="actions" count={1} />,
+      skeleton: <SkeletonCell kind="actions" count={2} />,
       render: (row) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-label={`Open ${row.number}`}
-          onClick={() => navigate('/bel/' + row.id)}
-        >
-          <ArrowRight className="size-4" />
-        </Button>
+        <div className="flex justify-end gap-1">
+          {canCancel && ['DRAFT', 'SUBMITTED', 'APPROVED'].includes(row.status) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={`Cancel ${row.number}`}
+              title="Cancel registration"
+              onClick={() => setCancelling(row)}
+            >
+              <Trash className="size-4 text-rose-600" />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={`Open ${row.number}`}
+            onClick={() => navigate('/bel/' + row.id)}
+          >
+            <ArrowRight className="size-4" />
+          </Button>
+        </div>
       ),
     },
   ]
@@ -157,6 +174,7 @@ export default function ListBel({ review = false }: { review?: boolean }) {
           columns={columns}
           data={query.data?.items ?? []}
           keyExtractor={(row) => row.id}
+          onRowClick={(row) => navigate('/bel/' + row.id)}
           isLoading={query.isPending}
           sorting={{
             ...sorting,
@@ -169,6 +187,9 @@ export default function ListBel({ review = false }: { review?: boolean }) {
           }}
           emptyMessage="No BEL registrations found."
         />
+      )}
+      {cancelling && (
+        <CancelBelModal registration={cancelling} onClose={() => setCancelling(null)} />
       )}
     </div>
   )

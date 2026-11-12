@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router'
-import { Button, Card, CardBody, CardHeader, Field, PageHeader, Select } from '@awb/ui'
+import type { BelPoItemChoice } from '@awb/contracts'
+import { Button, Card, CardBody, CardHeader, Combobox, Field, PageHeader, Select } from '@awb/ui'
 import ErrorState from '@/components/ErrorState'
 import { useAuth } from '@/hooks/auth'
 import {
@@ -20,6 +21,9 @@ import { quantityUnits, unitsText } from '@/utils/quantity'
 import BelLineEditor from '../_components/BelLineEditor'
 import { BelSkeleton } from '../_components/BelSkeleton'
 import BelDocumentDetails from '../_components/BelDocumentDetails'
+
+const poLabel = (choice: BelPoItemChoice) =>
+  `${choice.poNumber}/${choice.poItem} · ${choice.description}`
 
 function emptyLine(documentId = ''): BelLineDraft {
   return {
@@ -48,6 +52,7 @@ export default function BelForm() {
 
   const [selectedVendorId, setSelectedVendorId] = useState('')
   const [selectedDocumentId, setSelectedDocumentId] = useState('')
+  const [poQuery, setPoQuery] = useState<string | null>(null)
   const [lines, setLines] = useState<BelLineDraft[]>(() => [emptyLine()])
   const [initializedFor, setInitializedFor] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
@@ -315,26 +320,37 @@ export default function BelForm() {
               )}
 
               <Field label="Purchase order" required>
-                <Select
-                  aria-label="PO item line 1"
-                  value={selectedDocumentId}
+                <Combobox
+                  aria-label="Purchase order"
+                  value={poQuery ?? (selectedPo ? poLabel(selectedPo) : '')}
                   disabled={!effectiveVendorId}
-                  onChange={(event) => handleDocumentChange(event.target.value)}
-                >
-                  <option value="">Type or choose a purchase order</option>
-                  {poChoices.map((choice) => {
+                  isLoading={poItemsQuery.isLoading}
+                  placeholder={
+                    selectedPo ? poLabel(selectedPo) : 'Search PO number, material or plant...'
+                  }
+                  filterOptions
+                  emptyMessage={
+                    poChoices.length ? 'No PO item matches.' : 'No open PO items for this vendor.'
+                  }
+                  options={poChoices.map((choice) => {
                     const available =
                       quantityUnits(choice.availableQuantity) +
                       (editableBonusByDoc[choice.id] ?? 0n)
 
-                    return (
-                      <option key={choice.id} value={choice.id}>
-                        {choice.poNumber}/{choice.poItem} · {choice.description} ({choice.plantName}
-                        ) — Rem: {unitsText(available > 0n ? available : 0n)} {choice.uom}
-                      </option>
-                    )
+                    return {
+                      value: choice.id,
+                      label: poLabel(choice),
+                      description: `${choice.material} · ${choice.plantName} · ${unitsText(available > 0n ? available : 0n)} ${choice.uom} remaining`,
+                    }
                   })}
-                </Select>
+                  onFocus={() => setPoQuery('')}
+                  onBlur={() => setPoQuery(null)}
+                  onInputChange={setPoQuery}
+                  onSelect={(option) => {
+                    handleDocumentChange(option.value)
+                    setPoQuery(null)
+                  }}
+                />
               </Field>
             </div>
 
