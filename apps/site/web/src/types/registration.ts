@@ -5,8 +5,9 @@ import type {
   RegistrationCreateData,
   RegistrationCreateInput,
   RegistrationDoInput,
+  RegistrationListItem,
+  RegistrationPhase,
   RegistrationSortField,
-  RegistrationStatus,
   SortDirection,
 } from '@awb/contracts'
 
@@ -16,7 +17,7 @@ export interface RegistrationListParams {
   search?: string
   from?: string
   to?: string
-  status?: RegistrationStatus
+  phase?: RegistrationPhase
   sortBy: RegistrationSortField
   sortDirection: SortDirection
 }
@@ -35,7 +36,7 @@ export interface DecimalInputProps extends Omit<
   name: FieldPath<RegistrationCreateInput>
 }
 
-export type SectionId = 'truck' | 'load' | 'destination' | 'otherParty' | 'extras'
+export type SectionId = 'truck' | 'load' | 'destination' | 'otherParty' | 'card' | 'extras'
 
 export interface RegistrationSectionProps {
   form: RegistrationForm
@@ -118,8 +119,21 @@ export interface SummaryPanelProps extends RegistrationSectionProps {
   onCancel: () => void
 }
 
-export interface StatusTab {
-  value: RegistrationStatus | 'ALL'
+export interface PhaseTab {
+  value: RegistrationPhase | 'ALL'
   label: string
   count: number | undefined
+}
+
+export interface RegistrationCellProps {
+  row: RegistrationListItem
+}
+
+export interface RegistrationTimeCellProps extends RegistrationCellProps {
+  now: number
+}
+
+export interface CameraCaptureProps {
+  onCapture: (dataUrl: string) => void
+  onClose: () => void
 }

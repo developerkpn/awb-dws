@@ -1,7 +1,7 @@
 import { Router } from 'express'
-import { CustomError, NotFoundError, success } from '@awb/server-core'
+import { NotFoundError, success } from '@awb/server-core'
 import { masterKind, masterListQuery } from '@awb/contracts'
-import { currentOperator, requireAuth } from '../../middlewares/auth'
+import { requireAuth } from '../../middlewares/auth'
 import service from './master.service'
 
 const router = Router()
@@ -24,10 +24,12 @@ router.get('/:kind', async (req, res) => {
   res.json(success(await service.list(kindOf(req.params.kind), masterListQuery.parse(req.query))))
 })
 
-router.post('/:kind/pull', async (req, res) => {
-  if (currentOperator(req).role !== 'ADMIN')
-    throw new CustomError('Only an admin can pull master data', 403)
+router.post('/pull', async (_req, res) => {
+  await service.pullAll()
+  res.json(success(await service.statuses()))
+})
 
+router.post('/:kind/pull', async (req, res) => {
   res.json(success(await service.pull(kindOf(req.params.kind))))
 })
 

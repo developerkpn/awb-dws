@@ -7,6 +7,8 @@ import masterService from '../src/modules/master/master.service'
 
 export const ORIGIN = new URL(env.APP_ORIGIN).origin
 export const PASSWORD = 'Test-Password-123'
+export const DRIVER_PHOTO =
+  'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAACAAIDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCeiiivkD6o/9k='
 
 export async function createOperator(
   username: string,
@@ -130,6 +132,10 @@ export async function seedSapMasters() {
         code: '8010-10.11102',
         name: 'CRUDE PALM OIL FFA 3.5-5',
       },
+      {
+        code: '8010-50.40002',
+        name: 'FATTY ACID METHYL ESTER (PME)',
+      },
     ],
     at,
   )
@@ -184,6 +190,20 @@ export async function seedSapMasters() {
       {
         doNumber: 'DO-3',
         transactionCode: 'JUL',
+      },
+      {
+        doNumber: 'DO-4',
+        transactionCode: 'BEL',
+        commodityCode: '8010-10.11102',
+      },
+      {
+        doNumber: 'DO-FAME',
+        transactionCode: 'BEL',
+        commodityCode: '8010-50.40002',
+      },
+      {
+        doNumber: 'DO-RVS',
+        transactionCode: 'RVS',
       },
       {
         doNumber: 'DO-CLOSED',

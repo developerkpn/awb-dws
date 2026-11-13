@@ -4,10 +4,21 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type TestAgent from 'supertest/lib/agent'
 import app from '../src/app'
 import { prisma } from '../src/config/prisma'
-import { createOperator, ORIGIN, resetOperators, seedSapMasters, signIn } from './helpers'
+import {
+  createOperator,
+  DRIVER_PHOTO,
+  ORIGIN,
+  resetOperators,
+  seedSapMasters,
+  signIn,
+} from './helpers'
+
+let cards = 0
 
 function payload(overrides: Partial<RegistrationCreateInput> = {}): RegistrationCreateInput {
   return {
+    cardNumber: `CARD-${++cards}`,
+    driverPhoto: DRIVER_PHOTO,
     weighingType: '2X',
     plateNumber: 'B 9005 SDC',
     transporterCode: 'BMS',
@@ -65,8 +76,8 @@ function payload(overrides: Partial<RegistrationCreateInput> = {}): Registration
         ],
       },
       {
-        transactionCode: 'JUL',
-        doNumber: 'DO-2',
+        transactionCode: 'BEL',
+        doNumber: 'DO-4',
         loadingNoteNumber: 'LN-1',
         loadingNoteItem: '10',
         quantityKg: '5000',
@@ -121,6 +132,33 @@ describe('gate registrations', () => {
     expect(empty.body.details.licenseNumber).toEqual(['Pick the driver'])
     expect(empty.body.details.dos).toEqual(['Add at least one DO'])
     expect(empty.body.details.destinations).toEqual(['Add at least one destination'])
+    expect(empty.body.details.driverPhoto).toEqual(['Take a photo of the driver'])
+
+    expect(empty.body.details.cardNumber).toEqual([
+      'Tap the RFID card on the reader or type its number',
+    ])
+
+    const notFromCamera = await agent
+      .post('/api/registrations')
+      .set('Origin', ORIGIN)
+      .send(payload({ driverPhoto: 'data:image/png;base64,iVBORw0KGgo=' }))
+
+    expect(notFromCamera.status).toBe(422)
+
+    expect(notFromCamera.body.details.driverPhoto).toEqual([
+      'Take the driver photo with the camera',
+    ])
+
+    const disguised = await agent
+      .post('/api/registrations')
+      .set('Origin', ORIGIN)
+      .send(payload({ driverPhoto: 'data:image/jpeg;base64,aGVsbG8gd29ybGQ=' }))
+
+    expect(disguised.status).toBe(422)
+
+    expect(disguised.body.details.driverPhoto).toEqual([
+      'The driver photo is not a readable JPEG; take it again',
+    ])
 
     const noOtherParty = await agent
       .post('/api/registrations')
@@ -153,6 +191,31 @@ describe('gate registrations', () => {
 
     expect(julWithoutNote.status).toBe(422)
     expect(julWithoutNote.body.details.dos).toEqual(['Enter the loading note for a sale (JUL)'])
+
+    const mixed = await agent
+      .post('/api/registrations')
+      .set('Origin', ORIGIN)
+      .send(
+        payload({
+          dos: [
+            {
+              transactionCode: 'BEL',
+              doNumber: 'SK01II02-00139',
+            },
+            {
+              transactionCode: 'JUL',
+              doNumber: 'DO-2',
+              loadingNoteNumber: 'LN-1',
+            },
+          ],
+        }),
+      )
+
+    expect(mixed.status).toBe(422)
+
+    expect(mixed.body.details.dos).toEqual([
+      'All DOs on one truck must have the same transaction type',
+    ])
   })
 
   it('stores the registration with all its lines and numbers them in sequence', async () => {
@@ -195,7 +258,9 @@ describe('gate registrations', () => {
     })
 
     expect(stored).toMatchObject({
-      status: 'OPEN',
+      flowCode: 'BEL',
+      stageCode: 'wb_in',
+      status: 'ACTIVE',
       plateNumber: 'B 9005 SDC',
       tankerNumber: null,
       referenceNumber: null,
@@ -217,7 +282,7 @@ describe('gate registrations', () => {
       sealNumber: 'SEAL-9',
     })
 
-    expect(stored.dos.map((row) => row.transactionCode)).toEqual(['BEL', 'JUL'])
+    expect(stored.dos.map((row) => row.transactionCode)).toEqual(['BEL', 'BEL'])
     expect(stored.dos[0]?.factoryNet?.toString()).toBe('20000')
 
     expect(stored.dos[0]?.deductions[0]).toMatchObject({
@@ -241,7 +306,7 @@ describe('gate registrations', () => {
     expect(withoutOtherParty.otherPartyNet).toBeNull()
   })
 
-  it('filters by status, counts every status and lists DOs and destinations', async () => {
+  it('lists the stage of each truck, filters by phase and counts every phase', async () => {
     const created = await prisma.registration.findMany({
       orderBy: { number: 'asc' },
     })
@@ -249,16 +314,26 @@ describe('gate registrations', () => {
     await prisma.registration.update({
       where: { id: created[0]!.id },
       data: {
-        status: 'CHECKED_OUT',
+        stageCode: 'regist_out',
+        status: 'COMPLETED',
         checkedOutAt: new Date(),
         checkedOutById: created[0]!.createdById,
       },
     })
 
-    const cancelled = await agent
-      .post('/api/registrations')
-      .set('Origin', ORIGIN)
-      .send(payload({ plateNumber: 'DA 5555 ZZ' }))
+    const create = (overrides: Partial<RegistrationCreateInput>) =>
+      agent
+        .post('/api/registrations')
+        .set('Origin', ORIGIN)
+        .send(
+          payload({
+            hasOtherPartyWeight: false,
+            otherPartyGross: '',
+            ...overrides,
+          }),
+        )
+
+    const cancelled = await create({ plateNumber: 'DA 5555 ZZ' })
 
     await prisma.registration.update({
       where: { id: cancelled.body.data.id },
@@ -270,34 +345,107 @@ describe('gate registrations', () => {
       },
     })
 
-    const open = await agent.get('/api/registrations?status=OPEN')
+    const onHold = await create({ plateNumber: 'DA 5555 ZZ' })
 
-    expect(open.status).toBe(200)
-    expect(open.body.data.total).toBe(1)
+    await prisma.registration.update({
+      where: { id: onHold.body.data.id },
+      data: {
+        stageCode: 'lab',
+        status: 'ON_HOLD',
+      },
+    })
 
-    expect(open.body.data.items[0]).toMatchObject({
+    const fame = await create({
+      dos: [
+        {
+          transactionCode: 'BEL',
+          doNumber: 'DO-FAME',
+        },
+      ],
+    })
+
+    expect(fame.status).toBe(201)
+
+    await prisma.registration.update({
+      where: { id: fame.body.data.id },
+      data: { stageCode: 'wb_out' },
+    })
+
+    const waiting = await agent.get('/api/registrations?phase=WB_IN')
+
+    expect(waiting.status).toBe(200)
+    expect(waiting.body.data.total).toBe(1)
+
+    expect(waiting.body.data.items[0]).toMatchObject({
       plateNumber: 'KB 1234 XY',
-      status: 'OPEN',
+      status: 'ACTIVE',
+      flow: {
+        code: 'BEL',
+        name: 'Purchase',
+      },
+      stage: {
+        code: 'wb_in',
+        name: 'Weighbridge In',
+        step: 2,
+        steps: 7,
+      },
       createdBy: 'Operator regtest_gate',
       checkedOutBy: null,
     })
 
-    expect(open.body.data.items[0].dos[0]).toHaveProperty('doNumber')
-    expect(open.body.data.items[0].destinations.length).toBeGreaterThan(0)
+    expect(waiting.body.data.items[0]).toMatchObject({
+      transporterName: 'Bina Mitra Sejahtera',
+      weighingType: '2X',
+      otherPartyNet: null,
+    })
 
-    expect(open.body.data.counts).toEqual({
-      all: 3,
-      open: 1,
-      checkedOut: 1,
-      cancelled: 1,
+    expect(waiting.body.data.items[0].dos[0]).toMatchObject({
+      doNumber: 'SK01II02-00139',
+      transactionCode: 'BEL',
+      commodityName: 'CRUDE PALM OIL FFA 3.5-5',
+      relationName: 'PT. SAWIT MAKMUR SEJAHTERA',
+    })
+
+    expect(waiting.body.data.items[0].destinations.length).toBeGreaterThan(0)
+
+    expect(waiting.body.data.counts).toEqual({
+      all: 5,
+      WB_IN: 1,
+      PROCESS: 1,
+      WB_OUT: 1,
+      REGIST_OUT: 0,
+      COMPLETED: 1,
+      CANCELLED: 1,
+    })
+
+    const inProcess = await agent.get('/api/registrations?phase=PROCESS')
+
+    expect(inProcess.body.data.items).toHaveLength(1)
+
+    expect(inProcess.body.data.items[0]).toMatchObject({
+      status: 'ON_HOLD',
+      stage: { code: 'lab' },
+    })
+
+    const weighingOut = await agent.get('/api/registrations?phase=WB_OUT')
+
+    expect(weighingOut.body.data.items[0]).toMatchObject({
+      flow: { code: 'FAME' },
+      stage: {
+        code: 'wb_out',
+        step: 3,
+        steps: 4,
+      },
     })
 
     const everything = await agent.get('/api/registrations?sortBy=number&sortDirection=asc')
 
     expect(everything.body.data.items.map((row: { status: string }) => row.status)).toEqual([
-      'CHECKED_OUT',
-      'OPEN',
+      'COMPLETED',
+      'ACTIVE',
       'CANCELLED',
+      'ON_HOLD',
+      'ACTIVE',
     ])
 
     expect(everything.body.data.items[0].checkedOutBy).toBe('Operator regtest_gate')
@@ -307,9 +455,10 @@ describe('gate registrations', () => {
 
     expect(search.body.data.items.map((row: { plateNumber: string }) => row.plateNumber)).toEqual([
       'DA 5555 ZZ',
+      'DA 5555 ZZ',
     ])
 
-    expect(search.body.data.counts.all).toBe(1)
+    expect(search.body.data.counts.all).toBe(2)
 
     const future = await agent.get(
       `/api/registrations?from=${encodeURIComponent(new Date(Date.now() + 86_400_000).toISOString())}`,
@@ -318,16 +467,35 @@ describe('gate registrations', () => {
     expect(future.body.data.total).toBe(0)
     expect(future.body.data.counts.all).toBe(0)
 
-    const paged = await agent.get('/api/registrations?limit=2&page=2')
+    const paged = await agent.get('/api/registrations?limit=2&page=3')
 
     expect(paged.body.data.items).toHaveLength(1)
-    expect(paged.body.data.total).toBe(3)
+    expect(paged.body.data.total).toBe(5)
 
-    const cancelledOnly = await agent.get('/api/registrations?status=CANCELLED')
+    const cancelledOnly = await agent.get('/api/registrations?phase=CANCELLED')
 
-    expect(
-      cancelledOnly.body.data.items.map((row: { plateNumber: string }) => row.plateNumber),
-    ).toEqual(['DA 5555 ZZ'])
+    expect(cancelledOnly.body.data.items.map((row: { id: string }) => row.id)).toEqual([
+      cancelled.body.data.id,
+    ])
+  })
+
+  it('needs a plant flow for the transaction type', async () => {
+    const res = await agent
+      .post('/api/registrations')
+      .set('Origin', ORIGIN)
+      .send(
+        payload({
+          dos: [
+            {
+              transactionCode: 'RVS',
+              doNumber: 'DO-RVS',
+            },
+          ],
+        }),
+      )
+
+    expect(res.status).toBe(422)
+    expect(res.body.details.dos).toEqual(['No plant flow is set up for transaction type RVS'])
   })
 
   it('only accepts codes from the SAP masters and takes the DO details from the register', async () => {
@@ -443,6 +611,83 @@ describe('gate registrations', () => {
       transporterCode: 'BMS',
       estate: 'PLANT EUP KIJING',
       piNumber: 'PI-7',
+    })
+  })
+
+  it('keeps a card with one truck until it leaves and stores the driver photo', async () => {
+    const save = (cardNumber: string) =>
+      agent
+        .post('/api/registrations')
+        .set('Origin', ORIGIN)
+        .send(
+          payload({
+            cardNumber,
+            hasOtherPartyWeight: false,
+            otherPartyGross: '',
+          }),
+        )
+
+    const first = await save(' rfid-77 ')
+
+    expect(first.status).toBe(201)
+
+    const held = await agent.get('/api/registrations/cards/rfid-77')
+
+    expect(held.body.data).toEqual({
+      cardNumber: 'RFID-77',
+      heldBy: {
+        id: first.body.data.id,
+        number: first.body.data.number,
+        plateNumber: 'B 9005 SDC',
+      },
+    })
+
+    const taken = await save('RFID-77')
+
+    expect(taken.status).toBe(422)
+
+    expect(taken.body.details.cardNumber).toEqual([
+      `Card RFID-77 is still with ${first.body.data.number} (B 9005 SDC); finish or cancel that registration first`,
+    ])
+
+    await prisma.registration.update({
+      where: { id: first.body.data.id },
+      data: {
+        stageCode: 'regist_out',
+        status: 'COMPLETED',
+      },
+    })
+
+    expect((await agent.get('/api/registrations/cards/RFID-77')).body.data.heldBy).toBeNull()
+    expect((await save('RFID-77')).status).toBe(201)
+
+    const photo = await agent
+      .get(`/api/registrations/${first.body.data.id}/driver-photo`)
+      .buffer(true)
+      .parse((res, done) => {
+        const chunks: Buffer[] = []
+
+        res.on('data', (chunk: Buffer) => chunks.push(chunk))
+        res.on('end', () => done(null, Buffer.concat(chunks)))
+      })
+
+    expect(photo.status).toBe(200)
+    expect(photo.headers['content-type']).toBe('image/jpeg')
+    expect(Buffer.compare(photo.body, Buffer.from(DRIVER_PHOTO.split(',')[1]!, 'base64'))).toBe(0)
+
+    expect(
+      (await request(app).get(`/api/registrations/${first.body.data.id}/driver-photo`)).status,
+    ).toBe(401)
+
+    expect((await agent.get('/api/registrations/nope/driver-photo')).status).toBe(404)
+
+    const listed = await agent.get('/api/registrations?search=RFID-77')
+
+    expect(listed.body.data.items).toHaveLength(2)
+
+    expect(listed.body.data.items[0]).toMatchObject({
+      cardNumber: 'RFID-77',
+      hasDriverPhoto: true,
     })
   })
 })

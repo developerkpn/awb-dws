@@ -3,6 +3,7 @@ import type { RegistrationCreateInput, RegistrationDoInput } from '@awb/contract
 export function emptyRegistration(): RegistrationCreateInput {
   return {
     cardNumber: '',
+    driverPhoto: '',
     weighingType: '2X',
     plateNumber: '',
     transporterCode: '',

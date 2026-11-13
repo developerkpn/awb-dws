@@ -1,7 +1,12 @@
-import type { RegistrationCreateData } from '@awb/contracts'
+import {
+  openRegistrationStatuses,
+  registrationPhaseStages,
+  type RegistrationCreateData,
+  type RegistrationPhase,
+} from '@awb/contracts'
 import { prisma } from '../../config/prisma'
 import { Prisma } from '../../generated/prisma/client'
-import type { RegistrationListFilter } from '../../types/registration'
+import type { DecodedPhoto, FlowPlacement, RegistrationListFilter } from '../../types/registration'
 
 const blank = (value: string) => value || null
 const decimal = (value: string) => (value ? new Prisma.Decimal(value) : null)
@@ -15,17 +20,38 @@ export const REGISTRATION_LIST_INCLUDE = {
   revisedBy: operatorName,
   cancelledBy: operatorName,
   checkedOutBy: operatorName,
+  flow: {
+    select: {
+      code: true,
+      name: true,
+      _count: {
+        select: { stages: true },
+      },
+    },
+  },
+  stage: {
+    select: {
+      stageCode: true,
+      name: true,
+      stepOrder: true,
+    },
+  },
   dos: {
     select: {
       doNumber: true,
       transactionCode: true,
+      commodityCode: true,
       commodityName: true,
+      relationName: true,
     },
     orderBy: { lineNumber: 'asc' },
   },
   destinations: {
     select: { code: true },
     orderBy: { lineNumber: 'asc' },
+  },
+  photos: {
+    select: { kind: true },
   },
 } as const
 
@@ -79,6 +105,21 @@ function baseWhere(filter: RegistrationListFilter): Prisma.RegistrationWhereInpu
   }
 }
 
+function phaseWhere(phase?: RegistrationPhase): Prisma.RegistrationWhereInput {
+  if (!phase) return {}
+
+  if (phase === 'COMPLETED' || phase === 'CANCELLED') return { status: phase }
+
+  return {
+    status: {
+      in: [...openRegistrationStatuses],
+    },
+    stageCode: {
+      in: [...registrationPhaseStages[phase]],
+    },
+  }
+}
+
 function nextNumber(tx: Prisma.TransactionClient) {
   return tx.counter.upsert({
     where: { key: 'registration' },
@@ -97,7 +138,7 @@ export default {
     const where = baseWhere(filter)
 
     const listWhere: Prisma.RegistrationWhereInput = {
-      AND: [where, filter.status ? { status: filter.status } : {}],
+      AND: [where, phaseWhere(filter.phase)],
     }
 
     const [items, total, groups] = await Promise.all([
@@ -110,7 +151,7 @@ export default {
       }),
       prisma.registration.count({ where: listWhere }),
       prisma.registration.groupBy({
-        by: ['status'],
+        by: ['status', 'stageCode'],
         where,
         _count: { _all: true },
       }),
@@ -122,7 +163,72 @@ export default {
       groups,
     }
   },
-  create(data: RegistrationCreateData, createdById: string) {
+  /** Rules for a transaction type, plus the commodity rules for the given commodities. */
+  flowRules(transactionCode: string, commodityCodes: string[]) {
+    return prisma.flowRule.findMany({
+      where: {
+        flow: { isActive: true },
+        OR: [
+          {
+            transactionCode,
+            commodityCode: null,
+          },
+          {
+            commodityCode: { in: commodityCodes },
+            OR: [{ transactionCode }, { transactionCode: null }],
+          },
+        ],
+      },
+      select: {
+        transactionCode: true,
+        commodityCode: true,
+        flowCode: true,
+      },
+    })
+  },
+  /** The unfinished registration that still holds this card, if any. */
+  holderOfCard(cardNumber: string) {
+    return prisma.registration.findFirst({
+      where: {
+        cardNumber,
+        status: {
+          in: [...openRegistrationStatuses],
+        },
+      },
+      select: {
+        id: true,
+        number: true,
+        plateNumber: true,
+      },
+    })
+  },
+  photo(registrationId: string, kind: string) {
+    return prisma.registrationPhoto.findUnique({
+      where: {
+        registrationId_kind: {
+          registrationId,
+          kind,
+        },
+      },
+      select: {
+        mimeType: true,
+        content: true,
+      },
+    })
+  },
+  flowStages(flowCode: string) {
+    return prisma.flowStage.findMany({
+      where: { flowCode },
+      orderBy: { stepOrder: 'asc' },
+      select: { stageCode: true },
+    })
+  },
+  create(
+    data: RegistrationCreateData,
+    placement: FlowPlacement,
+    driverPhoto: DecodedPhoto,
+    createdById: string,
+  ) {
     const otherParty = data.hasOtherPartyWeight
       ? {
           otherPartyReference: blank(data.otherPartyReference),
@@ -142,7 +248,10 @@ export default {
         data: {
           number: 'GP' + String(counter.value).padStart(7, '0'),
           registeredAt: new Date(),
-          cardNumber: blank(data.cardNumber),
+          flowCode: placement.flowCode,
+          stageCode: placement.stageCode,
+          status: 'ACTIVE',
+          cardNumber: data.cardNumber,
           weighingType: data.weighingType,
           plateNumber: data.plateNumber,
           transporterCode: blank(data.transporterCode),
@@ -221,6 +330,14 @@ export default {
                 })),
               },
             })),
+          },
+          photos: {
+            create: {
+              kind: 'DRIVER',
+              mimeType: driverPhoto.mimeType,
+              content: driverPhoto.content,
+              sizeBytes: driverPhoto.content.byteLength,
+            },
           },
           qualities: {
             create: data.qualities.map((quality, index) => ({

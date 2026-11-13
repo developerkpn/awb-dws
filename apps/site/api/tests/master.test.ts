@@ -130,15 +130,41 @@ describe('plant master data', () => {
     })
   })
 
-  it('pulls only for admins and only masters SAP serves', async () => {
-    const asOperator = await operator.post('/api/masters/vehicle/pull').set('Origin', ORIGIN)
-
-    expect(asOperator.status).toBe(403)
-
-    const unavailable = await admin.post('/api/masters/contract/pull').set('Origin', ORIGIN)
+  it('lets any operator pull, but only masters SAP serves', async () => {
+    const unavailable = await operator.post('/api/masters/contract/pull').set('Origin', ORIGIN)
 
     expect(unavailable.status).toBe(409)
     expect(unavailable.body.error).toBe('SAP service for contract is not available yet')
+  })
+
+  it('pulls every master SAP serves in one call and skips the rest', async () => {
+    Object.assign(env, {
+      SAP_SERVICE_USERNAME: 'tester',
+      SAP_SERVICE_PASSWORD: 'secret',
+      SITE_WB_LOCATION: 'EU23',
+    })
+
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => odata([]))
+    const res = await operator.post('/api/masters/pull').set('Origin', ORIGIN)
+
+    expect(res.status).toBe(200)
+
+    const byKind = new Map(
+      (
+        res.body.data as { kind: string; sapAvailable: boolean; lastPullStatus: string | null }[]
+      ).map((row) => [row.kind, row]),
+    )
+
+    expect(byKind.size).toBe(11)
+    expect(byKind.get('vehicle')).toMatchObject({ lastPullStatus: 'SUCCESS' })
+    expect(byKind.get('relation')).toMatchObject({ lastPullStatus: 'SUCCESS' })
+    expect(byKind.get('contract')).toMatchObject({ sapAvailable: false })
+
+    const urls = fetchMock.mock.calls.map(([input]) => String(input))
+
+    expect(urls.some((url) => url.includes('/TRUCKSet'))).toBe(true)
+    expect(urls.some((url) => url.includes('/KUNNRSet'))).toBe(true)
+    expect(urls.some((url) => url.includes('/SIMSet'))).toBe(false)
   })
 
   it('pulls trucks for this plant and buyers/sellers from SAP without blanking backfilled fields', async () => {

@@ -54,6 +54,23 @@ export function usePullMaster() {
   })
 }
 
+export function usePullAllMasters() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: () =>
+      fetchApi<MasterPullStatus[]>('/masters/pull', {
+        method: 'POST',
+        timeout: 120_000,
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: masterKeys.all,
+      })
+    },
+  })
+}
+
 /** SAP has no service for this master yet (the API answers 409). */
 export const isSapNotAvailable = (error: unknown) =>
   error instanceof ApiError && error.status === 409

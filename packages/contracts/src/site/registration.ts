@@ -6,15 +6,71 @@ export const weighingTypes = ['2X', 'NX', 'NON'] as const
 export const weighingType = z.enum(weighingTypes)
 export type WeighingType = z.infer<typeof weighingType>
 
-export const registrationStatuses = ['OPEN', 'CHECKED_OUT', 'CANCELLED'] as const
+/** The truck moves through the stages of its plant flow; the status says how it is doing there. */
+export const registrationStatuses = [
+  'ACTIVE',
+  'ON_HOLD',
+  'REJECTED',
+  'COMPLETED',
+  'CANCELLED',
+] as const
 export const registrationStatus = z.enum(registrationStatuses)
 export type RegistrationStatus = z.infer<typeof registrationStatus>
+
+/** Stage codes of the plant flows, the same codes as VCF, in the order a truck meets them. */
+export const flowStageCodes = [
+  'regist_in',
+  'wb_in',
+  'inspection',
+  'loading',
+  'sampling',
+  'lab',
+  'unloading',
+  'wb_out',
+  'regist_out',
+] as const
+export type FlowStageCode = (typeof flowStageCodes)[number]
+
+/** List tabs: open registrations by where the truck is, finished ones by status. */
+export const registrationPhases = [
+  'WB_IN',
+  'PROCESS',
+  'WB_OUT',
+  'REGIST_OUT',
+  'COMPLETED',
+  'CANCELLED',
+] as const
+export const registrationPhase = z.enum(registrationPhases)
+export type RegistrationPhase = z.infer<typeof registrationPhase>
+
+export const openRegistrationStatuses = ['ACTIVE', 'ON_HOLD', 'REJECTED'] as const
+
+export const registrationPhaseStages = {
+  WB_IN: ['regist_in', 'wb_in'],
+  PROCESS: ['inspection', 'loading', 'sampling', 'lab', 'unloading'],
+  WB_OUT: ['wb_out'],
+  REGIST_OUT: ['regist_out'],
+} as const satisfies Partial<Record<RegistrationPhase, readonly FlowStageCode[]>>
+
+export function registrationPhaseOf(status: string, stageCode: string): RegistrationPhase {
+  if (status === 'COMPLETED' || status === 'CANCELLED') return status
+
+  const phase = (
+    Object.keys(registrationPhaseStages) as (keyof typeof registrationPhaseStages)[]
+  ).find((key) => (registrationPhaseStages[key] as readonly string[]).includes(stageCode))
+
+  return phase ?? 'PROCESS'
+}
 
 const text = (max: number) => z.string().trim().max(max).default('')
 const code = (max: number) => z.string().trim().toUpperCase().max(max).default('')
 
 const requiredCode = (max: number, message: string) =>
   z.string().trim().toUpperCase().min(1, message).max(max)
+
+/** Photos come from the camera only, as a JPEG of at most 960 px, well under this limit. */
+export const registrationPhotoMaxLength = 1_500_000
+export const registrationPhotoPattern = /^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/
 
 const decimal = z
   .string()
@@ -95,7 +151,11 @@ export const registrationQualityInput = z.object({
 
 export const registrationCreateInput = z
   .object({
-    cardNumber: text(30),
+    cardNumber: code(30),
+    driverPhoto: z
+      .string()
+      .max(registrationPhotoMaxLength, 'The photo is too large; take it again')
+      .default(''),
     weighingType: weighingType.default('2X'),
     plateNumber: code(20),
     transporterCode: code(20),
@@ -125,7 +185,7 @@ export const registrationCreateInput = z
     qualities: z.array(registrationQualityInput).max(50).default([]),
   })
   .superRefine((value, ctx) => {
-    // Same checks, in the same order, as WB.NET on Simpan.
+    // WB.NET's checks on Simpan, in its order, plus the plant console's photo and card.
     if (!value.plateNumber) {
       ctx.addIssue({
         code: 'custom',
@@ -150,11 +210,43 @@ export const registrationCreateInput = z
       })
     }
 
+    // One truck follows one flow, and the flow comes from the transaction type.
+    if (new Set(value.dos.map((line) => line.transactionCode).filter(Boolean)).size > 1) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'All DOs on one truck must have the same transaction type',
+        path: ['dos'],
+      })
+    }
+
     if (!value.destinations.length) {
       ctx.addIssue({
         code: 'custom',
         message: 'Add at least one destination',
         path: ['destinations'],
+      })
+    }
+
+    if (!value.driverPhoto) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Take a photo of the driver',
+        path: ['driverPhoto'],
+      })
+    } else if (!registrationPhotoPattern.test(value.driverPhoto)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Take the driver photo with the camera',
+        path: ['driverPhoto'],
+      })
+    }
+
+    // The driver taps this card at every stage, so no truck may enter without one.
+    if (!value.cardNumber) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Tap the RFID card on the reader or type its number',
+        path: ['cardNumber'],
       })
     }
 
@@ -201,11 +293,23 @@ export const registrationListQuery = z.object({
   search: z.string().trim().max(100).optional(),
   from: z.iso.datetime({ offset: true }).optional(),
   to: z.iso.datetime({ offset: true }).optional(),
-  status: registrationStatus.optional(),
+  phase: registrationPhase.optional(),
   sortBy: z.enum(registrationSortFields).default('registeredAt'),
   sortDirection: sortDirection.default('desc'),
 })
 export type RegistrationListQuery = z.input<typeof registrationListQuery>
+
+export const registrationCardNumber = requiredCode(30, 'Enter the card number')
+
+/** Whether a card is still held by a registration that has not finished. */
+export interface RegistrationCardStatus {
+  cardNumber: string
+  heldBy: {
+    id: string
+    number: string
+    plateNumber: string
+  } | null
+}
 
 export interface RegistrationListItem {
   id: string
@@ -220,6 +324,9 @@ export interface RegistrationListItem {
   licenseNumber: string | null
   driverName: string | null
   transporterCode: string | null
+  transporterName: string | null
+  weighingType: WeighingType
+  otherPartyNet: string | null
   deliveryNote: string | null
   sealNumber: string | null
   ticketRemark: string | null
@@ -230,22 +337,34 @@ export interface RegistrationListItem {
   cancelledBy: string | null
   cancelledAt: string | null
   status: RegistrationStatus
+  hasDriverPhoto: boolean
+  flow: RegistrationFlow
+  stage: RegistrationStage
   dos: RegistrationListDo[]
   destinations: string[]
+}
+
+export interface RegistrationFlow {
+  code: string
+  name: string
+}
+
+export interface RegistrationStage {
+  code: string
+  name: string
+  step: number
+  steps: number
 }
 
 export interface RegistrationListDo {
   doNumber: string
   transactionCode: string
+  commodityCode: string | null
   commodityName: string | null
+  relationName: string | null
 }
 
-export interface RegistrationCounts {
-  all: number
-  open: number
-  checkedOut: number
-  cancelled: number
-}
+export type RegistrationCounts = Record<RegistrationPhase, number> & { all: number }
 
 export interface RegistrationListResult {
   items: RegistrationListItem[]

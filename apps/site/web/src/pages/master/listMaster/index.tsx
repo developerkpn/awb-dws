@@ -1,7 +1,6 @@
 import { Navigate, useParams } from 'react-router'
 import { masterKind, type MasterKind } from '@awb/contracts'
 import ErrorState from '@/components/ErrorState'
-import { useAuth } from '@/hooks/auth'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useMasterList } from '@/hooks/master'
 import { usePagination } from '@/hooks/usePagination'
@@ -10,14 +9,12 @@ import { Input } from '@/ui/Field'
 import { Search } from '@/ui/icons'
 import { Table } from '@/ui/Table'
 import { getErrorMessage } from '@/utils/errorHandler'
-import { pullSummary } from '@/utils/master'
+import { MASTER_INFO, pullSummary } from '@/utils/master'
 import type { MasterTableProps } from '@/types/master'
 import { MASTER_COLUMNS } from '../_components/columns'
-import { MASTER_INFO } from '../_components/kinds'
 import { PullButton } from '../_components/PullButton'
 
 function MasterTable<K extends MasterKind>({ kind }: MasterTableProps<K>) {
-  const { user } = useAuth()
   const pagination = usePagination()
   const search = useDebounce(pagination.q, 300)
 
@@ -34,7 +31,7 @@ function MasterTable<K extends MasterKind>({ kind }: MasterTableProps<K>) {
       <PageHeader
         title={MASTER_INFO[kind].label}
         subtitle={`${MASTER_INFO[kind].description} ${pullSummary(query.data?.status)}.`}
-        action={user?.role === 'ADMIN' ? <PullButton kind={kind} size="md" /> : undefined}
+        action={<PullButton kind={kind} size="md" />}
       />
       <Input
         aria-label={`Search ${MASTER_INFO[kind].label.toLowerCase()}`}

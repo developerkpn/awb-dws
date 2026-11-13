@@ -1,6 +1,8 @@
-import { NavLink, useNavigate } from 'react-router'
+import { useId, useState } from 'react'
+import { NavLink, useLocation, useNavigate } from 'react-router'
 import { ThemeControl } from '@awb/ui'
 import {
+  ChevronDown,
   ClipboardList,
   Database,
   LayoutDashboard,
@@ -12,7 +14,8 @@ import {
 } from '@/ui/icons'
 import { useAuth } from '@/hooks/auth'
 import { getErrorMessage } from '@/utils/errorHandler'
-import type { NavGroup, NavItem } from '@/types/layout'
+import { MASTER_INFO, MASTER_ORDER } from '@/utils/master'
+import type { NavGroup, NavItem, NavSubItem } from '@/types/layout'
 
 function NavItemLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
   return (
@@ -35,6 +38,77 @@ function NavItemLink({ item, collapsed }: { item: NavItem; collapsed: boolean })
   )
 }
 
+function NavMenu({ item, items }: { item: NavItem; items: NavSubItem[] }) {
+  const { pathname } = useLocation()
+  const id = useId()
+  const inside = pathname === item.to || pathname.startsWith(`${item.to}/`)
+  const onOverview = pathname.replace(/\/$/, '') === item.to
+  const [open, setOpen] = useState(inside)
+  const [wasInside, setWasInside] = useState(inside)
+
+  if (inside !== wasInside) {
+    setWasInside(inside)
+
+    if (inside) setOpen(true)
+  }
+
+  return (
+    <div>
+      <div
+        className={`flex items-center rounded-md transition-colors ${
+          onOverview
+            ? 'bg-brand-50 text-brand-700'
+            : inside
+              ? 'text-stone-900'
+              : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+        }`}
+      >
+        <NavLink
+          to={item.to}
+          end
+          aria-label={item.label}
+          onClick={() => setOpen(true)}
+          className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-sm font-medium"
+        >
+          <span className="shrink-0">{item.icon}</span>
+          <span className="truncate">{item.label}</span>
+        </NavLink>
+        <button
+          type="button"
+          aria-label={`${item.label} menu`}
+          aria-expanded={open}
+          aria-controls={id}
+          onClick={() => setOpen((value) => !value)}
+          className="mr-1.5 flex size-7 shrink-0 items-center justify-center rounded-md text-stone-400 hover:bg-white hover:text-stone-700"
+        >
+          <ChevronDown className={`size-4.5 transition-transform ${open ? '' : '-rotate-90'}`} />
+        </button>
+      </div>
+      {open && (
+        <ul id={id} className="mt-1 ml-5 space-y-1 border-l border-stone-200 pl-2">
+          {items.map((child) => (
+            <li key={child.to}>
+              <NavLink
+                to={child.to}
+                className={({ isActive }) =>
+                  `flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
+                    isActive
+                      ? 'bg-brand-50 font-medium text-brand-700'
+                      : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+                  }`
+                }
+              >
+                <span className="shrink-0 opacity-80">{child.icon}</span>
+                <span className="truncate">{child.label}</span>
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 export default function SideBar({ collapsed }: { collapsed: boolean }) {
   const { user, logoutMutation } = useAuth()
   const navigate = useNavigate()
@@ -54,6 +128,15 @@ export default function SideBar({ collapsed }: { collapsed: boolean }) {
           label: 'Data master',
           icon: <Database className="size-4.5" />,
           show: true,
+          children: MASTER_ORDER.map((kind) => {
+            const Icon = MASTER_INFO[kind].icon
+
+            return {
+              to: `/masters/${kind}`,
+              label: MASTER_INFO[kind].label,
+              icon: <Icon className="size-4!" />,
+            }
+          }),
         },
         {
           to: '/weighbridge',
@@ -127,9 +210,13 @@ export default function SideBar({ collapsed }: { collapsed: boolean }) {
                 <p className="mb-1 px-3 text-xs font-medium text-stone-500">{group.label}</p>
               )}
               <div className="space-y-0.5">
-                {visible.map((item) => (
-                  <NavItemLink key={item.to} item={item} collapsed={collapsed} />
-                ))}
+                {visible.map((item) =>
+                  item.children && !collapsed ? (
+                    <NavMenu key={item.to} item={item} items={item.children} />
+                  ) : (
+                    <NavItemLink key={item.to} item={item} collapsed={collapsed} />
+                  ),
+                )}
               </div>
             </div>
           )

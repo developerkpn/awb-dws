@@ -5,6 +5,7 @@ import { Field, Input, Textarea } from '@/ui/Field'
 import type { RegistrationSectionProps } from '@/types/registration'
 import { ChoiceGroup } from './ChoiceGroup'
 import { WEIGHING_TYPE_OPTIONS } from './defaults'
+import { DriverPhotoField } from './DriverPhotoField'
 import { Reveal } from './Reveal'
 import { Section } from './Section'
 
@@ -41,8 +42,13 @@ export function TruckSection({ form }: RegistrationSectionProps) {
       id="truck"
       step={1}
       title="Truck & driver"
-      description="Pick the truck and the driver from the SAP masters."
-      invalid={!!errors.plateNumber || !!errors.licenseNumber || !!errors.transporterCode}
+      description="Pick the truck and the driver from the SAP masters, and photograph the driver."
+      invalid={
+        !!errors.plateNumber ||
+        !!errors.licenseNumber ||
+        !!errors.driverPhoto ||
+        !!errors.transporterCode
+      }
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
@@ -98,9 +104,12 @@ export function TruckSection({ form }: RegistrationSectionProps) {
             setValue('driverName', '', pick)
           }}
         />
-        <Field label="Driver name" hint="From the driver master">
+        <Field label="Driver name">
           <Input readOnly value={driverName ?? ''} placeholder="—" />
         </Field>
+        <div className="sm:col-span-2">
+          <DriverPhotoField form={form} />
+        </div>
         <LookupField
           kind="transporter"
           label="Transporter code"
@@ -115,7 +124,7 @@ export function TruckSection({ form }: RegistrationSectionProps) {
           onPick={(row) => setTransporter(row.code, row.name)}
           onClear={() => setTransporter(null, null)}
         />
-        <Field label="Transporter name" hint="From the transporter master">
+        <Field label="Transporter name">
           <Input readOnly value={transporterName ?? ''} placeholder="—" />
         </Field>
       </div>
