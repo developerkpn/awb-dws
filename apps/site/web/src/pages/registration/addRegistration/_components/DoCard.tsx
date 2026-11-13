@@ -103,6 +103,11 @@ export function DoCard({ form, index, expanded, onExpand, onCollapse, onRemove }
 
   const title = doNumber || `DO ${index + 1}`
 
+  // One truck follows one flow, so every DO must share the transaction type of the others.
+  const sharedType = (getValues('dos') ?? [])
+    .find((line, position) => position !== index && line.transactionCode)
+    ?.transactionCode?.toUpperCase()
+
   const deductionCount = (value?.deductions ?? []).filter(
     (deduction) => registrationDeductionInput.safeParse(deduction).success,
   ).length
@@ -182,9 +187,13 @@ export function DoCard({ form, index, expanded, onExpand, onCollapse, onRemove }
         label="DO number"
         required
         value={doNumber}
-        placeholder="Search a DO, contract or PI number"
+        placeholder={
+          sharedType
+            ? `Search a ${sharedType} DO, contract or PI number`
+            : 'Search a DO, contract or PI number'
+        }
         error={errors?.doNumber?.message ?? errors?.transactionCode?.message}
-        filter={(row) => !row.isClosed}
+        filter={(row) => !row.isClosed && (!sharedType || row.transactionCode === sharedType)}
         toOption={(row) => ({
           value: row.doNumber,
           label: row.doNumber,

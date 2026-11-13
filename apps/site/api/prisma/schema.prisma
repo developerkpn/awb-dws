@@ -123,13 +123,15 @@ model Counter {
 }
 
 // Gate registration (gatepass) with every input of the WB.NET "Registrasi Masuk" form.
-// Status: OPEN, CHECKED_OUT, CANCELLED. Weighing type: 2X, NX, NON.
+// The truck moves through the stages of its flow; status: ACTIVE, ON_HOLD, REJECTED, COMPLETED, CANCELLED.
 model Registration {
   id                     String    @id @default(uuid(7))
   number                 String    @unique @db.NVarChar(20)
   registeredAt           DateTime  @default(now()) @map("registered_at")
   referenceNumber        String?   @map("reference_number") @db.NVarChar(30)
-  status                 String    @default("OPEN") @db.NVarChar(20)
+  flowCode               String    @map("flow_code") @db.NVarChar(20)
+  stageCode              String    @map("stage_code") @db.NVarChar(30)
+  status                 String    @default("ACTIVE") @db.NVarChar(20)
   cardNumber             String?   @map("card_number") @db.NVarChar(30)
   weighingType           String    @default("2X") @map("weighing_type") @db.NVarChar(5)
   plateNumber            String    @map("plate_number") @db.NVarChar(20)
@@ -166,18 +168,23 @@ model Registration {
   createdAt              DateTime  @default(now()) @map("created_at")
   updatedAt              DateTime  @updatedAt @map("updated_at")
 
-  createdBy    User  @relation("RegistrationCreatedBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  revisedBy    User? @relation("RegistrationRevisedBy", fields: [revisedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  cancelledBy  User? @relation("RegistrationCancelledBy", fields: [cancelledById], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  checkedOutBy User? @relation("RegistrationCheckedOutBy", fields: [checkedOutById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdBy    User      @relation("RegistrationCreatedBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  revisedBy    User?     @relation("RegistrationRevisedBy", fields: [revisedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cancelledBy  User?     @relation("RegistrationCancelledBy", fields: [cancelledById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  checkedOutBy User?     @relation("RegistrationCheckedOutBy", fields: [checkedOutById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  flow         Flow      @relation(fields: [flowCode], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  stage        FlowStage @relation(fields: [flowCode, stageCode], references: [flowCode, stageCode], onDelete: NoAction, onUpdate: NoAction)
 
   destinations RegistrationDestination[]
   containers   RegistrationContainer[]
   dos          RegistrationDo[]
   qualities    RegistrationQuality[]
+  photos       RegistrationPhoto[]
 
   @@index([registeredAt])
   @@index([status, registeredAt])
+  @@index([stageCode, status])
+  @@index([cardNumber, status])
   @@index([plateNumber])
   @@map("awb_registration")
 }
@@ -294,6 +301,23 @@ model RegistrationQuality {
 
   @@unique([registrationId, lineNumber])
   @@map("awb_registration_quality")
+}
+
+/// Photos of a registration, one per kind; the driver photo (DRIVER) is taken at the gate.
+model RegistrationPhoto {
+  id             String   @id @default(uuid(7))
+  registrationId String   @map("registration_id")
+  kind           String   @db.NVarChar(20)
+  mimeType       String   @map("mime_type") @db.NVarChar(50)
+  content        Bytes    @db.VarBinary(Max)
+  sizeBytes      Int      @map("size_bytes")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@unique([registrationId, kind])
+  @@map("awb_registration_photo")
 }
 
 model Transporter {
@@ -492,4 +516,58 @@ model MasterPull {
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
   @@map("sys_master_pull")
+}
+
+// Plant flows, the same stages as VCF: regist_in, wb_in, ..., wb_out, regist_out.
+model Flow {
+  code      String   @id @db.NVarChar(20)
+  name      String   @db.NVarChar(100)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  stages        FlowStage[]
+  rules         FlowRule[]
+  registrations Registration[]
+
+  @@map("mst_flow")
+}
+
+model FlowStage {
+  flowCode       String   @map("flow_code") @db.NVarChar(20)
+  stageCode      String   @map("stage_code") @db.NVarChar(30)
+  stepOrder      Int      @map("step_order")
+  stageType      String   @map("stage_type") @db.NVarChar(30)
+  name           String   @db.NVarChar(100)
+  requiresTapIn  Boolean  @default(false) @map("requires_tap_in")
+  requiresTapOut Boolean  @default(false) @map("requires_tap_out")
+  requiresCctv   Boolean  @default(false) @map("requires_cctv")
+  canHold        Boolean  @default(false) @map("can_hold")
+  canReject      Boolean  @default(false) @map("can_reject")
+  isOptional     Boolean  @default(false) @map("is_optional")
+  parallelGroup  String?  @map("parallel_group") @db.NVarChar(30)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  flow          Flow           @relation(fields: [flowCode], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  registrations Registration[]
+
+  @@id([flowCode, stageCode])
+  @@unique([flowCode, stepOrder])
+  @@map("mst_flow_stage")
+}
+
+// Which flow a truck follows: a commodity rule (any transaction type) wins over the transaction type rule.
+model FlowRule {
+  id              Int      @id @default(autoincrement())
+  transactionCode String?  @map("transaction_code") @db.NVarChar(10)
+  commodityCode   String?  @map("commodity_code") @db.NVarChar(30)
+  flowCode        String   @map("flow_code") @db.NVarChar(20)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  flow Flow @relation(fields: [flowCode], references: [code], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([transactionCode, commodityCode])
+  @@map("mst_flow_rule")
 }

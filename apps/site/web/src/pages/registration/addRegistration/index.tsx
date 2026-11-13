@@ -15,6 +15,7 @@ import { FormError } from '@/ui/Field'
 import { ArrowLeft } from '@/ui/icons'
 import { getErrorMessage } from '@/utils/errorHandler'
 import type { SectionId } from '@/types/registration'
+import { CardSection } from './_components/CardSection'
 import { emptyRegistration } from './_components/defaults'
 import { DestinationSection } from './_components/DestinationSection'
 import { ExtrasSection } from './_components/ExtrasSection'
@@ -50,12 +51,14 @@ const resolver: Resolver<RegistrationCreateInput, unknown, RegistrationCreateDat
 const SECTION_OF: [keyof RegistrationCreateInput, SectionId][] = [
   ['plateNumber', 'truck'],
   ['licenseNumber', 'truck'],
+  ['driverPhoto', 'truck'],
   ['passengerCount', 'truck'],
   ['dos', 'load'],
   ['destinations', 'destination'],
   ['hasOtherPartyWeight', 'otherParty'],
   ['otherPartyGross', 'otherParty'],
   ['otherPartyTare', 'otherParty'],
+  ['cardNumber', 'card'],
   ['containers', 'extras'],
   ['qualities', 'extras'],
 ]
@@ -150,6 +153,7 @@ export default function AddRegistration() {
           <LoadSection form={form} />
           <DestinationSection form={form} />
           <OtherPartySection form={form} />
+          <CardSection form={form} />
           <ExtrasSection form={form} />
         </div>
         <div className="xl:sticky xl:top-0">

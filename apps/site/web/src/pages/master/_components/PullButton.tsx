@@ -4,8 +4,8 @@ import { Button } from '@/ui/Button'
 import { CloudSync } from '@/ui/icons'
 import { Modal } from '@/ui/Modal'
 import { getErrorMessage } from '@/utils/errorHandler'
+import { MASTER_INFO } from '@/utils/master'
 import type { PullButtonProps } from '@/types/master'
-import { MASTER_INFO } from './kinds'
 
 export function PullButton({ kind, size = 'sm' }: PullButtonProps) {
   const pull = usePullMaster()
@@ -42,11 +42,11 @@ export function PullButton({ kind, size = 'sm' }: PullButtonProps) {
         </p>
       )}
       {notAvailable && (
-        <Modal title="Not available yet" onClose={() => setNotAvailable(false)} size="sm">
+        <Modal title="SAP service in progress" onClose={() => setNotAvailable(false)} size="sm">
           <div className="space-y-4">
             <p className="text-sm text-stone-600">
-              The SAP service for <strong>{label.toLowerCase()}</strong> has not been created yet.
-              Until it is, this data comes from the WB.NET backfill.
+              The SAP service for <strong>{label.toLowerCase()}</strong> has not been created yet,
+              so it cannot be pulled. Until it is, this data comes from the WB.NET backfill.
             </p>
             <div className="flex justify-end">
               <Button onClick={() => setNotAvailable(false)}>OK</Button>

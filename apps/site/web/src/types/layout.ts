@@ -17,6 +17,13 @@ export type NavItem = {
   icon: ReactNode
   end?: boolean
   show: boolean
+  children?: NavSubItem[]
+}
+
+export type NavSubItem = {
+  to: string
+  label: string
+  icon: ReactNode
 }
 
 export interface LoadingStateProps {

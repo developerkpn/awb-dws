@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
+  RegistrationCardStatus,
   RegistrationCreateData,
   RegistrationCreated,
   RegistrationListResult,
@@ -10,7 +11,11 @@ import type { RegistrationListParams } from '@/types/registration'
 export const registrationKeys = {
   all: ['registration'] as const,
   list: (params: RegistrationListParams) => ['registration', 'list', params] as const,
+  card: (cardNumber: string) => ['registration', 'card', cardNumber] as const,
 }
+
+export const driverPhotoUrl = (registrationId: string) =>
+  `/api/registrations/${encodeURIComponent(registrationId)}/driver-photo`
 
 function queryString(params: RegistrationListParams) {
   const search = new URLSearchParams()
@@ -28,6 +33,19 @@ export function useRegistrations(params: RegistrationListParams) {
     queryFn: ({ signal }) =>
       fetchApi<RegistrationListResult>('/registrations' + queryString(params), { signal }),
     placeholderData: keepPreviousData,
+  })
+}
+
+/** Which unfinished registration, if any, still holds the card. */
+export function useCardStatus(cardNumber: string) {
+  return useQuery({
+    queryKey: registrationKeys.card(cardNumber),
+    queryFn: ({ signal }) =>
+      fetchApi<RegistrationCardStatus>(`/registrations/cards/${encodeURIComponent(cardNumber)}`, {
+        signal,
+      }),
+    enabled: cardNumber.length > 0,
+    staleTime: 10_000,
   })
 }
 

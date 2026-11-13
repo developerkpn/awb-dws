@@ -7,3 +7,13 @@ export type RegistrationListFilter = z.output<typeof registrationListQuery>
 export type ListedRegistration = Prisma.RegistrationGetPayload<{
   include: typeof REGISTRATION_LIST_INCLUDE
 }>
+
+export interface FlowPlacement {
+  flowCode: string
+  stageCode: string
+}
+
+export interface DecodedPhoto {
+  mimeType: string
+  content: Uint8Array<ArrayBuffer>
+}

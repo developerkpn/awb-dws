@@ -8,7 +8,8 @@ import apiRoutes from './routes'
 const app = express()
 
 app.use(cors())
-app.use(express.json())
+// Registrations carry the driver photo, so the body may be larger than the default 100 kB.
+app.use(express.json({ limit: '2mb' }))
 
 app.get('/health', (_req, res) => {
   res.json(

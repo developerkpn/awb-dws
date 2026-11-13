@@ -1,6 +1,7 @@
+import type { SvgIconComponent } from '@mui/icons-material'
 import type { ComboboxOption } from '@awb/ui'
 import type { TableColumn } from '@awb/ui'
-import type { MasterKind, MasterListQuery, MasterRowByKind } from '@awb/contracts'
+import type { MasterKind, MasterListQuery, MasterPullStatus, MasterRowByKind } from '@awb/contracts'
 
 export type MasterListParams = MasterListQuery
 
@@ -25,6 +26,12 @@ export interface LookupFieldProps<K extends MasterKind> {
 export interface MasterKindInfo {
   label: string
   description: string
+  icon: SvgIconComponent
+}
+
+export interface PullAllResultProps {
+  statuses: MasterPullStatus[]
+  onClose: () => void
 }
 
 export interface PullButtonProps {

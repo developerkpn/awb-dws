@@ -18,6 +18,8 @@ export function SummaryPanel({ form, submitted, isSaving, onSave, onCancel }: Su
     plateNumber: plate,
     driverName: driver,
     licenseNumber: license,
+    driverPhoto,
+    cardNumber,
     dos,
     destinations,
     hasOtherPartyWeight: hasOtherParty,
@@ -59,6 +61,12 @@ export function SummaryPanel({ form, submitted, isSaving, onSave, onCancel }: Su
           : 'missing',
     },
     {
+      section: 'truck',
+      label: 'Driver photo',
+      value: driverPhoto ? 'Taken' : 'Required',
+      state: driverPhoto && !invalidFields.has('driverPhoto') ? 'done' : 'missing',
+    },
+    {
       section: 'load',
       label: 'Load',
       value: doCount
@@ -91,6 +99,12 @@ export function SummaryPanel({ form, submitted, isSaving, onSave, onCancel }: Su
         (hasOtherParty && weightInvalid)
           ? 'missing'
           : 'done',
+    },
+    {
+      section: 'card',
+      label: 'RFID card',
+      value: cardNumber?.trim().toUpperCase() || 'Required',
+      state: cardNumber?.trim() && !invalidFields.has('cardNumber') ? 'done' : 'missing',
     },
   ]
 
